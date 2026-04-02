@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:wght@400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Premium Travel Colors */
+  --color-travel-teal: #0ea5a5;
+  --color-travel-accent: #ff6b5b;
+  --color-luxury-dark: #222222;
+  --color-luxury-gray-50: #fafafa;
+  --color-luxury-gray-100: #f5f5f5;
+  --color-luxury-gray-200: #e9ecef;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: #222222;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Smooth transitions - exclude scroll containers */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Remove transitions from scroll containers to prevent lag */
+.overflow-x-auto, .overflow-y-auto, .overflow-x-auto *, .overflow-y-auto * {
+  transition: none !important;
+  scroll-behavior: auto;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+/* Smooth scrolling without snap */
+.overflow-x-auto, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: none;
+  scroll-padding: 0;
+  scroll-snap-stop: normal;
+}
+
+/* Better horizontal scrollbar */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom fonts */
+.font-serif {
+  font-family: 'Instrument Serif', Georgia, serif;
+}
+
+/* Premium card */
+.card-premium {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f5f5f5;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-premium:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Premium shadows */
+.shadow-premium-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-premium {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-premium-md {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-premium-lg {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* Travel accent colors */
+.text-travel-teal {
+  color: var(--color-travel-teal);
+}
+
+.bg-travel-teal {
+  background-color: var(--color-travel-teal);
+}
+
+.text-travel-accent {
+  color: var(--color-travel-accent);
+}
+
+.bg-travel-accent {
+  background-color: var(--color-travel-accent);
+}
+
+/* Map labels */
+.map-label {
+  background: white !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  border: 1px solid rgba(0,0,0,0.1) !important;
+}
