@@ -146,6 +146,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       let extractedRating = '';
       let extractedImage = '';
       let extractedDescription = '';
+      let extractedTypes: string[] = [];
 
       try {
         const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -341,6 +342,12 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
           setOpeningHours(placeDetails.openingHours);
         }
 
+        // Extract place types for detection
+        if (placeDetails.types && placeDetails.types.length > 0) {
+          extractedTypes = placeDetails.types;
+          console.log('✅ Place Types:', extractedTypes);
+        }
+
       } catch (placesError) {
         console.error('❌ Error using Google Places API:', placesError);
 
@@ -386,7 +393,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       const combinedText = `${lowerName} ${lowerDesc} ${lowerAddr}`;
 
       // BEST: Use Google Places types (most accurate!)
-      const placeTypes = placeDetails.types || [];
+      const placeTypes = extractedTypes;
       const lodgingTypes = ['lodging', 'hotel', 'guest_house', 'hostel', 'campground', 'rv_park'];
       let isHotel = placeTypes.some(type => lodgingTypes.includes(type));
 
