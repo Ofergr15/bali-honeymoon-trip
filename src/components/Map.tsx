@@ -199,73 +199,20 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Google Earth-style smooth animation using native Maps API
+  // Simple, reliable animation - just pan + zoom
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
-    if (!map) {
-      console.log('❌ No map instance');
-      return;
-    }
+    if (!map) return;
 
-    const currentCenter = map.getCenter();
-    const currentZoom = map.getZoom() || 10;
+    console.log('📍 Navigate to:', source);
 
-    if (!currentCenter) return;
+    // SIMPLE & SMOOTH: Let Google Maps handle everything
+    // Just pan to target (smooth built-in animation) and zoom
+    map.panTo({ lat: targetLat, lng: targetLng });
 
-    console.log('🌍 Smooth flyover from:', source);
-    console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
-    console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
-
-    // Calculate distance
-    const latDiff = targetLat - currentCenter.lat();
-    const lngDiff = targetLng - currentCenter.lng();
-    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-
-    console.log('   Distance:', distance.toFixed(4));
-
-    // SIMPLE APPROACH: Multi-stage with native panTo() for smoothness
-    if (distance < 0.02) {
-      // VERY SHORT - direct pan + zoom
-      console.log('   📍 Short distance - direct');
-      map.panTo({ lat: targetLat, lng: targetLng });
-      setTimeout(() => map.setZoom(targetZoom), 300);
-    } else if (distance < 0.1) {
-      // MEDIUM - slight zoom out, pan, zoom in
-      console.log('   🛫 Medium distance - arc');
-      const midZoom = Math.max(Math.min(currentZoom, targetZoom) - 2, 9);
-
-      // Stage 1: Zoom out slightly (if needed)
-      if (currentZoom > midZoom) {
-        map.setZoom(midZoom);
-      }
-
-      // Stage 2: Pan with native smooth animation (400ms delay if we zoomed out)
-      setTimeout(() => {
-        map.panTo({ lat: targetLat, lng: targetLng });
-      }, currentZoom > midZoom ? 400 : 0);
-
-      // Stage 3: Zoom to target
-      setTimeout(() => {
-        map.setZoom(targetZoom);
-      }, currentZoom > midZoom ? 1200 : 800);
-    } else {
-      // LONG - dramatic zoom out, pan, zoom in
-      console.log('   🌍 Long distance - flyover');
-
-      // Stage 1: Zoom out to overview
-      map.setZoom(8);
-
-      // Stage 2: Pan to target
-      setTimeout(() => {
-        map.panTo({ lat: targetLat, lng: targetLng });
-      }, 500);
-
-      // Stage 3: Zoom in to target
-      setTimeout(() => {
-        map.setZoom(targetZoom);
-      }, 1500);
-    }
-
-    console.log('✅ Animation started');
+    // Zoom after a brief delay so you see the pan first
+    setTimeout(() => {
+      map.setZoom(targetZoom);
+    }, 400);
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
