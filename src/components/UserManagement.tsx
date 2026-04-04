@@ -68,12 +68,17 @@ export default function UserManagement({ isSuperUser }: { isSuperUser: boolean }
 
       if (error) throw error;
 
+      // Update local state immediately
+      setUsers(prevUsers =>
+        prevUsers.map(u =>
+          u.id === userId ? { ...u, status, updated_at: new Date().toISOString() } : u
+        )
+      );
+
       // TODO: Send email notification if approved
       if (status === 'approved') {
         await sendApprovalEmail(userId);
       }
-
-      await loadUsers();
     } catch (error) {
       console.error('Error updating user status:', error);
       alert('Failed to update user status');
@@ -88,7 +93,13 @@ export default function UserManagement({ isSuperUser }: { isSuperUser: boolean }
         .eq('id', userId);
 
       if (error) throw error;
-      await loadUsers();
+
+      // Update local state immediately
+      setUsers(prevUsers =>
+        prevUsers.map(u =>
+          u.id === userId ? { ...u, role, updated_at: new Date().toISOString() } : u
+        )
+      );
     } catch (error) {
       console.error('Error updating user role:', error);
       alert('Failed to update user role');
@@ -172,7 +183,9 @@ export default function UserManagement({ isSuperUser }: { isSuperUser: boolean }
         <div className="space-y-2">
           {approvedUsers.map(user => {
             const isSelf = user.id === currentUser?.id;
-            const canChangeRole = isSuperUser || (user.role !== 'super_user' && user.role !== 'admin');
+            // Super user can change anyone's role except their own
+            // Regular admins can only change non-admin, non-super_user roles
+            const canChangeRole = isSelf ? false : (isSuperUser || (user.role !== 'super_user' && user.role !== 'admin'));
 
             return (
               <div
