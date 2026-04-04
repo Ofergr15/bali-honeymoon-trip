@@ -832,10 +832,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         const markerToShow = hoveredMarker || selectedMarker;
         if (!markerToShow) return null;
 
-        // Offset InfoWindow position slightly above marker to prevent blocking hover
+        // Position InfoWindow below marker to avoid being cut off at screen edges
         const infoWindowPosition = 'location' in markerToShow
           ? {
-              lat: markerToShow.location.lat + 0.002, // Offset slightly north
+              lat: markerToShow.location.lat,
               lng: markerToShow.location.lng
             }
           : { lat: 0, lng: 0 };
@@ -844,7 +844,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           <InfoWindow
             position={infoWindowPosition}
             options={{
-              pixelOffset: new google.maps.Size(0, -40), // Move up 40px to not cover marker
+              pixelOffset: new google.maps.Size(0, 35), // Position BELOW marker (positive = down)
               disableAutoPan: true, // CRITICAL: Prevent map from moving when InfoWindow appears on hover
             }}
             onCloseClick={() => {
