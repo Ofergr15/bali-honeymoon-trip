@@ -212,7 +212,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Atomic camera movement - SINGLE OPERATION (prevents dual-action conflict)
+  // Google Earth-style flyover animation
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) {
       console.log('❌ No map instance');
@@ -220,16 +220,51 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
 
     const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom() || 10;
 
-    console.log('🎥 Animation triggered from:', source);
-    console.log('   Current:', currentCenter ? `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}` : 'unknown');
+    if (!currentCenter) return;
+
+    console.log('🎥 Google Earth animation from:', source);
+    console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
     console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
 
-    // Use simple panTo + setZoom for reliability
-    console.log('📍 Animating with panTo + setZoom...');
-    map.panTo({ lat: targetLat, lng: targetLng });
-    map.setZoom(targetZoom);
-    console.log('✅ Animation commands sent');
+    // Calculate distance to determine animation style
+    const latDiff = Math.abs(targetLat - currentCenter.lat());
+    const lngDiff = Math.abs(targetLng - currentCenter.lng());
+    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+
+    console.log('   Distance:', distance.toFixed(4));
+
+    // SHORT DISTANCE: Direct smooth pan + zoom
+    if (distance < 0.05) {
+      console.log('   📍 Short distance - direct animation');
+      map.panTo({ lat: targetLat, lng: targetLng });
+      setTimeout(() => map.setZoom(targetZoom), 200); // Slight delay for smooth transition
+      return;
+    }
+
+    // LONG DISTANCE: Google Earth style - zoom out → pan → zoom in
+    console.log('   🌍 Long distance - Google Earth flyover');
+
+    const midZoom = Math.max(8, Math.min(currentZoom, targetZoom) - 2); // Zoom out to overview
+
+    // Step 1: Zoom out to get overview (300ms)
+    map.setZoom(midZoom);
+    console.log('   Step 1: Zoom out to', midZoom);
+
+    // Step 2: Pan to target location (starts after 300ms)
+    setTimeout(() => {
+      console.log('   Step 2: Pan to target');
+      map.panTo({ lat: targetLat, lng: targetLng });
+    }, 300);
+
+    // Step 3: Zoom in to final zoom level (starts after pan completes)
+    setTimeout(() => {
+      console.log('   Step 3: Zoom in to', targetZoom);
+      map.setZoom(targetZoom);
+    }, 1000);
+
+    console.log('✅ Flyover animation started');
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
