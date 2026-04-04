@@ -594,6 +594,24 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         const showLabel = isSelected; // Only show label when clicked/selected
         return (
           <React.Fragment key={hotel.id}>
+            {/* Circle background */}
+            <Marker
+              position={hotel.location}
+              onClick={() => handleMarkerClick(hotel)}
+              onMouseOver={() => handleMarkerHover(hotel)}
+              onMouseOut={handleMarkerUnhover}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#FFFFFF',
+                fillOpacity: 0.95,
+                strokeColor: ACTIVITY_COLORS.hotel.color,
+                strokeWeight: 3,
+                scale: getMarkerScale(12),
+                anchor: new google.maps.Point(0, 0),
+              }}
+              zIndex={isSelected ? 199 : 99}
+            />
+            {/* Emoji on top */}
             <Marker
               position={hotel.location}
               onClick={() => handleMarkerClick(hotel)}
@@ -605,10 +623,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               }}
               label={{
                 text: ACTIVITY_COLORS.hotel.emoji,
-                fontSize: '28px',
+                fontSize: '24px',
                 className: isSelected ? 'selected-marker' : '',
               }}
-              zIndex={isSelected ? 200 : undefined}
+              zIndex={isSelected ? 200 : 100}
             />
             {showLabel && (
               <Marker
@@ -642,6 +660,24 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         const activityTypeInfo = getActivityTypeColor(activity.type);
         return (
           <React.Fragment key={activity.id}>
+            {/* Circle background */}
+            <Marker
+              position={activity.location}
+              onClick={() => handleMarkerClick(activity)}
+              onMouseOver={() => handleMarkerHover(activity)}
+              onMouseOut={handleMarkerUnhover}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#FFFFFF',
+                fillOpacity: 0.95,
+                strokeColor: activityColor,
+                strokeWeight: 3,
+                scale: getMarkerScale(11),
+                anchor: new google.maps.Point(0, 0),
+              }}
+              zIndex={isSelected ? 199 : 99}
+            />
+            {/* Emoji on top */}
             <Marker
               position={activity.location}
               onClick={() => handleMarkerClick(activity)}
@@ -653,10 +689,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               }}
               label={{
                 text: activityTypeInfo.emoji,
-                fontSize: '28px',
+                fontSize: '22px',
                 className: isSelected ? 'selected-marker' : '',
               }}
-              zIndex={isSelected ? 200 : undefined}
+              zIndex={isSelected ? 200 : 100}
             />
             {showLabel && (
               <Marker
@@ -690,6 +726,24 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         const bookmarkTypeInfo = getActivityTypeColor(bookmark.type);
         return (
           <React.Fragment key={bookmark.id}>
+            {/* Circle background */}
+            <Marker
+              position={bookmark.location}
+              onClick={() => handleMarkerClick(bookmark)}
+              onMouseOver={() => handleMarkerHover(bookmark)}
+              onMouseOut={handleMarkerUnhover}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#FFFFFF',
+                fillOpacity: 0.95,
+                strokeColor: bookmarkColor,
+                strokeWeight: 3,
+                scale: getMarkerScale(12),
+                anchor: new google.maps.Point(0, 0),
+              }}
+              zIndex={isSelected ? 199 : 179}
+            />
+            {/* Emoji on top */}
             <Marker
               position={bookmark.location}
               onClick={() => handleMarkerClick(bookmark)}
@@ -701,7 +755,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               }}
               label={{
                 text: bookmarkTypeInfo.emoji,
-                fontSize: '28px',
+                fontSize: '24px',
                 className: isSelected ? 'selected-marker' : '',
               }}
               zIndex={isSelected ? 200 : 180} // Higher than regular activities

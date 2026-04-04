@@ -70,6 +70,7 @@ function App() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [showBookmarksOnMap, setShowBookmarksOnMap] = useState(false);
+  const [filteredBookmarks, setFilteredBookmarks] = useState<Activity[]>(tripData.unassignedActivities || []);
   const [itemToEdit, setItemToEdit] = useState<Activity | Hotel | null>(null);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1005,7 +1006,7 @@ function App() {
           <Map
             activities={allActivities}
             hotels={allHotels}
-            bookmarks={tripData.unassignedActivities}
+            bookmarks={filteredBookmarks}
             showBookmarks={showBookmarksOnMap}
             selectedDay={selectedDay || undefined}
             selectedPlace={selectedPlace || undefined}
@@ -1078,6 +1079,7 @@ function App() {
             setSelectedItem(activity);
             setShowBookmarksPanel(false);
           }}
+          onFilterChange={(filtered) => setFilteredBookmarks(filtered)}
         />
       )}
 

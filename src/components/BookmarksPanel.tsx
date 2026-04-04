@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
@@ -8,9 +8,10 @@ interface BookmarksPanelProps {
   bookmarks: Activity[];
   onClose: () => void;
   onBookmarkClick: (activity: Activity) => void;
+  onFilterChange?: (filteredBookmarks: Activity[]) => void; // NEW: Callback when filters change
 }
 
-export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: BookmarksPanelProps) {
+export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, onFilterChange }: BookmarksPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
   const [filterLocation, setFilterLocation] = useState<string | 'all'>('all');
@@ -57,6 +58,14 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
 
   // Check if any filters are active
   const hasActiveFilters = filterType !== 'all' || filterLocation !== 'all';
+
+  // Notify parent component when filters change
+  useEffect(() => {
+    if (onFilterChange) {
+      onFilterChange(filteredBookmarks);
+    }
+  }, [filterType, filterLocation, bookmarks]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-premium-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
