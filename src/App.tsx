@@ -12,6 +12,7 @@ import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId } from './services/tripService';
 import { supabase } from './lib/supabase';
+import { cleanupDatabase, verifyDatabase } from './services/cleanupDatabase';
 import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
@@ -82,9 +83,62 @@ function App() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   // Load trip data from Supabase or localStorage
   const [tripData, setTripData] = useState<TripData>(baliTripData);
+
+  // Cleanup database - remove duplicate trips
+  const handleCleanupDatabase = async () => {
+    if (!isSupabaseConfigured) {
+      alert('Supabase not configured');
+      return;
+    }
+
+    const confirmed = confirm(
+      '⚠️ DATABASE CLEANUP\n\n' +
+      'This will:\n' +
+      '1. Find the trip with the most data\n' +
+      '2. Delete all duplicate trips\n' +
+      '3. Clean up orphaned data\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
+    setCleaningUp(true);
+    console.log('🧹 Starting database cleanup...');
+
+    const result = await cleanupDatabase();
+
+    if (result.success && result.keptTripId) {
+      console.log(`✅ Cleanup complete! Kept trip ${result.keptTripId}, deleted ${result.deletedTrips} duplicates`);
+
+      if (result.errors.length > 0) {
+        console.warn('⚠️ Cleanup had some errors:', result.errors);
+      }
+
+      // Update to use the kept trip
+      setTripId(result.keptTripId);
+      localStorage.setItem(TRIP_ID_KEY, result.keptTripId);
+
+      // Reload the trip data
+      const data = await loadTrip(result.keptTripId);
+      if (data) {
+        setTripData(data);
+        alert(`✅ Cleanup complete!\n\nKept 1 trip with ${data.days.length} days\nDeleted ${result.deletedTrips} duplicate trips`);
+      }
+
+      // Verify database
+      const verification = await verifyDatabase();
+      console.log('📊 Database verification:', verification);
+    } else {
+      console.error('❌ Cleanup failed:', result.errors);
+      alert(`❌ Cleanup failed:\n\n${result.errors.join('\n')}`);
+    }
+
+    setCleaningUp(false);
+  };
 
   // Load trip data on mount
   useEffect(() => {
@@ -95,90 +149,49 @@ function App() {
         console.log('🚀 Supabase configured - loading from database');
         console.log('📌 SINGLETON MODE: Only 1 trip allowed');
 
-        // Try to load existing trip by stored ID
-        if (tripId) {
-          console.log('📥 Loading existing trip:', tripId);
-          const data = await loadTrip(tripId);
-          if (data) {
-            console.log('✅ Trip loaded from database');
-            console.log('   Days in loaded trip:', data.days.length);
+        try {
+          // SIMPLIFIED LOGIC: Find ANY trip, use the first one (oldest)
+          const { data: existingTrips, error } = await supabase
+            .from('trips')
+            .select('id, created_at')
+            .order('created_at', { ascending: true })
+            .limit(1);
 
-            // Safety check: if loaded trip has no days, it's corrupted - recreate it
-            if (data.days.length === 0) {
-              console.log('⚠️ Loaded trip has NO DAYS - data is corrupted!');
-              console.log('🔄 Recreating trip with full data...');
+          if (error) throw error;
 
-              // Recreate the SAME trip (don't create a new ID, just repopulate)
-              const recreated = await createTrip(baliTripData);
-              if (recreated) {
-                // Load the newly recreated trip
-                const freshData = await loadTrip(recreated);
-                if (freshData && freshData.days.length > 0) {
-                  console.log('✅ Trip recreated successfully with', freshData.days.length, 'days');
-                  setTripData(freshData);
-                  setTripId(recreated);
-                  localStorage.setItem(TRIP_ID_KEY, recreated);
-                } else {
-                  console.log('⚠️ Recreated trip still empty, using baliTripData locally');
-                  setTripData(baliTripData);
-                }
-              } else {
-                console.error('❌ Failed to recreate trip, using baliTripData');
-                setTripData(baliTripData);
-              }
-              setLoading(false);
-              return;
+          if (existingTrips && existingTrips.length > 0) {
+            // Found existing trip(s) - use the first (oldest)
+            const existingTripId = existingTrips[0].id;
+            console.log('✅ Found existing trip:', existingTripId);
+
+            setTripId(existingTripId);
+            localStorage.setItem(TRIP_ID_KEY, existingTripId);
+
+            const data = await loadTrip(existingTripId);
+            if (data) {
+              console.log('✅ Trip loaded with', data.days.length, 'days,', data.unassignedActivities?.length || 0, 'bookmarks');
+              setTripData(data);
+            } else {
+              console.error('❌ Failed to load trip');
+              setTripData(baliTripData);
             }
-
-            setTripData(data);
-            setLoading(false);
-            return;
           } else {
-            console.log('⚠️ Stored trip ID not found in database');
-            localStorage.removeItem(TRIP_ID_KEY);
-            setTripId(null);
-            // Continue to check for ANY existing trip
+            // No trip exists - create the FIRST one
+            console.log('📝 No trip exists - creating first trip...');
+            const newTripId = await createTrip(baliTripData);
+
+            if (newTripId) {
+              console.log('✅ Trip created with ID:', newTripId);
+              setTripId(newTripId);
+              localStorage.setItem(TRIP_ID_KEY, newTripId);
+              setTripData(baliTripData);
+            } else {
+              console.error('❌ Failed to create trip');
+              setTripData(baliTripData);
+            }
           }
-        }
-
-        // No stored ID - check if ANY trip exists in database (SINGLETON check)
-        console.log('🔍 Checking if any trip exists in database...');
-        const { data: existingTrips, error } = await supabase
-          .from('trips')
-          .select('id')
-          .limit(1)
-          .single();
-
-        if (!error && existingTrips) {
-          // Found an existing trip - use it!
-          console.log('✅ Found existing trip in database:', existingTrips.id);
-          console.log('   Using this trip (SINGLETON MODE)');
-          setTripId(existingTrips.id);
-          localStorage.setItem(TRIP_ID_KEY, existingTrips.id);
-
-          const data = await loadTrip(existingTrips.id);
-          if (data) {
-            console.log('✅ Trip loaded with', data.days.length, 'days');
-            setTripData(data);
-          } else {
-            console.error('❌ Failed to load found trip');
-            setTripData(baliTripData);
-          }
-          setLoading(false);
-          return;
-        }
-
-        // No trip exists at all - create the FIRST and ONLY trip
-        console.log('📝 No trip exists - creating the FIRST trip...');
-        const newTripId = await createTrip(baliTripData);
-        if (newTripId) {
-          console.log('✅ Trip created with ID:', newTripId);
-          console.log('   This is the ONLY trip (SINGLETON MODE)');
-          setTripId(newTripId);
-          localStorage.setItem(TRIP_ID_KEY, newTripId);
-          setTripData(baliTripData);
-        } else {
-          console.error('❌ Failed to create trip, falling back to localStorage');
+        } catch (error) {
+          console.error('❌ Error during initialization:', error);
           loadFromLocalStorage();
         }
       } else {
@@ -821,6 +834,16 @@ function App() {
               >
                 <Settings className="w-4 h-4" />
               </button>
+              {isSupabaseConfigured && (
+                <button
+                  onClick={handleCleanupDatabase}
+                  disabled={cleaningUp}
+                  className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                  title="Cleanup Database - Remove duplicate trips"
+                >
+                  {cleaningUp ? '🧹 Cleaning...' : '🧹 Cleanup DB'}
+                </button>
+              )}
               <button
                 onClick={() => setShowBookmarksOnMap(!showBookmarksOnMap)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-premium-sm ${
