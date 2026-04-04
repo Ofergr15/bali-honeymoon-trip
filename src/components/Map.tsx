@@ -267,9 +267,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   }, [map, selectedItem]); // animateToLocation is stable (useCallback), don't need it as dependency
 
   // Calculate marker scale based on zoom level (from ref, not state!)
+  // REVERSE scaling: markers should stay same size or get SMALLER when zoomed in
   const getMarkerScale = (baseScale: number) => {
-    // Scale markers based on zoom: zoom 8 = 0.8x, zoom 10 = 1x, zoom 15 = 1.5x
-    const scaleFactor = Math.pow(1.15, zoomLevelRef.current - 10);
+    // At zoom 8: 1.2x (bigger), at zoom 10: 1x, at zoom 15: 0.7x (smaller), at zoom 18: 0.5x
+    const scaleFactor = Math.pow(0.92, zoomLevelRef.current - 10);
     return baseScale * scaleFactor;
   };
 
@@ -634,8 +635,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                 fillColor: ACTIVITY_COLORS.hotel.color,
                 fillOpacity: 0.95,
                 strokeColor: isSelected ? '#FFD700' : '#ffffff',
-                strokeWeight: isSelected ? 4 : 2.5,
-                scale: isSelected ? getMarkerScale(12) : getMarkerScale(10),
+                strokeWeight: 2.5,
+                scale: getMarkerScale(10),
                 anchor: new google.maps.Point(0, 0),
               }}
               zIndex={isSelected ? 200 : undefined}
@@ -712,8 +713,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                 fillColor: activityColor,
                 fillOpacity: 0.92,
                 strokeColor: isSelected ? '#FFD700' : '#ffffff',
-                strokeWeight: isSelected ? 3.5 : 2,
-                scale: isSelected ? getMarkerScale(11) : getMarkerScale(9),
+                strokeWeight: 2,
+                scale: getMarkerScale(9),
                 anchor: new google.maps.Point(0, 0),
               }}
               zIndex={isSelected ? 200 : undefined}
@@ -790,8 +791,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                 fillColor: bookmarkColor,
                 fillOpacity: 0.92,
                 strokeColor: isSelected ? '#FFD700' : '#ffffff',
-                strokeWeight: isSelected ? 4 : 3,
-                scale: isSelected ? getMarkerScale(12) : getMarkerScale(10),
+                strokeWeight: 3,
+                scale: getMarkerScale(10),
                 anchor: new google.maps.Point(0, 0),
               }}
               zIndex={isSelected ? 200 : 180} // Higher than regular activities
