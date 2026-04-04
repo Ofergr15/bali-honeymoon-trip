@@ -48,8 +48,8 @@ body {
   background: #94a3b8;
 }
 
-/* Smooth transitions - exclude scroll containers */
-* {
+/* Smooth transitions - EXCLUDE Google Maps and scroll containers */
+*:not(.gm-style):not(.gm-style *) {
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
