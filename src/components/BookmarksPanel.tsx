@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Bookmark, MapPin } from 'lucide-react';
+import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
 
@@ -52,6 +52,7 @@ interface BookmarksPanelProps {
 }
 
 export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: BookmarksPanelProps) {
+  const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
   const [filterLocation, setFilterLocation] = useState<string | 'all'>('all');
 
@@ -93,30 +94,56 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
   bookmarksWithLocation.forEach(b => {
     locationCounts[b.nearestPlace] = (locationCounts[b.nearestPlace] || 0) + 1;
   });
+
+  // Check if any filters are active
+  const hasActiveFilters = filterType !== 'all' || filterLocation !== 'all';
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-premium-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-br from-yellow-50 to-amber-50 border-b-2 border-yellow-200 px-6 py-5 flex items-center justify-between rounded-t-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-400 shadow-sm">
-              <Bookmark className="w-5 h-5 text-white" />
+        <div className="sticky top-0 bg-gradient-to-br from-yellow-50 to-amber-50 border-b-2 border-yellow-200 px-6 py-5 rounded-t-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-400 shadow-sm">
+                <Bookmark className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Bookmarks</h2>
+                <p className="text-sm text-gray-600">Places saved for later</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Bookmarks</h2>
-              <p className="text-sm text-gray-600">Places saved for later</p>
+            <div className="flex items-center gap-2">
+              {bookmarks.length > 0 && (
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                    showFilters || hasActiveFilters
+                      ? 'bg-yellow-400 text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-yellow-300 hover:bg-yellow-100'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {hasActiveFilters && (
+                    <span className="bg-white text-yellow-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                      {(filterType !== 'all' ? 1 : 0) + (filterLocation !== 'all' ? 1 : 0)}
+                    </span>
+                  )}
+                  {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-yellow-100 rounded-lg transition-colors border border-yellow-300"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-yellow-100 rounded-lg transition-colors border border-yellow-300"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
         </div>
 
         {/* Filter Buttons */}
-        {bookmarks.length > 0 && (
+        {bookmarks.length > 0 && showFilters && (
           <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
             {/* Location Filter */}
             <div className="mb-4">
