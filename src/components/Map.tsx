@@ -359,14 +359,18 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     <div className="relative w-full h-full">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
-        defaultCenter={defaultCenter}
-        defaultZoom={10}
         onLoad={(mapInstance) => {
           setMap(mapInstance);
+
+          // Set initial position ONCE - then never update via props (uncontrolled)
+          mapInstance.setCenter(defaultCenter);
+          mapInstance.setZoom(10);
           mapInstance.setMapTypeId('hybrid');
 
-          // UNCONTROLLED MODE: Use default props, don't set center/zoom manually
-          console.log('✅ Map loaded in UNCONTROLLED mode (default props)');
+          // Update ref for initial zoom
+          zoomLevelRef.current = 10;
+
+          console.log('✅ Map loaded - initial position set, now uncontrolled');
 
           // === COMPREHENSIVE DRAG LOGGING ===
           // Track every drag movement to see snap-back in real-time
