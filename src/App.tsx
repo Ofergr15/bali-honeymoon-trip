@@ -1018,6 +1018,7 @@ function App() {
             placeDays={placeDays}
             days={tripData.days}
             onMarkerClick={handleMarkerClick}
+            onPlaceClick={handlePlaceSelect}
             selectedItem={selectedItem}
           />
         </div>

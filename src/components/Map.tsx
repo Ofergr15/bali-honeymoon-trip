@@ -517,9 +517,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             // Vertical offset to place label above circle
             let verticalOffset = 0.025 / Math.pow(1.15, zoomLevelRef.current - 10);
 
-            // Check if this location is being hovered (hide label if InfoWindow is showing)
-            const isHovered = hoveredMarker && 'isLocationMarker' in hoveredMarker && hoveredMarker.name === location.name;
-
             return (
               <React.Fragment key={`location-${location.name}`}>
                 {/* Circle marker */}
@@ -532,17 +529,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                     // Trigger place selection to show activity pins
                     onPlaceClick?.(location.name);
                   }}
-                  onMouseOver={() => {
-                    // Show location info on hover
-                    handleMarkerHover({
-                      id: `location-${location.name}`,
-                      name: location.name,
-                      location: { lat: location.lat, lng: location.lng },
-                      description: `${location.emoji} ${location.days} days in ${location.name}`,
-                      isLocationMarker: true,
-                    });
-                  }}
-                  onMouseOut={handleMarkerUnhover}
                   icon={{
                     path: google.maps.SymbolPath.CIRCLE,
                     fillColor: location.color,
@@ -557,35 +543,34 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                   }}
                   zIndex={100}
                 />
-                {/* Text label above the circle - hide when InfoWindow is showing */}
-                {!isHovered && (
-                  <Marker
-                    position={{
-                      lat: location.lat + verticalOffset,
-                      lng: location.lng
-                    }}
-                    onClick={() => {
-                      // Make label clickable too!
-                      console.log('🏝️ Clicked location label:', location.name);
-                      animateToLocation(location.lat, location.lng, 17, `location-label-${location.name}`);
-                    }}
-                    icon={{
-                      path: 'M 0,0',
-                      scale: 0,
-                    }}
-                    label={{
-                      text: `${location.emoji} ${location.name}`,
-                      color: '#1f2937',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      className: 'map-label',
-                    }}
-                    options={{
-                      cursor: 'pointer', // Show pointer cursor
-                    }}
-                    zIndex={99} // Below the circle so it doesn't block hover
-                  />
-                )}
+                {/* Text label above the circle - always visible */}
+                <Marker
+                  position={{
+                    lat: location.lat + verticalOffset,
+                    lng: location.lng
+                  }}
+                  onClick={() => {
+                    // Make label clickable too!
+                    console.log('🏝️ Clicked location label:', location.name);
+                    animateToLocation(location.lat, location.lng, 14, `location-label-${location.name}`);
+                    onPlaceClick?.(location.name);
+                  }}
+                  icon={{
+                    path: 'M 0,0',
+                    scale: 0,
+                  }}
+                  label={{
+                    text: `${location.emoji} ${location.name}`,
+                    color: '#1f2937',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    className: 'map-label',
+                  }}
+                  options={{
+                    cursor: 'pointer', // Show pointer cursor
+                  }}
+                  zIndex={99} // Below the circle so it doesn't block hover
+                />
               </React.Fragment>
             );
           })}
