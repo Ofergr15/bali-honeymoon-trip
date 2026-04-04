@@ -622,6 +622,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                     {activityType === 'temple' && '⛩️ Temple'}
                     {activityType === 'attraction' && '📍 Attraction'}
                     {activityType === 'activity' && '🎯 Activity'}
+                    {activityType === 'flight' && '✈️ Flight'}
                   </span>
                 </div>
                 <span className="text-xs text-gray-500">
@@ -647,6 +648,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
               <option value="temple">⛩️ Temple</option>
               <option value="activity">🎯 Activity</option>
               <option value="hotel">🏨 Hotel</option>
+              <option value="flight">✈️ Flight</option>
             </select>
           </div>
 

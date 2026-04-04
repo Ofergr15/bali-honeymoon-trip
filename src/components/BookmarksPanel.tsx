@@ -48,6 +48,7 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, on
     temple: bookmarks.filter(b => b.type === 'temple').length,
     attraction: bookmarks.filter(b => b.type === 'attraction').length,
     activity: bookmarks.filter(b => b.type === 'activity').length,
+    flight: bookmarks.filter(b => b.type === 'flight').length,
   };
 
   // Count bookmarks by location
@@ -236,6 +237,18 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, on
                   }`}
                 >
                   🎯 Activities ({typeCounts.activity})
+                </button>
+              )}
+              {typeCounts.flight > 0 && (
+                <button
+                  onClick={() => setFilterType('flight')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'flight'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  ✈️ Flights ({typeCounts.flight})
                 </button>
               )}
             </div>

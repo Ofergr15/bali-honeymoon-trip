@@ -176,6 +176,7 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
                 <option value="temple">⛩️ Temple</option>
                 <option value="activity">🎯 Activity</option>
                 <option value="hotel">🏨 Hotel</option>
+                <option value="flight">✈️ Flight</option>
               </select>
             </div>
           )}

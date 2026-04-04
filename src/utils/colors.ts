@@ -31,6 +31,11 @@ export const ACTIVITY_COLORS = {
     color: '#10B981',      // Green
     emoji: '🎯',
     name: 'Activity'
+  },
+  flight: {
+    color: '#6366F1',      // Indigo
+    emoji: '✈️',
+    name: 'Flight'
   }
 } as const;
 

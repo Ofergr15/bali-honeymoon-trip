@@ -32,7 +32,7 @@ export interface OpeningHours {
 export interface Activity {
   id: string;
   day?: number; // Optional - null means it's a bookmark not assigned to a day
-  type: 'attraction' | 'restaurant' | 'activity' | 'beach' | 'temple' | 'hotel';
+  type: 'attraction' | 'restaurant' | 'activity' | 'beach' | 'temple' | 'hotel' | 'flight';
   name: string;
   location: Location;
   address?: string;
