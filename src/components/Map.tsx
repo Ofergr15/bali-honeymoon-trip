@@ -313,8 +313,13 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   }, [hotels, selectedDay, placeDays]);
 
   const handleMarkerClick = (item: Activity | Hotel) => {
-    console.log('🖱️ MARKER CLICKED:', item.name, '→ calling setSelectedMarker (TRIGGERS RE-RENDER)');
-    setSelectedMarker(item);
+    console.log('🖱️ MARKER CLICKED:', item.name, '→ opening DetailsPanel');
+    // Clear hover state
+    setHoveredMarker(null);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    // Open DetailsPanel (like clicking from list)
     onMarkerClick?.(item);
   };
 
@@ -784,9 +789,9 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         );
       })}
 
-      {/* Info window - show on hover or click */}
-      {(hoveredMarker || selectedMarker) && (() => {
-        const markerToShow = hoveredMarker || selectedMarker;
+      {/* Info window - show on hover only (click opens DetailsPanel) */}
+      {hoveredMarker && (() => {
+        const markerToShow = hoveredMarker;
         if (!markerToShow) return null;
 
         // Position InfoWindow below marker to avoid being cut off at screen edges
@@ -805,7 +810,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               disableAutoPan: true, // CRITICAL: Prevent map from moving when InfoWindow appears on hover
             }}
             onCloseClick={() => {
-              setSelectedMarker(null);
               setHoveredMarker(null);
               if (hoverTimeoutRef.current) {
                 clearTimeout(hoverTimeoutRef.current);
@@ -813,7 +817,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             }}
           >
             <div
-              className="p-2 max-w-xs"
+              className="p-3 max-w-[250px] bg-white rounded-lg shadow-lg"
               onMouseEnter={() => {
                 // Keep InfoWindow visible when mouse is over it
                 if (hoverTimeoutRef.current) {
@@ -822,18 +826,19 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               }}
               onMouseLeave={handleMarkerUnhover}
             >
+              {/* Compact image preview */}
               {markerToShow.imageUrl && (
                 <img
                   src={markerToShow.imageUrl}
                   alt={markerToShow.name}
-                  className="w-full h-32 object-cover rounded-lg mb-2"
+                  className="w-full h-24 object-cover rounded-md mb-2"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               )}
 
-              {/* Type & Area Badges */}
+              {/* Type badge only */}
               <div className="flex items-center gap-2 mb-2">
                 {/* Don't show type badge for location markers */}
                 {!('isLocationMarker' in markerToShow) && (
@@ -866,41 +871,25 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                     )}
                   </>
                 )}
-                {(() => {
-                  const area = getAreaFromCoordinates(markerToShow.location);
-                  return (
-                    <span
-                      className="inline-flex items-center px-2 py-1 text-xs font-medium rounded"
-                      style={{
-                        backgroundColor: `${area.color}20`,
-                        color: area.color
-                      }}
-                    >
-                      {area.emoji} {area.name}
-                    </span>
-                  );
-                })()}
               </div>
 
-              <h3 className="font-semibold text-lg mb-1">
+              {/* Name */}
+              <h3 className="font-semibold text-base mb-1 text-gray-900">
                 {markerToShow.name}
               </h3>
 
-              {markerToShow.description && (
-                <p className="text-sm text-gray-700 mb-2">
-                  {markerToShow.description}
-                </p>
-              )}
+              {/* Rating */}
               {'rating' in markerToShow && markerToShow.rating && (
-                <p className="text-sm">
-                  ⭐ {markerToShow.rating}
-                </p>
+                <div className="flex items-center gap-1 mb-2">
+                  <span className="text-yellow-500">⭐</span>
+                  <span className="text-sm font-medium">{markerToShow.rating}</span>
+                </div>
               )}
-              {'time' in markerToShow && (
-                <p className="text-sm text-gray-600 mt-1">
-                  🕐 {markerToShow.time}
-                </p>
-              )}
+
+              {/* Click hint */}
+              <p className="text-xs text-gray-500 mt-2 italic">
+                Click marker for full details
+              </p>
             </div>
           </InfoWindow>
         );
