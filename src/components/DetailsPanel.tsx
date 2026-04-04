@@ -343,7 +343,7 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
                 className="text-xs text-travel-teal hover:underline inline-flex items-center gap-1 font-medium"
               >
                 <ExternalLink className="w-3 h-3" />
-                Link to the page
+                Google Link
               </a>
               <button
                 onClick={handleCopyAddress}
