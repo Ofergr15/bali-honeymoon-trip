@@ -59,12 +59,6 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
     }
 
     if (isActivity(item)) {
-      // Validate hotel-specific fields if type is 'hotel'
-      if (activityType === 'hotel' && (!checkIn || !checkOut)) {
-        alert('Please provide check-in and check-out dates for hotels');
-        return;
-      }
-
       const dayNum = parseInt(day);
       const updatedActivity: Activity = {
         ...item,
@@ -213,34 +207,37 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
 
           {/* Check-in/Check-out dates (hotels only) */}
           {((!isActivity(item)) || activityType === 'hotel') && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Check-in <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  min="2026-05-06"
-                  max="2026-05-30"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
-                  required
-                />
+            <div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Check-in (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    min="2026-05-06"
+                    max="2026-05-30"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Check-out (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    min="2026-05-06"
+                    max="2026-05-30"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Check-out <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  min="2026-05-06"
-                  max="2026-05-30"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
-                  required
-                />
+              <div className="text-xs text-gray-500 mt-1">
+                💡 Leave empty if you're just browsing potential hotels
               </div>
             </div>
           )}
