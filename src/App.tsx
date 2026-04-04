@@ -272,11 +272,7 @@ function App() {
     if (!selectedPlace) return undefined;
 
     const days = tripData.days
-      .filter(day => {
-        const placeName = getPlaceName(day);
-        console.log(`   Day ${day.day} (${day.title}): place="${placeName}", matches=${placeName === selectedPlace}`);
-        return placeName === selectedPlace;
-      })
+      .filter(day => getPlaceName(day) === selectedPlace)
       .map(day => day.day);
 
     console.log(`📍 placeDays for "${selectedPlace}":`, days);

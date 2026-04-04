@@ -177,6 +177,26 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
     // },
   }), []); // Never changes - same object every render!
 
+  // Auto-detect which place user is viewing based on map center
+  const autoDetectPlace = React.useCallback((lat: number, lng: number) => {
+    // Find nearest place within 5km radius
+    const nearestPlace = Object.entries(PLACE_LOCATIONS).reduce((closest, [name, location]) => {
+      const distance = Math.sqrt(
+        Math.pow(lat - location.lat, 2) + Math.pow(lng - location.lng, 2)
+      );
+      if (distance < closest.distance) {
+        return { name, distance };
+      }
+      return closest;
+    }, { name: null as string | null, distance: Infinity });
+
+    // Only auto-select if within 0.15 degrees (~15km) and different from current
+    if (nearestPlace.name && nearestPlace.distance < 0.15 && nearestPlace.name !== selectedPlace) {
+      console.log(`🎯 Auto-detected place: ${nearestPlace.name} (distance: ${nearestPlace.distance.toFixed(4)})`);
+      onPlaceClick?.(nearestPlace.name);
+    }
+  }, [selectedPlace, onPlaceClick]);
+
   // Listen to zoom changes - USE REF to avoid triggering re-renders!
   useEffect(() => {
     if (map) {
@@ -197,16 +217,49 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
           } else {
             console.log('🔍 ZOOM changed:', currentZoom.toFixed(2), '→ stored in ref, NO RE-RENDER');
           }
+
+          // Auto-detect place when zoomed in (zoom >= 12)
+          if (currentZoom >= 12) {
+            const center = map.getCenter();
+            if (center) {
+              autoDetectPlace(center.lat(), center.lng());
+            }
+          } else if (currentZoom < 10 && selectedPlace) {
+            // Zoomed out - clear selection
+            console.log('🔍 Zoomed out, clearing place selection');
+            onPlaceClick?.(null);
+          }
         }
       });
 
-      console.log('✅ Zoom listener using REF (no re-renders except for label threshold)');
+      // Also listen to center changes for manual panning (debounced)
+      let centerChangeTimeout: number | null = null;
+      const centerListener = map.addListener('center_changed', () => {
+        if (centerChangeTimeout) {
+          clearTimeout(centerChangeTimeout);
+        }
+        centerChangeTimeout = window.setTimeout(() => {
+          const zoom = map.getZoom() || 10;
+          if (zoom >= 12) {
+            const center = map.getCenter();
+            if (center) {
+              autoDetectPlace(center.lat(), center.lng());
+            }
+          }
+        }, 500); // Wait 500ms after panning stops
+      });
+
+      console.log('✅ Zoom and center listeners active for auto-detection');
 
       return () => {
         google.maps.event.removeListener(zoomListener);
+        google.maps.event.removeListener(centerListener);
+        if (centerChangeTimeout) {
+          clearTimeout(centerChangeTimeout);
+        }
       };
     }
-  }, [map]);
+  }, [map, autoDetectPlace, selectedPlace, onPlaceClick]);
 
   // Smooth animation with visible journey during pan
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
@@ -296,30 +349,21 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
 
   // Filter activities by selected day or place
   const filteredActivities = useMemo(() => {
-    console.log('🔍 Filtering activities:', {
-      selectedPlace,
-      selectedDay,
-      placeDays,
-      totalActivities: activities.length
-    });
-
     // If no place selected, don't show any activity pins
     if (!selectedPlace && !selectedDay) {
-      console.log('   → No place or day selected, hiding all pins');
       return [];
     }
 
     if (selectedDay) {
       const filtered = activities.filter(activity => activity.day === selectedDay);
-      console.log(`   → Filtered by day ${selectedDay}: ${filtered.length} activities`);
+      console.log(`🎯 Showing ${filtered.length} activities for Day ${selectedDay}`);
       return filtered;
     }
     if (placeDays && placeDays.length > 0) {
       const filtered = activities.filter(activity => activity.day && placeDays.includes(activity.day));
-      console.log(`   → Filtered by placeDays [${placeDays}]: ${filtered.length} activities`);
+      console.log(`🎯 Showing ${filtered.length} activities for ${selectedPlace} (days: ${placeDays})`);
       return filtered;
     }
-    console.log('   → No filters matched, returning all activities');
     return activities;
   }, [activities, selectedDay, placeDays, selectedPlace]);
 
