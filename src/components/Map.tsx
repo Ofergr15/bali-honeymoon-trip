@@ -294,17 +294,30 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
 
   // Filter activities by selected day or place
   const filteredActivities = useMemo(() => {
+    console.log('🔍 Filtering activities:', {
+      selectedPlace,
+      selectedDay,
+      placeDays,
+      totalActivities: activities.length
+    });
+
     // If no place selected, don't show any activity pins
     if (!selectedPlace && !selectedDay) {
+      console.log('   → No place or day selected, hiding all pins');
       return [];
     }
 
     if (selectedDay) {
-      return activities.filter(activity => activity.day === selectedDay);
+      const filtered = activities.filter(activity => activity.day === selectedDay);
+      console.log(`   → Filtered by day ${selectedDay}: ${filtered.length} activities`);
+      return filtered;
     }
     if (placeDays && placeDays.length > 0) {
-      return activities.filter(activity => activity.day && placeDays.includes(activity.day));
+      const filtered = activities.filter(activity => activity.day && placeDays.includes(activity.day));
+      console.log(`   → Filtered by placeDays [${placeDays}]: ${filtered.length} activities`);
+      return filtered;
     }
+    console.log('   → No filters matched, returning all activities');
     return activities;
   }, [activities, selectedDay, placeDays, selectedPlace]);
 
@@ -353,13 +366,30 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
 
   // Handle hover - DISABLED for cleaner UX (only click to see details)
   const handleMarkerHover = (item: Activity | Hotel | any) => {
-    // Hover disabled - click marker to see full details in DetailsPanel
-    return;
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setHoveredMarker(item);
   };
 
   const handleMarkerUnhover = () => {
-    // Hover disabled
-    return;
+    // Add delay before closing to allow moving mouse to InfoWindow
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setHoveredMarker(null);
+    }, 300);
+  };
+
+  const handleInfoWindowMouseEnter = () => {
+    // Keep InfoWindow open when hovering over it
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+  };
+
+  const handleInfoWindowMouseLeave = () => {
+    // Close InfoWindow when leaving it
+    setHoveredMarker(null);
   };
 
   // Place chip hover handlers with delay
@@ -901,13 +931,8 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
           >
             <div
               className="p-3 max-w-[250px] bg-white rounded-lg shadow-lg"
-              onMouseEnter={() => {
-                // Keep InfoWindow visible when mouse is over it
-                if (hoverTimeoutRef.current) {
-                  clearTimeout(hoverTimeoutRef.current);
-                }
-              }}
-              onMouseLeave={handleMarkerUnhover}
+              onMouseEnter={handleInfoWindowMouseEnter}
+              onMouseLeave={handleInfoWindowMouseLeave}
             >
               {/* Compact image preview */}
               {markerToShow.imageUrl && (

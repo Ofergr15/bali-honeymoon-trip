@@ -270,9 +270,17 @@ function App() {
   // Calculate which days belong to the selected place
   const placeDays = useMemo(() => {
     if (!selectedPlace) return undefined;
-    return tripData.days
-      .filter(day => getPlaceName(day) === selectedPlace)
+
+    const days = tripData.days
+      .filter(day => {
+        const placeName = getPlaceName(day);
+        console.log(`   Day ${day.day} (${day.title}): place="${placeName}", matches=${placeName === selectedPlace}`);
+        return placeName === selectedPlace;
+      })
       .map(day => day.day);
+
+    console.log(`📍 placeDays for "${selectedPlace}":`, days);
+    return days;
   }, [selectedPlace, tripData.days]);
 
   const handleDaySelect = (day: number | null) => {
