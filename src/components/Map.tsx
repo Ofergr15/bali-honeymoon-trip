@@ -170,15 +170,16 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     minZoom: 8,
     draggableCursor: 'default',
     draggingCursor: 'move',
-    restriction: {
-      latLngBounds: {
-        north: -8.0,
-        south: -9.0,
-        west: 114.5,
-        east: 116.5,
-      },
-      strictBounds: false,
-    },
+    // Removed overly restrictive bounds - was preventing navigation to Gili Islands
+    // restriction: {
+    //   latLngBounds: {
+    //     north: -8.0,
+    //     south: -9.0,
+    //     west: 114.5,
+    //     east: 116.5,
+    //   },
+    //   strictBounds: false,
+    // },
   }), []); // Never changes - same object every render!
 
   // Listen to zoom changes - USE REF to avoid triggering re-renders!
@@ -212,7 +213,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Google Earth-style flyover animation
+  // Smart Google Earth-style animation - checks if target is visible first
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) {
       console.log('❌ No map instance');
@@ -221,13 +222,38 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom() || 10;
+    const bounds = map.getBounds();
 
-    if (!currentCenter) return;
+    if (!currentCenter || !bounds) return;
 
-    console.log('🎥 Google Earth animation from:', source);
+    console.log('🎥 Smart animation from:', source);
     console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
     console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
 
+    // Check if target is visible in current viewport
+    const targetLatLng = new google.maps.LatLng(targetLat, targetLng);
+    const isVisible = bounds.contains(targetLatLng);
+
+    console.log('   Target visible in viewport:', isVisible);
+
+    // CASE 1: Target is VISIBLE - just zoom in smoothly (no pan, no zoom out)
+    if (isVisible) {
+      console.log('   👁️ Target visible - smooth zoom in only');
+
+      // Gradually zoom in with multiple steps for smooth effect
+      const zoomSteps = Math.ceil((targetZoom - currentZoom) / 2);
+      for (let i = 1; i <= zoomSteps; i++) {
+        const stepZoom = currentZoom + (i * 2);
+        const finalStepZoom = Math.min(stepZoom, targetZoom);
+        setTimeout(() => {
+          console.log('   Zoom step', i, '→', finalStepZoom);
+          map.setZoom(finalStepZoom);
+        }, i * 300);
+      }
+      return;
+    }
+
+    // CASE 2: Target NOT visible - need to navigate there
     // Calculate distance to determine animation style
     const latDiff = Math.abs(targetLat - currentCenter.lat());
     const lngDiff = Math.abs(targetLng - currentCenter.lng());
@@ -239,32 +265,41 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     if (distance < 0.05) {
       console.log('   📍 Short distance - direct animation');
       map.panTo({ lat: targetLat, lng: targetLng });
-      setTimeout(() => map.setZoom(targetZoom), 200); // Slight delay for smooth transition
+      setTimeout(() => map.setZoom(targetZoom), 300);
       return;
     }
 
     // LONG DISTANCE: Google Earth style - zoom out → pan → zoom in
     console.log('   🌍 Long distance - Google Earth flyover');
 
-    const midZoom = Math.max(8, Math.min(currentZoom, targetZoom) - 2); // Zoom out to overview
+    // Calculate mid zoom - ONLY zoom out if currently zoomed in
+    const overviewZoom = 10; // Overview level for Bali region
+    const needsZoomOut = currentZoom > overviewZoom;
+    const midZoom = needsZoomOut ? Math.max(8, overviewZoom) : currentZoom;
 
-    // Step 1: Zoom out to get overview (300ms)
-    map.setZoom(midZoom);
-    console.log('   Step 1: Zoom out to', midZoom);
+    // Step 1: Zoom out (ONLY IF NEEDED)
+    if (needsZoomOut) {
+      map.setZoom(midZoom);
+      console.log('   Step 1: Zoom out to', midZoom, '(from', currentZoom, ')');
+    } else {
+      console.log('   Step 1: Already at overview - skip zoom out');
+    }
 
-    // Step 2: Pan to target location (starts after 300ms)
+    // Step 2: Pan to target
+    const panDelay = needsZoomOut ? 300 : 0;
     setTimeout(() => {
       console.log('   Step 2: Pan to target');
       map.panTo({ lat: targetLat, lng: targetLng });
-    }, 300);
+    }, panDelay);
 
-    // Step 3: Zoom in to final zoom level (starts after pan completes)
+    // Step 3: Zoom in to final zoom
+    const zoomDelay = needsZoomOut ? 1000 : 700;
     setTimeout(() => {
       console.log('   Step 3: Zoom in to', targetZoom);
       map.setZoom(targetZoom);
-    }, 1000);
+    }, zoomDelay);
 
-    console.log('✅ Flyover animation started');
+    console.log('✅ Animation started');
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
