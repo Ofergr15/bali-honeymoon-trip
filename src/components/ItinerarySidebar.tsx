@@ -78,10 +78,17 @@ function getPlaceEmoji(placeName: string): string {
 }
 
 export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onDaySelect, onClose, onActivityClick }: ItinerarySidebarProps) {
+  // Debug logging
+  console.log('📋 ItinerarySidebar render:');
+  console.log('   Total days:', days.length);
+  console.log('   Selected place:', selectedPlace);
+
   // Filter days by selected place
   const filteredDays = selectedPlace
     ? days.filter(day => getPlaceName(day) === selectedPlace)
     : days;
+
+  console.log('   Filtered days:', filteredDays.length);
 
   // Get place color
   const getPlaceColor = (placeName: string): string => {
@@ -104,17 +111,25 @@ export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onD
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {selectedPlace ? (
-                <div
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm"
-                  style={{
-                    backgroundColor: `${getPlaceColor(selectedPlace)}20`,
-                    color: getPlaceColor(selectedPlace),
-                    border: `2px solid ${getPlaceColor(selectedPlace)}40`
-                  }}
-                >
-                  <span className="text-base">{getPlaceEmoji(selectedPlace)}</span>
-                  <span>{selectedPlace}</span>
-                </div>
+                <>
+                  <div
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm"
+                    style={{
+                      backgroundColor: `${getPlaceColor(selectedPlace)}20`,
+                      color: getPlaceColor(selectedPlace),
+                      border: `2px solid ${getPlaceColor(selectedPlace)}40`
+                    }}
+                  >
+                    <span className="text-base">{getPlaceEmoji(selectedPlace)}</span>
+                    <span>{selectedPlace}</span>
+                  </div>
+                  <button
+                    onClick={() => onDaySelect(null)}
+                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-600 font-medium transition-colors"
+                  >
+                    Show All
+                  </button>
+                </>
               ) : (
                 <h2 className="text-lg font-semibold text-gray-900">Itinerary</h2>
               )}
