@@ -71,6 +71,7 @@ function App() {
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [showBookmarksOnMap, setShowBookmarksOnMap] = useState(false);
   const [filteredBookmarks, setFilteredBookmarks] = useState<Activity[]>([]);
+  const [showFilteredOnMap, setShowFilteredOnMap] = useState(false); // Track if showing filtered bookmarks on map
   const [itemToEdit, setItemToEdit] = useState<Activity | Hotel | null>(null);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -304,6 +305,16 @@ function App() {
 
   const handleCloseDetails = () => {
     setSelectedItem(null);
+  };
+
+  const handleShowFilteredOnMap = () => {
+    // Enable filtered view mode
+    setShowFilteredOnMap(true);
+    setShowBookmarksOnMap(true);
+    // Clear place/day selection to show only filtered bookmarks
+    setSelectedPlace(null);
+    setSelectedDay(null);
+    console.log('📍 Showing filtered bookmarks on map:', filteredBookmarks.length);
   };
 
   const handleAddActivity = async (activity: Omit<Activity, 'id'>) => {
@@ -933,7 +944,13 @@ function App() {
                 </button>
               )}
               <button
-                onClick={() => setShowBookmarksOnMap(!showBookmarksOnMap)}
+                onClick={() => {
+                  setShowBookmarksOnMap(!showBookmarksOnMap);
+                  // Reset filtered view when toggling
+                  if (showBookmarksOnMap) {
+                    setShowFilteredOnMap(false);
+                  }
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-premium-sm ${
                   showBookmarksOnMap
                     ? 'bg-orange-500 text-white hover:bg-orange-600'
@@ -1020,8 +1037,8 @@ function App() {
         <div className="flex-1 relative bg-gray-50">
           <Map
             ref={mapRef}
-            activities={allActivities}
-            hotels={allHotels}
+            activities={showFilteredOnMap ? [] : allActivities}
+            hotels={showFilteredOnMap ? [] : allHotels}
             bookmarks={filteredBookmarks}
             showBookmarks={showBookmarksOnMap}
             selectedDay={selectedDay || undefined}
@@ -1098,6 +1115,7 @@ function App() {
             setShowBookmarksPanel(false);
           }}
           onFilterChange={(filtered) => setFilteredBookmarks(filtered)}
+          onShowOnMap={handleShowFilteredOnMap}
         />
       )}
 

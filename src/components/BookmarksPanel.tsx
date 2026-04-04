@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp, Map } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
 import { PLACE_LOCATIONS, getPlaceInfo } from '../utils/locations';
@@ -8,10 +8,11 @@ interface BookmarksPanelProps {
   bookmarks: Activity[];
   onClose: () => void;
   onBookmarkClick: (activity: Activity) => void;
-  onFilterChange?: (filteredBookmarks: Activity[]) => void; // NEW: Callback when filters change
+  onFilterChange?: (filteredBookmarks: Activity[]) => void; // Callback when filters change
+  onShowOnMap?: () => void; // Callback when clicking "Show on Map" button
 }
 
-export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, onFilterChange }: BookmarksPanelProps) {
+export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, onFilterChange, onShowOnMap }: BookmarksPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
   const [filterLocation, setFilterLocation] = useState<string | 'all'>('all');
@@ -100,6 +101,19 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, on
                     </span>
                   )}
                   {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              )}
+              {hasActiveFilters && onShowOnMap && (
+                <button
+                  onClick={() => {
+                    onShowOnMap();
+                    onClose();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all bg-travel-teal text-white shadow-sm hover:bg-[#0c8c8c]"
+                >
+                  <Map className="w-4 h-4" />
+                  <span className="hidden sm:inline">Show on Map</span>
+                  <span className="sm:hidden">Map</span>
                 </button>
               )}
               <button
