@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Plus, Sparkles } from 'lucide-react';
 import type { Activity, Hotel } from '../types/trip';
+import { parseBookingUrl, calculateNights, formatPrice } from '../utils/bookingParser';
 
 interface AddPlaceFormProps {
   onAddActivity: (activity: Omit<Activity, 'id'>) => void;
@@ -70,9 +71,23 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
 
   // Hotel-specific fields
   const [bookingUrl, setBookingUrl] = useState('');
-  const [price, setPrice] = useState('');
+  const [pricePerNight, setPricePerNight] = useState('');
+  const [price, setPrice] = useState(''); // For non-hotel activities
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+
+  // Auto-extract dates from Booking.com URL
+  useEffect(() => {
+    if (activityType === 'hotel' && bookingUrl) {
+      const dates = parseBookingUrl(bookingUrl);
+      if (dates.checkIn && !checkIn) {
+        setCheckIn(dates.checkIn);
+      }
+      if (dates.checkOut && !checkOut) {
+        setCheckOut(dates.checkOut);
+      }
+    }
+  }, [bookingUrl, activityType]);
 
   // AI auto-fill state
   const [isAutoFilling, setIsAutoFilling] = useState(false);
@@ -550,14 +565,15 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       time,
       duration: undefined,
       description,
-      price: price || undefined,
+      price: activityType !== 'hotel' ? (price || undefined) : undefined,
       rating: rating ? parseFloat(rating) : undefined,
       imageUrl: imageUrl || undefined,
       openingHours: openingHours || undefined,
       // Hotel-specific fields
-      checkIn: activityType === 'hotel' ? checkIn : undefined,
-      checkOut: activityType === 'hotel' ? checkOut : undefined,
-      bookingUrl: activityType === 'hotel' ? bookingUrl : undefined,
+      pricePerNight: activityType === 'hotel' && pricePerNight ? parseFloat(pricePerNight) : undefined,
+      checkIn: activityType === 'hotel' ? (checkIn || undefined) : undefined,
+      checkOut: activityType === 'hotel' ? (checkOut || undefined) : undefined,
+      bookingUrl: activityType === 'hotel' ? (bookingUrl || undefined) : undefined,
     };
     onAddActivity(newActivity);
 
@@ -573,6 +589,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
     setTime('');
     setBookingUrl('');
     setPrice('');
+    setPricePerNight('');
     setCheckIn('');
     setCheckOut('');
   };
@@ -871,6 +888,45 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 💡 Leave empty if you're just browsing potential hotels
+              </div>
+            </div>
+          )}
+
+          {/* Price per night (hotels only) */}
+          {activityType === 'hotel' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price per Night (USD)
+              </label>
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={pricePerNight}
+                      onChange={(e) => setPricePerNight(e.target.value)}
+                      placeholder="150"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+                    />
+                  </div>
+                </div>
+                {pricePerNight && checkIn && checkOut && (
+                  <div className="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="text-xs font-medium text-blue-700 mb-1">💰 Total Cost</div>
+                    <div className="text-lg font-bold text-blue-900">
+                      ${formatPrice(parseFloat(pricePerNight) * calculateNights(checkIn, checkOut))}
+                    </div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      ${pricePerNight}/night × {calculateNights(checkIn, checkOut)} nights
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                💵 Copy from Booking.com listing
               </div>
             </div>
           )}

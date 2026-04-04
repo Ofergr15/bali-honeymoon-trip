@@ -46,6 +46,7 @@ export interface Activity {
   openingHours?: OpeningHours;
   place?: string; // Manual override for location (e.g., "Sidemen", "Ubud") - overrides AI detection
   // Hotel-specific fields (when type is 'hotel')
+  pricePerNight?: number; // Price per night in USD for hotels
   checkIn?: string;
   checkOut?: string;
   bookingUrl?: string;

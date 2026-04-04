@@ -3,6 +3,7 @@ import type { Activity, Hotel } from '../types/trip';
 import { X, Phone, Star, Clock, DollarSign, ExternalLink, Trash2, Copy, Check, Edit } from 'lucide-react';
 import { getActivityTypeColor } from '../utils/colors';
 import { getPlaceInfo } from '../utils/locations';
+import { calculateNights, formatPrice } from '../utils/bookingParser';
 import OpeningHoursDisplay from './OpeningHoursDisplay';
 
 interface DetailsPanelProps {
@@ -375,7 +376,25 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
               </div>
             )}
 
-            {isActivity(item) && item.price && (
+            {/* Price for hotels with per-night pricing */}
+            {isActivity(item) && item.type === 'hotel' && item.pricePerNight && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <DollarSign className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                  <span className="text-xs font-bold text-blue-900">
+                    ${formatPrice(item.pricePerNight)}/night
+                  </span>
+                </div>
+                {item.checkIn && item.checkOut && (
+                  <div className="text-xs text-blue-700">
+                    {calculateNights(item.checkIn, item.checkOut)} nights • <span className="font-bold">${formatPrice(item.pricePerNight * calculateNights(item.checkIn, item.checkOut))} total</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Price for activities (non-hotels) */}
+            {isActivity(item) && item.type !== 'hotel' && item.price && (
               <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
                 <DollarSign className="w-3 h-3 text-gray-500 flex-shrink-0" />
                 <span className="text-xs font-medium">{item.price}</span>
@@ -410,6 +429,7 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
                   </div>
                 </div>
 
+                {/* Old hotels table - backwards compatibility */}
                 {item.price && (
                   <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
                     <DollarSign className="w-3 h-3 text-gray-500 flex-shrink-0" />

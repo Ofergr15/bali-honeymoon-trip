@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { Activity, Hotel } from '../types/trip';
 import { PLACE_LOCATIONS, findNearestPlace } from '../utils/locations';
+import { parseBookingUrl, calculateNights, formatPrice } from '../utils/bookingParser';
 
 interface EditPlaceFormProps {
   item: Activity | Hotel;
@@ -43,6 +44,11 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
       ? (item.price || '')
       : (item.price || '')
   );
+  const [pricePerNight, setPricePerNight] = useState(
+    isActivity(item)
+      ? (item.pricePerNight?.toString() || '')
+      : ''
+  );
   const [checkIn, setCheckIn] = useState(
     isActivity(item)
       ? (item.checkIn || '')
@@ -58,6 +64,19 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
       ? (item.bookingUrl || '')
       : (item.bookingUrl || '')
   );
+
+  // Auto-extract dates from Booking.com URL
+  useEffect(() => {
+    if (isActivity(item) && activityType === 'hotel' && bookingUrl) {
+      const dates = parseBookingUrl(bookingUrl);
+      if (dates.checkIn && !checkIn) {
+        setCheckIn(dates.checkIn);
+      }
+      if (dates.checkOut && !checkOut) {
+        setCheckOut(dates.checkOut);
+      }
+    }
+  }, [bookingUrl, activityType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,12 +97,13 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
         description: description || undefined,
         rating: rating ? parseFloat(rating) : undefined,
         imageUrl: imageUrl || undefined,
-        price: price || undefined,
+        price: activityType !== 'hotel' ? (price || undefined) : undefined,
         place: place === 'auto' ? undefined : place, // Store manual selection, undefined = auto-detect
         // Hotel-specific fields (only set if type is 'hotel')
-        checkIn: activityType === 'hotel' ? checkIn : undefined,
-        checkOut: activityType === 'hotel' ? checkOut : undefined,
-        bookingUrl: activityType === 'hotel' ? bookingUrl : undefined,
+        pricePerNight: activityType === 'hotel' && pricePerNight ? parseFloat(pricePerNight) : undefined,
+        checkIn: activityType === 'hotel' ? (checkIn || undefined) : undefined,
+        checkOut: activityType === 'hotel' ? (checkOut || undefined) : undefined,
+        bookingUrl: activityType === 'hotel' ? (bookingUrl || undefined) : undefined,
       };
       onUpdate(updatedActivity);
     } else {
@@ -276,7 +296,46 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
             </div>
           )}
 
-          {/* Price (hotels only) */}
+          {/* Price per night (hotels only) */}
+          {((!isActivity(item)) || activityType === 'hotel') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price per Night (USD)
+              </label>
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={pricePerNight}
+                      onChange={(e) => setPricePerNight(e.target.value)}
+                      placeholder="150"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+                    />
+                  </div>
+                </div>
+                {pricePerNight && checkIn && checkOut && (
+                  <div className="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="text-xs font-medium text-blue-700 mb-1">💰 Total Cost</div>
+                    <div className="text-lg font-bold text-blue-900">
+                      ${formatPrice(parseFloat(pricePerNight) * calculateNights(checkIn, checkOut))}
+                    </div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      ${pricePerNight}/night × {calculateNights(checkIn, checkOut)} nights
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                💵 Copy from Booking.com listing
+              </div>
+            </div>
+          )}
+
+          {/* Price (OLD hotels table - backwards compatibility) */}
           {!isActivity(item) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
