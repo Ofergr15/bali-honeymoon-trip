@@ -74,13 +74,17 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
   // Log EVERY render with all state values to track what's changing
   console.log(`🔄 ========== RENDER #${renderCountRef.current} ==========`);
-  console.log('   State snapshot:');
+  console.log('   Props:');
+  console.log('   - selectedItem:', selectedItem?.name || 'null');
+  console.log('   - selectedDay:', selectedDay);
+  console.log('   - selectedPlace:', selectedPlace);
+  console.log('   - activities count:', activities.length);
+  console.log('   - hotels count:', hotels.length);
+  console.log('   State:');
   console.log('   - zoomLevel:', zoomLevel);
   console.log('   - selectedMarker:', selectedMarker?.name || 'null');
   console.log('   - hoveredMarker:', hoveredMarker?.name || 'null');
-  console.log('   - selectedItem:', selectedItem?.name || 'null');
   console.log('   - map instance:', map ? 'exists' : 'null');
-  console.log('   - selectedDay:', selectedDay);
   console.log('   - isUserInteracting:', isUserInteractingRef.current);
   console.log('========================================');
 
@@ -221,9 +225,12 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   // ONLY animate when a marker is explicitly selected from sidebar
   // This prevents the "reactive loop trap" where state changes trigger unwanted animations
   useEffect(() => {
+    console.log('🔍 useEffect[selectedItem] fired, selectedItem:', selectedItem?.name || 'null');
+
     if (!map || !selectedItem || !('location' in selectedItem) || !selectedItem.location) {
       lastAnimatedIdRef.current = null;
       setDebugState(prev => ({ ...prev, lastAnimatedId: null }));
+      console.log('   ↳ No animation (no item or no location)');
       return;
     }
 
@@ -233,7 +240,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       return;
     }
 
-    console.log('🎯 Explicit selection:', selectedItem.name);
+    console.log('🎯 Explicit selection:', selectedItem.name, '→ TRIGGERING ANIMATION');
     lastAnimatedIdRef.current = selectedItem.id;
     setDebugState(prev => ({ ...prev, lastAnimatedId: selectedItem.id }));
     animateToLocation(selectedItem.location.lat, selectedItem.location.lng, 17, 'selectedItem-useEffect');
@@ -401,6 +408,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           // Track center changes (this fires when map center changes for ANY reason)
           let centerChangeCount = 0;
           let lastCenterChangeTime = Date.now();
+          let lastCenter: { lat: number; lng: number } | null = null;
 
           mapInstance.addListener('center_changed', () => {
             centerChangeCount++;
@@ -410,17 +418,36 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             lastCenterChangeTime = now;
 
             if (center) {
-              console.log(`📍 CENTER_CHANGED #${centerChangeCount}:`, `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
-              console.log(`   ⏱️ Time since last change: ${timeSinceLastChange}ms`);
+              const currentPos = { lat: center.lat(), lng: center.lng() };
 
-              // Detect if this is momentum (happens shortly after dragend, continues in same direction)
+              // Calculate distance moved
+              let distanceMoved = 0;
+              if (lastCenter) {
+                const latDiff = currentPos.lat - lastCenter.lat;
+                const lngDiff = currentPos.lng - lastCenter.lng;
+                distanceMoved = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+              }
+
+              console.log(`📍 CENTER_CHANGED #${centerChangeCount}:`, `${currentPos.lat.toFixed(6)}, ${currentPos.lng.toFixed(6)}`);
+              console.log(`   ⏱️ ${timeSinceLastChange}ms since last, Distance: ${distanceMoved.toFixed(8)}`);
+
+              // DETECT SUDDEN JUMPS (large distance in short time = not natural momentum)
+              if (!isUserInteractingRef.current && distanceMoved > 0.01 && timeSinceLastChange < 50) {
+                console.log('   🚨 SUDDEN JUMP DETECTED! Large distance in short time!');
+                console.trace('   Stack trace of jump:');
+              }
+
+              // Detect if this is momentum (small movements, frequent)
               if (!isUserInteractingRef.current) {
-                if (lastDragPositionRef.current && dragStartPositionRef.current) {
-                  console.log('   🌊 Momentum/inertia in progress (natural Google Maps behavior)');
-                } else {
-                  console.log('   ⚠️ CENTER CHANGED WHILE NOT DRAGGING (no momentum context)');
+                if (lastDragPositionRef.current && dragStartPositionRef.current && timeSinceLastChange < 100) {
+                  console.log('   🌊 Momentum/inertia (smooth drift)');
+                } else if (distanceMoved > 0.001) {
+                  console.log('   ⚠️ UNEXPECTED CENTER CHANGE!');
+                  console.trace('   Stack trace:');
                 }
               }
+
+              lastCenter = currentPos;
             }
           });
         }}
