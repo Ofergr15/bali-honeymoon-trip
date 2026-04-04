@@ -199,25 +199,47 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Smooth animation - always use panTo for continuity
+  // Smooth animation with visible journey during pan
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) return;
 
+    const currentCenter = map.getCenter();
+    if (!currentCenter) return;
+
+    const startLat = currentCenter.lat();
+    const startLng = currentCenter.lng();
     const currentZoom = map.getZoom() || 10;
 
     console.log('📍 Smooth navigate to:', source);
-    console.log('   Current zoom:', currentZoom, '→ Target zoom:', targetZoom);
 
-    // ALWAYS use panTo for smooth animation (even if target visible)
-    // This ensures smooth continuous motion, not instant teleports
-    map.panTo({ lat: targetLat, lng: targetLng });
+    // Calculate distance for pan timing
+    const latDiff = targetLat - startLat;
+    const lngDiff = targetLng - startLng;
+    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
 
-    // Smooth multi-step zoom for gradual effect
+    // SMOOTH MULTI-STEP PAN - add waypoints to make journey visible
+    const panSteps = Math.max(4, Math.min(10, Math.floor(distance * 60))); // More steps for longer distances
+
+    console.log('   Pan in', panSteps, 'steps for smooth journey');
+
+    // Animate pan in steps for smooth visible motion (SLOWER)
+    for (let i = 1; i <= panSteps; i++) {
+      setTimeout(() => {
+        const progress = i / panSteps;
+        const currentLat = startLat + (latDiff * progress);
+        const currentLng = startLng + (lngDiff * progress);
+
+        map.panTo({ lat: currentLat, lng: currentLng });
+      }, i * 120); // 120ms per step = slower, more visible motion
+    }
+
+    // Start zoom AFTER pan completes
+    const panDuration = panSteps * 120;
     const zoomDiff = targetZoom - currentZoom;
-    const steps = Math.abs(Math.ceil(zoomDiff / 2)); // Zoom by 2 levels per step
+    const zoomSteps = Math.abs(Math.ceil(zoomDiff / 2));
 
-    if (steps > 0) {
-      for (let i = 1; i <= steps; i++) {
+    if (zoomSteps > 0) {
+      for (let i = 1; i <= zoomSteps; i++) {
         setTimeout(() => {
           const stepZoom = currentZoom + (zoomDiff > 0 ? i * 2 : -i * 2);
           const clampedZoom = zoomDiff > 0
@@ -227,20 +249,14 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           console.log('   Zoom step', i, '→', clampedZoom);
           map.setZoom(clampedZoom);
 
-          // FINAL STEP: Ensure we're exactly centered on target
-          if (i === steps) {
+          // FINAL STEP: Ensure exact center
+          if (i === zoomSteps) {
             setTimeout(() => {
-              console.log('   🎯 Final positioning - ensuring exact center');
               map.panTo({ lat: targetLat, lng: targetLng });
-            }, 200);
+            }, 300);
           }
-        }, 300 + (i * 300)); // Progressive delay
+        }, panDuration + (i * 400)); // SLOWER: 400ms per zoom step (was 300ms)
       }
-    } else {
-      // No zoom needed, just ensure we're centered
-      setTimeout(() => {
-        map.panTo({ lat: targetLat, lng: targetLng });
-      }, 400);
     }
   }, [map]);
 
@@ -526,7 +542,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                   onClick={() => {
                     // Event-driven animation - explicit user click
                     console.log('🏝️ Clicked location chip:', location.name);
-                    animateToLocation(location.lat, location.lng, 15, `location-chip-${location.name}`);
+                    animateToLocation(location.lat, location.lng, 17, `location-chip-${location.name}`);
                   }}
                   onMouseOver={() => {
                     // Show location info on hover
@@ -563,7 +579,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                     onClick={() => {
                       // Make label clickable too!
                       console.log('🏝️ Clicked location label:', location.name);
-                      animateToLocation(location.lat, location.lng, 15, `location-label-${location.name}`);
+                      animateToLocation(location.lat, location.lng, 17, `location-label-${location.name}`);
                     }}
                     icon={{
                       path: 'M 0,0',
