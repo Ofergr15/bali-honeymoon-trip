@@ -3,17 +3,17 @@ import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp } from 'lucide-reac
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
 
-// Known place locations in Bali
+// Known place locations in Bali with unique colors for each
 const PLACE_LOCATIONS = {
-  'Canggu': { lat: -8.6489, lng: 115.1328, emoji: '🏖️' },
-  'Ubud': { lat: -8.5069, lng: 115.2625, emoji: '🌿' },
-  'Munduk': { lat: -8.2661, lng: 115.0717, emoji: '🏔️' },
-  'Sidemen': { lat: -8.4833, lng: 115.4167, emoji: '🌾' },
-  'Gili Trawangan': { lat: -8.3500, lng: 116.0417, emoji: '🏝️' },
-  'Gili Air': { lat: -8.3614, lng: 116.0861, emoji: '🌊' },
-  'Nusa Penida': { lat: -8.7292, lng: 115.5431, emoji: '⛰️' },
-  'Uluwatu': { lat: -8.8286, lng: 115.1036, emoji: '🌅' },
-  'Seminyak': { lat: -8.6920, lng: 115.1737, emoji: '🌴' },
+  'Canggu': { lat: -8.6489, lng: 115.1328, emoji: '🏖️', color: '#06B6D4' }, // cyan
+  'Ubud': { lat: -8.5069, lng: 115.2625, emoji: '🌿', color: '#10B981' }, // green
+  'Munduk': { lat: -8.2661, lng: 115.0717, emoji: '🏔️', color: '#8B4513' }, // brown
+  'Sidemen': { lat: -8.4833, lng: 115.4167, emoji: '🌾', color: '#84CC16' }, // lime
+  'Gili Trawangan': { lat: -8.3500, lng: 116.0417, emoji: '🏝️', color: '#3B82F6' }, // blue
+  'Gili Air': { lat: -8.3614, lng: 116.0861, emoji: '🌊', color: '#60A5FA' }, // light blue
+  'Nusa Penida': { lat: -8.7292, lng: 115.5431, emoji: '⛰️', color: '#1D4ED8' }, // dark blue
+  'Uluwatu': { lat: -8.8286, lng: 115.1036, emoji: '🌅', color: '#F97316' }, // orange
+  'Seminyak': { lat: -8.6920, lng: 115.1737, emoji: '🌴', color: '#EC4899' }, // pink
 };
 
 // Calculate distance between two GPS coordinates (in km)
@@ -30,15 +30,15 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 }
 
 // Find the nearest place to given coordinates
-function findNearestPlace(lat: number, lng: number): { name: string; distance: number; emoji: string } | null {
-  let nearest: { name: string; distance: number; emoji: string } | null = null;
+function findNearestPlace(lat: number, lng: number): { name: string; distance: number; emoji: string; color: string } | null {
+  let nearest: { name: string; distance: number; emoji: string; color: string } | null = null;
   let minDistance = Infinity;
 
   for (const [placeName, placeCoords] of Object.entries(PLACE_LOCATIONS)) {
     const distance = calculateDistance(lat, lng, placeCoords.lat, placeCoords.lng);
     if (distance < minDistance) {
       minDistance = distance;
-      nearest = { name: placeName, distance, emoji: placeCoords.emoji };
+      nearest = { name: placeName, distance, emoji: placeCoords.emoji, color: placeCoords.color };
     }
   }
 
@@ -63,6 +63,7 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
       ...bookmark,
       nearestPlace: nearestPlace?.name || 'Unknown',
       nearestPlaceEmoji: nearestPlace?.emoji || '📍',
+      nearestPlaceColor: nearestPlace?.color || '#6B7280',
       distanceKm: nearestPlace?.distance || 0
     };
   });
@@ -388,7 +389,14 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
                               >
                                 {typeInfo.emoji} {typeInfo.name}
                               </span>
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold border"
+                                style={{
+                                  backgroundColor: `${activity.nearestPlaceColor}15`,
+                                  color: activity.nearestPlaceColor,
+                                  borderColor: `${activity.nearestPlaceColor}40`,
+                                }}
+                              >
                                 <MapPin className="w-3 h-3" />
                                 {activity.nearestPlaceEmoji} {activity.nearestPlace}
                               </span>
