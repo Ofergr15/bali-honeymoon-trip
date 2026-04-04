@@ -590,8 +590,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Hotel markers */}
       {filteredHotels.map((hotel) => {
-        const showLabel = zoomLevelRef.current >= 11; // Show labels when zoomed in
         const isSelected = selectedItem && selectedItem.id === hotel.id;
+        const showLabel = isSelected; // Only show label when clicked/selected
         return (
           <React.Fragment key={hotel.id}>
             {/* Pulsing ring for selected marker */}
@@ -667,8 +667,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Activity markers */}
       {filteredActivities.map((activity) => {
-        const showLabel = zoomLevelRef.current >= 11; // Show labels when zoomed in
         const isSelected = selectedItem && selectedItem.id === activity.id;
+        const showLabel = isSelected; // Only show label when clicked/selected
         const activityColor = getMarkerColor({ type: activity.type });
         return (
           <React.Fragment key={activity.id}>
@@ -745,8 +745,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Bookmark markers - shown when bookmarks panel is open */}
       {showBookmarks && bookmarks && bookmarks.map((bookmark) => {
-        const showLabel = zoomLevelRef.current >= 11;
         const isSelected = selectedItem && selectedItem.id === bookmark.id;
+        const showLabel = isSelected; // Only show label when clicked/selected
         const bookmarkColor = '#FFA500'; // Orange/gold color for bookmarks
         return (
           <React.Fragment key={bookmark.id}>
