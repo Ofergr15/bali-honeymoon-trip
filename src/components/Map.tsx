@@ -14,6 +14,7 @@ interface MapProps {
   placeDays?: number[]; // Array of day numbers for the selected place
   days?: DayItinerary[]; // All days to determine place for selected day
   onMarkerClick?: (item: Activity | Hotel) => void;
+  onPlaceClick?: (placeName: string) => void; // NEW: Callback when clicking location chip
   selectedItem?: Activity | Hotel | null;
 }
 
@@ -56,7 +57,7 @@ function getPlaceNameFromDay(day: DayItinerary): string {
 // Load Places library for auto-fill functionality
 const libraries: ("places")[] = ["places"];
 
-export default function Map({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, selectedItem }: MapProps) {
+export default function Map({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, selectedItem }: MapProps) {
   // Track render count to see how often component re-renders
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
@@ -276,6 +277,11 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
   // Filter activities by selected day or place
   const filteredActivities = useMemo(() => {
+    // If no place selected, don't show any activity pins
+    if (!selectedPlace && !selectedDay) {
+      return [];
+    }
+
     if (selectedDay) {
       return activities.filter(activity => activity.day === selectedDay);
     }
@@ -283,10 +289,15 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       return activities.filter(activity => activity.day && placeDays.includes(activity.day));
     }
     return activities;
-  }, [activities, selectedDay, placeDays]);
+  }, [activities, selectedDay, placeDays, selectedPlace]);
 
   // Filter hotels by selected day or place
   const filteredHotels = useMemo(() => {
+    // If no place selected, don't show any hotel pins
+    if (!selectedPlace && !selectedDay) {
+      return [];
+    }
+
     if (selectedDay) {
       return hotels.filter(hotel => {
         const checkInDate = new Date(hotel.checkIn);
@@ -310,7 +321,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       });
     }
     return hotels;
-  }, [hotels, selectedDay, placeDays]);
+  }, [hotels, selectedDay, placeDays, selectedPlace]);
 
   const handleMarkerClick = (item: Activity | Hotel) => {
     console.log('🖱️ MARKER CLICKED:', item.name, '→ opening DetailsPanel');
@@ -323,29 +334,15 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     onMarkerClick?.(item);
   };
 
-  // Handle hover with DEBOUNCE to prevent re-renders during drag!
+  // Handle hover - DISABLED for cleaner UX (only click to see details)
   const handleMarkerHover = (item: Activity | Hotel | any) => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-
-    // DEBOUNCE: Wait 100ms before setting hover state
-    // This prevents re-renders if user is just dragging across markers
-    hoverTimeoutRef.current = setTimeout(() => {
-      console.log('🎯 Hover state change (debounced):', item.name);
-      setHoveredMarker(item);
-    }, 100);
+    // Hover disabled - click marker to see full details in DetailsPanel
+    return;
   };
 
   const handleMarkerUnhover = () => {
-    console.log('🎯 Unhover - clearing after delay');
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = setTimeout(() => {
-      console.log('🎯 Hover cleared');
-      setHoveredMarker(null);
-    }, 150); // 150ms delay before hiding
+    // Hover disabled
+    return;
   };
 
   if (loadError) {
@@ -531,7 +528,9 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                   onClick={() => {
                     // Event-driven animation - explicit user click
                     console.log('🏝️ Clicked location chip:', location.name);
-                    animateToLocation(location.lat, location.lng, 17, `location-chip-${location.name}`);
+                    animateToLocation(location.lat, location.lng, 14, `location-chip-${location.name}`);
+                    // Trigger place selection to show activity pins
+                    onPlaceClick?.(location.name);
                   }}
                   onMouseOver={() => {
                     // Show location info on hover
