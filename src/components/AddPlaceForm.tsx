@@ -377,9 +377,29 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       const lowerAddr = address.toLowerCase();
       const combinedText = `${lowerName} ${lowerDesc} ${lowerAddr}`;
 
-      // Hotel detection keywords
-      const hotelKeywords = ['hotel', 'resort', 'villa', 'hostel', 'accommodation', 'guest house', 'guesthouse', 'homestay', 'lodge', 'inn'];
-      const isHotel = hotelKeywords.some(keyword => combinedText.includes(keyword));
+      // Hotel detection keywords - comprehensive list for accommodations
+      const hotelKeywords = [
+        'hotel', 'resort', 'villa', 'hostel', 'accommodation',
+        'guest house', 'guesthouse', 'homestay', 'lodge', 'inn',
+        'bungalow', 'cottage', 'house', 'apartment', 'suites',
+        'retreat', 'stay', 'rooms', 'airbnb', 'bnb', 'bed and breakfast',
+        'vacation rental', 'holiday home', 'glamping', 'cabana', 'eco lodge'
+      ];
+
+      // Check if it's a hotel/accommodation
+      let isHotel = hotelKeywords.some(keyword => combinedText.includes(keyword));
+
+      // Special handling: If name contains "house" but also contains accommodation indicators
+      if (!isHotel && lowerName.includes('house')) {
+        // Check if it's likely accommodation (not a restaurant/cafe/museum)
+        const notAccommodation = ['coffee house', 'tea house', 'house of', 'warehouse', 'greenhouse'];
+        const isNotAccommodation = notAccommodation.some(term => combinedText.includes(term));
+
+        if (!isNotAccommodation) {
+          // Likely an accommodation if it has "house" and isn't explicitly something else
+          isHotel = true;
+        }
+      }
 
       // Activity type detection
       let guessedType: Activity['type'] = 'activity';
