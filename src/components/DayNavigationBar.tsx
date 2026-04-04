@@ -98,13 +98,19 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
   const placeGroups = groupDaysByPlace(days);
 
   const handlePlaceClick = (placeName: string) => {
-    // If clicking the same place that's already selected, deselect it
-    if (selectedPlace === placeName) {
-      onPlaceSelect(null);
+    // Always trigger place selection (this will zoom the map and show pins)
+    onPlaceSelect(placeName);
+
+    // Don't auto-open dropdown - user can click chevron if they want to see days
+    setExpandedPlace(null);
+  };
+
+  const handleChevronClick = (e: React.MouseEvent, placeName: string) => {
+    e.stopPropagation(); // Prevent place button click
+    // Toggle dropdown
+    if (expandedPlace === placeName) {
       setExpandedPlace(null);
     } else {
-      // Select the place and expand the dropdown
-      onPlaceSelect(placeName);
       setExpandedPlace(placeName);
     }
   };
@@ -187,7 +193,12 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
                 }`}>
                   {group.days.length}d
                 </span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                <span
+                  onClick={(e) => handleChevronClick(e, group.placeName)}
+                  className="cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </span>
               </div>
             </button>
 

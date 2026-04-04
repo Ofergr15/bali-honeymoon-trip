@@ -282,15 +282,16 @@ function App() {
   };
 
   const handlePlaceSelect = (place: string | null) => {
+    // Always zoom first (even if place is already selected)
+    if (place) {
+      mapRef.current?.zoomToPlace(place);
+      setSidebarOpen(true);
+    }
+
+    // Then update state
     setSelectedPlace(place);
     setSelectedDay(null); // Clear day filter when place is selected
     setSelectedItem(null);
-    // Open sidebar when a place is selected
-    if (place) {
-      setSidebarOpen(true);
-      // Zoom map to selected place
-      mapRef.current?.zoomToPlace(place);
-    }
   };
 
   const handleMarkerClick = (item: Activity | Hotel) => {
