@@ -99,6 +99,30 @@ function App() {
           const data = await loadTrip(tripId);
           if (data) {
             console.log('✅ Trip loaded from database');
+            console.log('   Days in loaded trip:', data.days.length);
+
+            // Safety check: if loaded trip has no days, it's corrupted - create new one
+            if (data.days.length === 0) {
+              console.log('⚠️ Loaded trip has NO DAYS - data is corrupted!');
+              console.log('🔄 Clearing corrupted trip ID and creating fresh trip...');
+              localStorage.removeItem(TRIP_ID_KEY);
+              setTripId(null);
+
+              // Create new trip
+              const newTripId = await createTrip(baliTripData);
+              if (newTripId) {
+                console.log('✅ Fresh trip created with ID:', newTripId);
+                setTripId(newTripId);
+                localStorage.setItem(TRIP_ID_KEY, newTripId);
+                setTripData(baliTripData);
+              } else {
+                console.error('❌ Failed to create trip, using baliTripData');
+                setTripData(baliTripData);
+              }
+              setLoading(false);
+              return;
+            }
+
             setTripData(data);
             setLoading(false);
             return;
