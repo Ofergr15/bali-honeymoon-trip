@@ -9,10 +9,11 @@ import DayNavigationBar from './components/DayNavigationBar';
 import TripSettingsModal from './components/TripSettingsModal';
 import { baliTripData } from './data/tripData';
 import type { Activity, Hotel, TripData } from './types/trip';
-import { Plus, Menu, X, Share2, Download, Settings, Bookmark } from 'lucide-react';
+import { Plus, Menu, X, Share2, Download, Settings, Bookmark, User as UserIcon, LogOut } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId } from './services/tripService';
 import { supabase } from './lib/supabase';
 import { cleanupDatabase, verifyDatabase } from './services/cleanupDatabase';
+import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
@@ -61,6 +62,7 @@ function getPlaceEmoji(placeName: string): string {
 }
 
 function App() {
+  const { user, signOut, canEdit } = useAuth();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Activity | Hotel | null>(null);
@@ -71,6 +73,7 @@ function App() {
   const [itemToEdit, setItemToEdit] = useState<Activity | Hotel | null>(null);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Track if Supabase is configured
   const [isSupabaseConfigured] = useState(() => {
@@ -577,9 +580,9 @@ function App() {
       <header className="relative bg-gradient-to-br from-teal-400/10 via-cyan-300/10 to-blue-400/10 border-b border-gray-100 sticky top-0 z-50 shadow-premium-sm backdrop-blur-sm overflow-visible">
 
         <div className="relative px-6 py-2 overflow-visible">
-          <div className="flex items-center justify-between max-w-screen-2xl mx-auto overflow-visible">
+          <div className="flex items-start justify-between max-w-screen-2xl mx-auto overflow-visible">
             {/* Left: Trip Title & Info */}
-            <div className="flex items-center gap-8 overflow-visible">
+            <div className="flex items-center gap-8 overflow-visible flex-1">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -817,13 +820,82 @@ function App() {
               </div>
             </div>
 
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-              <button className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+            {/* Right: User Profile (Top) and Action Buttons (Bottom) */}
+            <div className="flex flex-col items-end gap-2">
+              {/* User Profile Dropdown - Top Right */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="w-7 h-7 rounded-full" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-600 font-medium text-xs">
+                        {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                  )}
+                  <span className="text-xs font-medium text-gray-700">
+                    {user?.displayName || user?.email?.split('@')[0]}
+                  </span>
+                </button>
+
+                {showUserMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowUserMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-premium-lg border border-gray-200 z-50">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {user?.displayName || 'User'}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate mt-0.5">{user?.email}</div>
+                        <div className="mt-2">
+                          <span className={`text-xs font-semibold ${
+                            user?.role === 'super_user' ? 'text-yellow-600' :
+                            user?.role === 'admin' ? 'text-purple-600' :
+                            user?.role === 'editor' ? 'text-blue-600' :
+                            'text-gray-600'
+                          }`}>
+                            {user?.role === 'super_user' ? 'Super User' :
+                             user?.role === 'admin' ? 'Admin' :
+                             user?.role === 'editor' ? 'Editor' :
+                             'Viewer'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await signOut();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex items-center gap-2">
+              <button
+                disabled
+                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+              >
                 <Share2 className="w-4 h-4" />
                 Share
               </button>
-              <button className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <button
+                disabled
+                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-400 rounded-lg cursor-not-allowed opacity-50"
+              >
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -872,13 +944,17 @@ function App() {
                   </span>
                 )}
               </button>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-2 bg-travel-teal text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0c8c8c] transition-colors shadow-premium-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Place</span>
-              </button>
+
+              {canEdit && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="flex items-center gap-2 bg-travel-teal text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0c8c8c] transition-colors shadow-premium-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Place</span>
+                </button>
+              )}
+              </div>
             </div>
           </div>
         </div>
@@ -896,6 +972,15 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Viewer Banner */}
+      {user?.role === 'viewer' && (
+        <div className="bg-blue-50 border-b border-blue-200 px-6 py-2 text-center">
+          <span className="text-sm text-blue-800 font-medium">
+            👁️ You're viewing this trip as <strong>View-Only</strong>. Contact admin for edit access.
+          </span>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
@@ -948,8 +1033,8 @@ function App() {
               <DetailsPanel
                 item={selectedItem}
                 onClose={handleCloseDetails}
-                onDelete={handleDeletePlace}
-                onEdit={handleEditPlace}
+                onDelete={canEdit ? handleDeletePlace : undefined}
+                onEdit={canEdit ? handleEditPlace : undefined}
               />
             </div>
           </div>

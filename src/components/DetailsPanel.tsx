@@ -200,13 +200,15 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
                 <Edit className="w-3.5 h-3.5 text-white" />
               </button>
             )}
-            <button
-              onClick={handleDelete}
-              className="p-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all shadow-lg"
-              aria-label="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-white" />
-            </button>
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                className="p-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all shadow-lg"
+                aria-label="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-white" />
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-2 bg-white hover:bg-gray-50 rounded-lg transition-all shadow-lg"
@@ -232,13 +234,15 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
                   <Edit className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button
-                onClick={handleDelete}
-                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all border border-red-200"
-                aria-label="Delete"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all border border-red-200"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all border border-gray-300"

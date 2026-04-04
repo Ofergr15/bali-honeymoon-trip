@@ -5,6 +5,8 @@ import BookingStatusView from './BookingStatusView';
 import DailyExpensesTracker from './DailyExpensesTracker';
 import BudgetDashboardV2 from './BudgetDashboardV2';
 import TripDashboard from './TripDashboard';
+import UserManagement from './UserManagement';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TripSettingsModalProps {
   tripData: TripData;
@@ -36,9 +38,10 @@ function getPlaceName(title: string): string {
 const HIDDEN_PLACES_KEY = 'bali-trip-hidden-places';
 
 export default function TripSettingsModal({ tripData, onSave, onClose }: TripSettingsModalProps) {
+  const { canManageUsers, isSuperUser } = useAuth();
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics'>('places');
+  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users'>('places');
   const [localTripData, setLocalTripData] = useState<TripData>(tripData);
   const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
   const [showTripDashboard, setShowTripDashboard] = useState(false);
@@ -318,6 +321,18 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
             >
               📊 Budget & Analytics
             </button>
+            {canManageUsers && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
+                  activeTab === 'users'
+                    ? 'border-travel-teal text-travel-teal bg-white shadow-md'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                }`}
+              >
+                👥 User Management
+              </button>
+            )}
           </div>
         </div>
 
@@ -514,6 +529,11 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
               tripData={localTripData}
               onUpdateExpenses={handleUpdateExpenses}
             />
+          )}
+
+          {/* User Management Tab */}
+          {activeTab === 'users' && canManageUsers && (
+            <UserManagement isSuperUser={isSuperUser} />
           )}
 
           {/* Action Buttons */}
