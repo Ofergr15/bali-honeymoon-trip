@@ -372,22 +372,25 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
         }
       }
 
-      // Determine type
+      // AI-powered type detection - check name, description, and address
       const lowerName = extractedName.toLowerCase();
-      const isHotel = lowerName.includes('hotel') ||
-                     lowerName.includes('resort') ||
-                     lowerName.includes('villa') ||
-                     lowerName.includes('hostel') ||
-                     lowerName.includes('accommodation');
+      const lowerDesc = extractedDescription.toLowerCase();
+      const lowerAddr = address.toLowerCase();
+      const combinedText = `${lowerName} ${lowerDesc} ${lowerAddr}`;
 
+      // Hotel detection keywords
+      const hotelKeywords = ['hotel', 'resort', 'villa', 'hostel', 'accommodation', 'guest house', 'guesthouse', 'homestay', 'lodge', 'inn'];
+      const isHotel = hotelKeywords.some(keyword => combinedText.includes(keyword));
+
+      // Activity type detection
       let guessedType: Activity['type'] = 'activity';
-      if (lowerName.includes('restaurant') || lowerName.includes('cafe') || lowerName.includes('warung') || lowerName.includes('kitchen')) {
+      if (lowerName.includes('restaurant') || lowerName.includes('cafe') || lowerName.includes('warung') || lowerName.includes('kitchen') || lowerName.includes('dining') || lowerName.includes('eatery')) {
         guessedType = 'restaurant';
-      } else if (lowerName.includes('temple') || lowerName.includes('pura')) {
+      } else if (lowerName.includes('temple') || lowerName.includes('pura') || lowerName.includes('shrine')) {
         guessedType = 'temple';
-      } else if (lowerName.includes('beach') || lowerName.includes('club') || lowerName.includes('surf')) {
+      } else if (lowerName.includes('beach') || lowerName.includes('club') || lowerName.includes('surf') || lowerName.includes('coast')) {
         guessedType = 'beach';
-      } else if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('park')) {
+      } else if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('park') || lowerName.includes('attraction')) {
         guessedType = 'attraction';
       }
 
@@ -524,34 +527,27 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Place Type Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              What are you adding?
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="activity"
-                  checked={placeType === 'activity'}
-                  onChange={(e) => setPlaceType(e.target.value as 'activity')}
-                  className="mr-2"
-                />
-                Activity/Restaurant/Attraction
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="hotel"
-                  checked={placeType === 'hotel'}
-                  onChange={(e) => setPlaceType(e.target.value as 'hotel')}
-                  className="mr-2"
-                />
-                Hotel
-              </label>
+          {/* AI-Detected Type Badge */}
+          {(placeType === 'hotel' || name) && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-700">AI Detected:</span>
+                  <span className="px-3 py-1 bg-white border-2 border-purple-300 rounded-full text-sm font-bold text-purple-700">
+                    {placeType === 'hotel' ? '🏨 Hotel' : '🎯 Activity'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlaceType(placeType === 'hotel' ? 'activity' : 'hotel')}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium underline"
+                >
+                  Switch to {placeType === 'hotel' ? 'Activity' : 'Hotel'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Activity Type (only for activities) */}
           {placeType === 'activity' && (
