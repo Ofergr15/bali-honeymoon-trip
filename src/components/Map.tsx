@@ -226,8 +226,21 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
           console.log('   Zoom step', i, '→', clampedZoom);
           map.setZoom(clampedZoom);
+
+          // FINAL STEP: Ensure we're exactly centered on target
+          if (i === steps) {
+            setTimeout(() => {
+              console.log('   🎯 Final positioning - ensuring exact center');
+              map.panTo({ lat: targetLat, lng: targetLng });
+            }, 200);
+          }
         }, 300 + (i * 300)); // Progressive delay
       }
+    } else {
+      // No zoom needed, just ensure we're centered
+      setTimeout(() => {
+        map.panTo({ lat: targetLat, lng: targetLng });
+      }, 400);
     }
   }, [map]);
 
