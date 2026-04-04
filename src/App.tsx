@@ -62,7 +62,7 @@ function getPlaceEmoji(placeName: string): string {
 }
 
 function App() {
-  const { user, signOut, canEdit } = useAuth();
+  const { user, signOut, canEdit, isSuperUser } = useAuth();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Activity | Hotel | null>(null);
