@@ -41,3 +41,33 @@ export function findNearestPlace(lat: number, lng: number): { name: string; dist
 
   return nearest;
 }
+
+// Get place info - uses manual override if set, otherwise auto-detects
+export function getPlaceInfo(lat: number, lng: number, manualPlace?: string): { name: string; emoji: string; color: string } {
+  // If manual place is set, use it
+  if (manualPlace && PLACE_LOCATIONS[manualPlace as keyof typeof PLACE_LOCATIONS]) {
+    const placeData = PLACE_LOCATIONS[manualPlace as keyof typeof PLACE_LOCATIONS];
+    return {
+      name: manualPlace,
+      emoji: placeData.emoji,
+      color: placeData.color,
+    };
+  }
+
+  // Otherwise auto-detect
+  const detected = findNearestPlace(lat, lng);
+  if (detected) {
+    return {
+      name: detected.name,
+      emoji: detected.emoji,
+      color: detected.color,
+    };
+  }
+
+  // Fallback
+  return {
+    name: 'Bali',
+    emoji: '📍',
+    color: '#6B7280',
+  };
+}

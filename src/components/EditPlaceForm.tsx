@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import type { Activity, Hotel } from '../types/trip';
+import { PLACE_LOCATIONS, findNearestPlace } from '../utils/locations';
 
 interface EditPlaceFormProps {
   item: Activity | Hotel;
@@ -20,6 +21,14 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
   );
   const [rating, setRating] = useState(item.rating?.toString() || '');
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
+
+  // Place/Location - use manual if set, otherwise detect from GPS
+  const detectedPlace = findNearestPlace(item.location.lat, item.location.lng);
+  const [place, setPlace] = useState<string>(
+    isActivity(item) && item.place
+      ? item.place
+      : detectedPlace?.name || 'auto'
+  );
 
   // Activity-specific fields
   const [day, setDay] = useState(isActivity(item) ? (item.day?.toString() || '0') : '1');
@@ -70,6 +79,7 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
         rating: rating ? parseFloat(rating) : undefined,
         imageUrl: imageUrl || undefined,
         price: price || undefined,
+        place: place === 'auto' ? undefined : place, // Store manual selection, undefined = auto-detect
         // Hotel-specific fields (only set if type is 'hotel')
         checkIn: activityType === 'hotel' ? checkIn : undefined,
         checkOut: activityType === 'hotel' ? checkOut : undefined,
@@ -147,6 +157,30 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
                 <option value="activity">🎯 Activity</option>
                 <option value="hotel">🏨 Hotel</option>
               </select>
+            </div>
+          )}
+
+          {/* Place/Location Selector */}
+          {isActivity(item) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <select
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+              >
+                <option value="auto">🤖 Auto-detect ({detectedPlace?.emoji} {detectedPlace?.name || 'Bali'})</option>
+                {Object.entries(PLACE_LOCATIONS).map(([placeName, placeInfo]) => (
+                  <option key={placeName} value={placeName}>
+                    {placeInfo.emoji} {placeName}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                💡 AI auto-detects location. Select manually if incorrect.
+              </div>
             </div>
           )}
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Bookmark, MapPin, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
-import { PLACE_LOCATIONS, findNearestPlace } from '../utils/locations';
+import { PLACE_LOCATIONS, getPlaceInfo } from '../utils/locations';
 
 interface BookmarksPanelProps {
   bookmarks: Activity[];
@@ -15,15 +15,15 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
   const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
   const [filterLocation, setFilterLocation] = useState<string | 'all'>('all');
 
-  // Add nearest place info to each bookmark
+  // Add nearest place info to each bookmark (uses manual override if set)
   const bookmarksWithLocation = bookmarks.map(bookmark => {
-    const nearestPlace = findNearestPlace(bookmark.location.lat, bookmark.location.lng);
+    const placeInfo = getPlaceInfo(bookmark.location.lat, bookmark.location.lng, bookmark.place);
     return {
       ...bookmark,
-      nearestPlace: nearestPlace?.name || 'Unknown',
-      nearestPlaceEmoji: nearestPlace?.emoji || '📍',
-      nearestPlaceColor: nearestPlace?.color || '#6B7280',
-      distanceKm: nearestPlace?.distance || 0
+      nearestPlace: placeInfo.name,
+      nearestPlaceEmoji: placeInfo.emoji,
+      nearestPlaceColor: placeInfo.color,
+      distanceKm: 0 // Not needed anymore since we're using manual or detected place
     };
   });
 

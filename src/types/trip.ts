@@ -44,6 +44,7 @@ export interface Activity {
   rating?: number;
   imageUrl?: string;
   openingHours?: OpeningHours;
+  place?: string; // Manual override for location (e.g., "Sidemen", "Ubud") - overrides AI detection
   // Hotel-specific fields (when type is 'hotel')
   checkIn?: string;
   checkOut?: string;
