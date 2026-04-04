@@ -61,7 +61,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   // Track render count to see how often component re-renders
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
-  console.log(`🔄 Map component render #${renderCountRef.current}`);
 
   const [selectedMarker, setSelectedMarker] = useState<Activity | Hotel | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<Activity | Hotel | null>(null);
@@ -70,6 +69,18 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   const hoverTimeoutRef = React.useRef<number | null>(null);
   const isUserInteractingRef = React.useRef(false);
   const lastAnimatedIdRef = React.useRef<string | null>(null);
+
+  // Log EVERY render with all state values to track what's changing
+  console.log(`🔄 ========== RENDER #${renderCountRef.current} ==========`);
+  console.log('   State snapshot:');
+  console.log('   - zoomLevel:', zoomLevel);
+  console.log('   - selectedMarker:', selectedMarker?.name || 'null');
+  console.log('   - hoveredMarker:', hoveredMarker?.name || 'null');
+  console.log('   - selectedItem:', selectedItem?.name || 'null');
+  console.log('   - map instance:', map ? 'exists' : 'null');
+  console.log('   - selectedDay:', selectedDay);
+  console.log('   - isUserInteracting:', isUserInteractingRef.current);
+  console.log('========================================');
 
   // Debug state
   const [debugState, setDebugState] = useState({
@@ -170,20 +181,24 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       const zoomListener = map.addListener('zoom_changed', () => {
         const currentZoom = map.getZoom();
         if (currentZoom) {
-          console.log('🔍 ZOOM_CHANGED:', currentZoom.toFixed(2));
+          console.log('🔍 ZOOM_CHANGED:', currentZoom.toFixed(2), '→ calling setZoomLevel (TRIGGERS RE-RENDER)');
           setZoomLevel(currentZoom);
         }
       });
 
       // Prevent rotation/tilt only when it actually changes
       const tiltListener = map.addListener('tilt_changed', () => {
-        if (map.getTilt() !== 0) {
+        const currentTilt = map.getTilt();
+        if (currentTilt !== 0) {
+          console.log('🔄 TILT_CHANGED:', currentTilt, '→ forcing back to 0 (MAY CAUSE CENTER_CHANGED)');
           map.setTilt(0);
         }
       });
 
       const headingListener = map.addListener('heading_changed', () => {
-        if (map.getHeading() !== 0) {
+        const currentHeading = map.getHeading();
+        if (currentHeading !== 0) {
+          console.log('🧭 HEADING_CHANGED:', currentHeading, '→ forcing back to 0 (MAY CAUSE CENTER_CHANGED)');
           map.setHeading(0);
         }
       });
@@ -285,6 +300,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   }, [hotels, selectedDay, placeDays]);
 
   const handleMarkerClick = (item: Activity | Hotel) => {
+    console.log('🖱️ MARKER CLICKED:', item.name, '→ calling setSelectedMarker (TRIGGERS RE-RENDER)');
     setSelectedMarker(item);
     onMarkerClick?.(item);
   };
@@ -374,10 +390,18 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           });
 
           // Track center changes (this fires when map center changes for ANY reason)
+          let centerChangeCount = 0;
           mapInstance.addListener('center_changed', () => {
+            centerChangeCount++;
             const center = mapInstance.getCenter();
             if (center) {
-              console.log('📍 CENTER_CHANGED:', `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
+              console.log(`📍 CENTER_CHANGED #${centerChangeCount}:`, `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
+
+              // Show stack trace for center changes that happen AFTER dragend
+              if (!isUserInteractingRef.current) {
+                console.log('   ⚠️ CENTER CHANGED WHILE NOT DRAGGING!');
+                console.trace('   Stack trace:');
+              }
             }
           });
         }}
