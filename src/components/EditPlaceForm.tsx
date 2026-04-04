@@ -28,11 +28,27 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
     isActivity(item) ? item.type : 'restaurant'
   );
 
-  // Hotel-specific fields
-  const [price, setPrice] = useState(isActivity(item) ? '' : (item.price || ''));
-  const [checkIn, setCheckIn] = useState(isActivity(item) ? '' : (item.checkIn || ''));
-  const [checkOut, setCheckOut] = useState(isActivity(item) ? '' : (item.checkOut || ''));
-  const [bookingUrl, setBookingUrl] = useState(isActivity(item) ? '' : (item.bookingUrl || ''));
+  // Hotel-specific fields (can be in Activity if type='hotel', or in separate Hotel object)
+  const [price, setPrice] = useState(
+    isActivity(item)
+      ? (item.price || '')
+      : (item.price || '')
+  );
+  const [checkIn, setCheckIn] = useState(
+    isActivity(item)
+      ? (item.checkIn || '')
+      : (item.checkIn || '')
+  );
+  const [checkOut, setCheckOut] = useState(
+    isActivity(item)
+      ? (item.checkOut || '')
+      : (item.checkOut || '')
+  );
+  const [bookingUrl, setBookingUrl] = useState(
+    isActivity(item)
+      ? (item.bookingUrl || '')
+      : (item.bookingUrl || '')
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +59,12 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
     }
 
     if (isActivity(item)) {
+      // Validate hotel-specific fields if type is 'hotel'
+      if (activityType === 'hotel' && (!checkIn || !checkOut)) {
+        alert('Please provide check-in and check-out dates for hotels');
+        return;
+      }
+
       const dayNum = parseInt(day);
       const updatedActivity: Activity = {
         ...item,
@@ -53,9 +75,15 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
         description: description || undefined,
         rating: rating ? parseFloat(rating) : undefined,
         imageUrl: imageUrl || undefined,
+        price: price || undefined,
+        // Hotel-specific fields (only set if type is 'hotel')
+        checkIn: activityType === 'hotel' ? checkIn : undefined,
+        checkOut: activityType === 'hotel' ? checkOut : undefined,
+        bookingUrl: activityType === 'hotel' ? bookingUrl : undefined,
       };
       onUpdate(updatedActivity);
     } else {
+      // Old Hotel object (for backwards compatibility)
       if (!checkIn || !checkOut) {
         alert('Please provide check-in and check-out dates');
         return;
@@ -123,12 +151,13 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
                 <option value="beach">🏖️ Beach</option>
                 <option value="temple">⛩️ Temple</option>
                 <option value="activity">🎯 Activity</option>
+                <option value="hotel">🏨 Hotel</option>
               </select>
             </div>
           )}
 
-          {/* Day (only for activities) */}
-          {isActivity(item) && (
+          {/* Day (only for non-hotel activities) */}
+          {isActivity(item) && activityType !== 'hotel' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Day
@@ -151,8 +180,8 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
             </div>
           )}
 
-          {/* Time (only for activities) */}
-          {isActivity(item) && (
+          {/* Time (only for non-hotel activities) */}
+          {isActivity(item) && activityType !== 'hotel' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Time (optional)
@@ -166,8 +195,24 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
             </div>
           )}
 
+          {/* Booking URL (hotels only) */}
+          {((!isActivity(item)) || activityType === 'hotel') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Booking.com URL
+              </label>
+              <input
+                type="url"
+                value={bookingUrl}
+                onChange={(e) => setBookingUrl(e.target.value)}
+                placeholder="https://www.booking.com/..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+              />
+            </div>
+          )}
+
           {/* Check-in/Check-out dates (hotels only) */}
-          {!isActivity(item) && (
+          {((!isActivity(item)) || activityType === 'hotel') && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

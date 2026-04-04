@@ -53,7 +53,6 @@ function extractCoordinatesFromLink(link: string): { lat: number; lng: number } 
 }
 
 export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: AddPlaceFormProps) {
-  const [placeType, setPlaceType] = useState<'activity' | 'hotel'>('activity');
   const [activityType, setActivityType] = useState<Activity['type']>('restaurant');
 
   // Common fields
@@ -394,6 +393,26 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
         guessedType = 'attraction';
       }
 
+      // AI: Try to auto-extract check-in/out dates from name or description
+      let extractedCheckIn = '';
+      let extractedCheckOut = '';
+
+      // Look for date patterns in the name/description (e.g., "May 10-15", "10-15 May", "May 10 to May 15")
+      const datePattern = /(?:may|june)\s+(\d{1,2})(?:\s*-\s*|\s+to\s+)(?:may|june)?\s*(\d{1,2})/i;
+      const dateMatch = `${extractedName} ${extractedDescription}`.match(datePattern);
+
+      if (dateMatch && isHotel) {
+        const startDay = parseInt(dateMatch[1]);
+        const endDay = parseInt(dateMatch[2]);
+
+        // Our trip is May 6-30, 2026
+        if (startDay >= 6 && startDay <= 30 && endDay >= 6 && endDay <= 30) {
+          extractedCheckIn = `2026-05-${String(startDay).padStart(2, '0')}`;
+          extractedCheckOut = `2026-05-${String(endDay).padStart(2, '0')}`;
+          console.log('✅ Auto-detected dates:', extractedCheckIn, '-', extractedCheckOut);
+        }
+      }
+
       // Log what we extracted
       console.log('Auto-fill results:', {
         name: extractedName,
@@ -401,6 +420,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
         image: extractedImage,
         description: extractedDescription,
         type: isHotel ? 'hotel' : guessedType,
+        checkIn: extractedCheckIn || 'not detected',
+        checkOut: extractedCheckOut || 'not detected',
       });
 
       // Track what was successfully fetched
@@ -417,9 +438,12 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       if (extractedRating) setRating(extractedRating);
       if (extractedImage) setImageUrl(extractedImage);
       if (extractedDescription) setDescription(extractedDescription);
+      if (extractedCheckIn) setCheckIn(extractedCheckIn);
+      if (extractedCheckOut) setCheckOut(extractedCheckOut);
 
+      // Set activity type (including 'hotel')
       if (isHotel) {
-        setPlaceType('hotel');
+        setActivityType('hotel');
       } else {
         setActivityType(guessedType);
       }
@@ -455,47 +479,33 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       return;
     }
 
-    if (placeType === 'activity') {
-      const dayNum = parseInt(day);
-      const newActivity: Omit<Activity, 'id'> = {
-        day: dayNum === 0 ? undefined : dayNum, // undefined = bookmark, no day assigned
-        type: activityType,
-        name,
-        location,
-        address: address || undefined,
-        googleMapsUrl: link || undefined,
-        time,
-        duration: undefined,
-        description,
-        price: undefined,
-        rating: rating ? parseFloat(rating) : undefined,
-        imageUrl: imageUrl || undefined,
-        openingHours: openingHours || undefined,
-      };
-      onAddActivity(newActivity);
-    } else {
-      // For hotels, validate check-in/check-out dates
-      if (!checkIn || !checkOut) {
-        alert('Please provide check-in and check-out dates for the hotel');
-        return;
-      }
-
-      const newHotel: Omit<Hotel, 'id'> = {
-        name,
-        location,
-        address: address || 'Bali, Indonesia',
-        googleMapsUrl: link || undefined,
-        phone: undefined,
-        rating: rating ? parseFloat(rating) : undefined,
-        price: price || undefined,
-        checkIn,
-        checkOut,
-        description: description || undefined,
-        imageUrl: imageUrl || undefined,
-        bookingUrl: bookingUrl || undefined,
-      };
-      onAddHotel(newHotel);
+    // For hotels, validate check-in/check-out dates
+    if (activityType === 'hotel' && (!checkIn || !checkOut)) {
+      alert('Please provide check-in and check-out dates for the hotel');
+      return;
     }
+
+    const dayNum = parseInt(day);
+    const newActivity: Omit<Activity, 'id'> = {
+      day: dayNum === 0 ? undefined : dayNum, // undefined = bookmark, no day assigned
+      type: activityType,
+      name,
+      location,
+      address: address || undefined,
+      googleMapsUrl: link || undefined,
+      time,
+      duration: undefined,
+      description,
+      price: price || undefined,
+      rating: rating ? parseFloat(rating) : undefined,
+      imageUrl: imageUrl || undefined,
+      openingHours: openingHours || undefined,
+      // Hotel-specific fields
+      checkIn: activityType === 'hotel' ? checkIn : undefined,
+      checkOut: activityType === 'hotel' ? checkOut : undefined,
+      bookingUrl: activityType === 'hotel' ? bookingUrl : undefined,
+    };
+    onAddActivity(newActivity);
 
     // Reset form
     setName('');
@@ -528,46 +538,46 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* AI-Detected Type Badge */}
-          {(placeType === 'hotel' || name) && (
+          {name && autoFillSuccess && (
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-purple-600" />
                   <span className="text-sm font-medium text-gray-700">AI Detected:</span>
                   <span className="px-3 py-1 bg-white border-2 border-purple-300 rounded-full text-sm font-bold text-purple-700">
-                    {placeType === 'hotel' ? '🏨 Hotel' : '🎯 Activity'}
+                    {activityType === 'hotel' && '🏨 Hotel'}
+                    {activityType === 'restaurant' && '🍽️ Restaurant'}
+                    {activityType === 'beach' && '🏖️ Beach'}
+                    {activityType === 'temple' && '⛩️ Temple'}
+                    {activityType === 'attraction' && '📍 Attraction'}
+                    {activityType === 'activity' && '🎯 Activity'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPlaceType(placeType === 'hotel' ? 'activity' : 'hotel')}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium underline"
-                >
-                  Switch to {placeType === 'hotel' ? 'Activity' : 'Hotel'}
-                </button>
+                <span className="text-xs text-gray-500">
+                  ✓ Auto-filled
+                </span>
               </div>
             </div>
           )}
 
-          {/* Activity Type (only for activities) */}
-          {placeType === 'activity' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type
-              </label>
-              <select
-                value={activityType}
-                onChange={(e) => setActivityType(e.target.value as Activity['type'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
-              >
-                <option value="restaurant">🍽️ Restaurant</option>
-                <option value="attraction">📍 Attraction</option>
-                <option value="beach">🏖️ Beach</option>
-                <option value="temple">⛩️ Temple</option>
-                <option value="activity">🎯 Activity</option>
-              </select>
-            </div>
-          )}
+          {/* Activity Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type
+            </label>
+            <select
+              value={activityType}
+              onChange={(e) => setActivityType(e.target.value as Activity['type'])}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+            >
+              <option value="restaurant">🍽️ Restaurant</option>
+              <option value="attraction">📍 Attraction</option>
+              <option value="beach">🏖️ Beach</option>
+              <option value="temple">⛩️ Temple</option>
+              <option value="activity">🎯 Activity</option>
+              <option value="hotel">🏨 Hotel</option>
+            </select>
+          </div>
 
           {/* Google Maps Link - PRIMARY FIELD */}
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6">
@@ -731,8 +741,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
             </div>
           </div>
 
-          {/* Day (only for activities) */}
-          {placeType === 'activity' && (
+          {/* Day (not for hotels) */}
+          {activityType !== 'hotel' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Day
@@ -756,7 +766,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
           )}
 
           {/* Booking URL (hotels only) */}
-          {placeType === 'hotel' && (
+          {activityType === 'hotel' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Booking.com URL
@@ -774,36 +784,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
             </div>
           )}
 
-          {/* Price (hotels only) */}
-          {placeType === 'hotel' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Total Price from Booking.com
-              </label>
-              <input
-                type="text"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="e.g., $1,250 total or 3,500,000 IDR/night"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
-              />
-              <div className="text-xs text-gray-500 mt-1 flex items-start gap-1">
-                <span>💡</span>
-                <span>
-                  <strong>How to get price from Booking.com:</strong>
-                  <br />
-                  1. Open your Booking.com reservation
-                  <br />
-                  2. Copy the total price shown
-                  <br />
-                  3. Paste it here (e.g., "$1,250 for 5 nights")
-                </span>
-              </div>
-            </div>
-          )}
-
           {/* Check-in/Check-out dates (hotels only) */}
-          {placeType === 'hotel' && (
+          {activityType === 'hotel' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -882,8 +864,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
             )}
           </div>
 
-          {/* Time (only for activities) */}
-          {placeType === 'activity' && (
+          {/* Time (not for hotels) */}
+          {activityType !== 'hotel' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Time (optional)
@@ -940,7 +922,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
               className="flex-1 bg-travel-teal text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#0c8c8c] transition-colors flex items-center justify-center gap-2 shadow-premium-sm"
             >
               <Plus className="w-5 h-5" />
-              Add {placeType === 'activity' ? 'Activity' : 'Hotel'}
+              Add {activityType === 'hotel' ? 'Hotel' : capitalizeFirst(activityType)}
             </button>
             <button
               type="button"
