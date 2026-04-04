@@ -175,7 +175,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     },
   }), []); // Never changes - same object every render!
 
-  // Listen to zoom changes for auto-scaling markers and prevent rotation/tilt
+  // Listen to zoom changes for auto-scaling markers
   useEffect(() => {
     if (map) {
       const zoomListener = map.addListener('zoom_changed', () => {
@@ -186,27 +186,12 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
         }
       });
 
-      // Prevent rotation/tilt only when it actually changes
-      const tiltListener = map.addListener('tilt_changed', () => {
-        const currentTilt = map.getTilt();
-        if (currentTilt !== 0) {
-          console.log('🔄 TILT_CHANGED:', currentTilt, '→ forcing back to 0 (MAY CAUSE CENTER_CHANGED)');
-          map.setTilt(0);
-        }
-      });
-
-      const headingListener = map.addListener('heading_changed', () => {
-        const currentHeading = map.getHeading();
-        if (currentHeading !== 0) {
-          console.log('🧭 HEADING_CHANGED:', currentHeading, '→ forcing back to 0 (MAY CAUSE CENTER_CHANGED)');
-          map.setHeading(0);
-        }
-      });
+      // REMOVED tilt and heading listeners - they were causing snap-back!
+      // We already disable tilt/heading in map options, no need to listen and force them back
+      console.log('✅ Zoom listener attached, tilt/heading listeners REMOVED to prevent snap-back');
 
       return () => {
         google.maps.event.removeListener(zoomListener);
-        google.maps.event.removeListener(tiltListener);
-        google.maps.event.removeListener(headingListener);
       };
     }
   }, [map]);
@@ -357,13 +342,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           // Set initial position - ONLY ONCE on load!
           mapInstance.setCenter(defaultCenter);
           mapInstance.setZoom(10);
-
-          // Force flat 2D map
-          mapInstance.setTilt(0);
-          mapInstance.setHeading(0);
           mapInstance.setMapTypeId('hybrid');
 
-          console.log('✅ Map loaded - initial position set, now uncontrolled');
+          // Don't manually set tilt/heading - already in options, setting them here caused issues
+          console.log('✅ Map loaded - initial position set, tilt/heading controlled by options only');
 
           // === COMPREHENSIVE DRAG LOGGING ===
           // Track every drag movement to see snap-back in real-time
