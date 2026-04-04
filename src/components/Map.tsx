@@ -62,6 +62,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [zoomLevel, setZoomLevel] = useState(10);
   const hoverTimeoutRef = React.useRef<number | null>(null);
+  const userInteractingRef = React.useRef(false);
   const previousSelectedItemRef = React.useRef<Activity | Hotel | null>(null);
   const animationLockRef = React.useRef<boolean>(false);
   const { isLoaded, loadError } = useLoadScript({
@@ -135,7 +136,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
   // Google Earth-style animation: zoom out → pan → zoom in
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, label: string) => {
-    if (!map || animationLockRef.current) return;
+    if (!map || animationLockRef.current || userInteractingRef.current) return;
 
     // Lock to prevent overlapping clicks
     animationLockRef.current = true;
@@ -319,7 +320,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       return activities.filter(activity => activity.day === selectedDay);
     }
     if (placeDays && placeDays.length > 0) {
-      return activities.filter(activity => placeDays.includes(activity.day));
+      return activities.filter(activity => activity.day && placeDays.includes(activity.day));
     }
     return activities;
   }, [activities, selectedDay, placeDays]);
@@ -417,6 +418,31 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             keyboardShortcuts: false,
           };
           mapInstance.setOptions(mapOptions);
+
+          // Detect user interactions to prevent animation interference
+          mapInstance.addListener('dragstart', () => {
+            console.log('👆 User started dragging');
+            userInteractingRef.current = true;
+            animationLockRef.current = false; // Release animation lock
+          });
+
+          mapInstance.addListener('dragend', () => {
+            console.log('👆 User stopped dragging');
+            setTimeout(() => {
+              userInteractingRef.current = false;
+            }, 500); // Small delay to prevent immediate re-animation
+          });
+
+          // Detect manual zoom changes
+          mapInstance.addListener('zoom_changed', () => {
+            if (!animationLockRef.current) {
+              // User is manually zooming
+              userInteractingRef.current = true;
+              setTimeout(() => {
+                userInteractingRef.current = false;
+              }, 1000);
+            }
+          });
         }}
         options={{
           styles: [
