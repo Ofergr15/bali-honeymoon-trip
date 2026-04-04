@@ -69,6 +69,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   const hoverTimeoutRef = React.useRef<number | null>(null);
   const isUserInteractingRef = React.useRef(false);
   const lastAnimatedIdRef = React.useRef<string | null>(null);
+  const dragEndPositionRef = React.useRef<{ lat: number; lng: number } | null>(null);
+  const lockCenterAfterDragRef = React.useRef(false);
 
   // Log EVERY render with all state values to track what's changing
   console.log(`🔄 ========== RENDER #${renderCountRef.current} ==========`);
@@ -203,7 +205,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       return;
     }
 
-    // Disable debug state updates to prevent re-renders during pan!
+    // Clear any drag locks when intentionally animating
+    lockCenterAfterDragRef.current = false;
+    dragEndPositionRef.current = null;
+
     const currentCenter = map.getCenter();
 
     console.log('🎥 Animation triggered from:', source);
@@ -354,6 +359,11 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             const center = mapInstance.getCenter();
             console.log('🖱️ DRAGSTART - User started dragging');
             console.log('   Start position:', center ? `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}` : 'unknown');
+
+            // Clear any existing locks when new drag starts
+            lockCenterAfterDragRef.current = false;
+            dragEndPositionRef.current = null;
+
             isUserInteractingRef.current = true;
           });
 
@@ -368,6 +378,21 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             const center = mapInstance.getCenter();
             console.log('🛑 DRAGEND - User stopped dragging');
             console.log('   End position:', center ? `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}` : 'unknown');
+
+            // LOCK THE CENTER - save exact position and prevent any changes for 100ms
+            if (center) {
+              dragEndPositionRef.current = { lat: center.lat(), lng: center.lng() };
+              lockCenterAfterDragRef.current = true;
+              console.log('🔒 CENTER LOCKED at:', dragEndPositionRef.current);
+
+              // Release lock after 100ms (after Google Maps finishes internal processing)
+              setTimeout(() => {
+                lockCenterAfterDragRef.current = false;
+                dragEndPositionRef.current = null;
+                console.log('🔓 CENTER UNLOCKED');
+              }, 100);
+            }
+
             isUserInteractingRef.current = false;
           });
 
@@ -379,8 +404,27 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             if (center) {
               console.log(`📍 CENTER_CHANGED #${centerChangeCount}:`, `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
 
-              // Show stack trace for center changes that happen AFTER dragend
-              if (!isUserInteractingRef.current) {
+              // ANTI-SNAP-BACK: If center is locked after dragend, force it back!
+              if (lockCenterAfterDragRef.current && dragEndPositionRef.current) {
+                const currentLat = center.lat();
+                const currentLng = center.lng();
+                const lockedLat = dragEndPositionRef.current.lat;
+                const lockedLng = dragEndPositionRef.current.lng;
+
+                // Check if center has drifted from locked position (tolerance: 0.000001 degrees ≈ 0.1m)
+                const latDiff = Math.abs(currentLat - lockedLat);
+                const lngDiff = Math.abs(currentLng - lockedLng);
+
+                if (latDiff > 0.000001 || lngDiff > 0.000001) {
+                  console.log('   🚨 SNAP-BACK DETECTED! Forcing back to locked position');
+                  console.log('   Drift:', { latDiff, lngDiff });
+                  mapInstance.setCenter(dragEndPositionRef.current);
+                  return;
+                }
+              }
+
+              // Show stack trace for center changes that happen AFTER dragend (for debugging)
+              if (!isUserInteractingRef.current && !lockCenterAfterDragRef.current) {
                 console.log('   ⚠️ CENTER CHANGED WHILE NOT DRAGGING!');
                 console.trace('   Stack trace:');
               }
