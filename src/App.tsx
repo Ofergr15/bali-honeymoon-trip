@@ -70,7 +70,7 @@ function App() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [showBookmarksOnMap, setShowBookmarksOnMap] = useState(false);
-  const [filteredBookmarks, setFilteredBookmarks] = useState<Activity[]>(tripData.unassignedActivities || []);
+  const [filteredBookmarks, setFilteredBookmarks] = useState<Activity[]>([]);
   const [itemToEdit, setItemToEdit] = useState<Activity | Hotel | null>(null);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -91,6 +91,11 @@ function App() {
 
   // Load trip data from Supabase or localStorage
   const [tripData, setTripData] = useState<TripData>(baliTripData);
+
+  // Initialize filtered bookmarks when tripData changes
+  useEffect(() => {
+    setFilteredBookmarks(tripData.unassignedActivities || []);
+  }, [tripData]);
 
   // Cleanup database - remove duplicate trips
   const handleCleanupDatabase = async () => {
