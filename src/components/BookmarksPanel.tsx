@@ -40,21 +40,29 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick, on
     filteredBookmarks = filteredBookmarks.filter(b => b.nearestPlace === filterLocation);
   }
 
-  // Count bookmarks by type
+  // ADAPTIVE COUNTS: Count bookmarks by type (filtered by current location selection)
+  const bookmarksForTypeCounts = filterLocation !== 'all'
+    ? bookmarksWithLocation.filter(b => b.nearestPlace === filterLocation)
+    : bookmarksWithLocation;
+
   const typeCounts = {
-    all: bookmarks.length,
-    hotel: bookmarks.filter(b => b.type === 'hotel').length,
-    restaurant: bookmarks.filter(b => b.type === 'restaurant').length,
-    beach: bookmarks.filter(b => b.type === 'beach').length,
-    temple: bookmarks.filter(b => b.type === 'temple').length,
-    attraction: bookmarks.filter(b => b.type === 'attraction').length,
-    activity: bookmarks.filter(b => b.type === 'activity').length,
-    flight: bookmarks.filter(b => b.type === 'flight').length,
+    all: bookmarksForTypeCounts.length,
+    hotel: bookmarksForTypeCounts.filter(b => b.type === 'hotel').length,
+    restaurant: bookmarksForTypeCounts.filter(b => b.type === 'restaurant').length,
+    beach: bookmarksForTypeCounts.filter(b => b.type === 'beach').length,
+    temple: bookmarksForTypeCounts.filter(b => b.type === 'temple').length,
+    attraction: bookmarksForTypeCounts.filter(b => b.type === 'attraction').length,
+    activity: bookmarksForTypeCounts.filter(b => b.type === 'activity').length,
+    flight: bookmarksForTypeCounts.filter(b => b.type === 'flight').length,
   };
 
-  // Count bookmarks by location
+  // ADAPTIVE COUNTS: Count bookmarks by location (filtered by current type selection)
+  const bookmarksForLocationCounts = filterType !== 'all'
+    ? bookmarksWithLocation.filter(b => b.type === filterType)
+    : bookmarksWithLocation;
+
   const locationCounts: Record<string, number> = {};
-  bookmarksWithLocation.forEach(b => {
+  bookmarksForLocationCounts.forEach(b => {
     locationCounts[b.nearestPlace] = (locationCounts[b.nearestPlace] || 0) + 1;
   });
 
