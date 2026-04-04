@@ -212,29 +212,12 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     console.log('📍 Smooth navigate to:', source);
 
-    // Calculate distance for pan timing
-    const latDiff = targetLat - startLat;
-    const lngDiff = targetLng - startLng;
-    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+    // SIMPLE SMOOTH PAN - let Google Maps handle it natively
+    // Single panTo() is smoother than multiple interrupted calls
+    map.panTo({ lat: targetLat, lng: targetLng });
 
-    // SMOOTH MULTI-STEP PAN - add waypoints to make journey visible
-    const panSteps = Math.max(4, Math.min(10, Math.floor(distance * 60))); // More steps for longer distances
-
-    console.log('   Pan in', panSteps, 'steps for smooth journey');
-
-    // Animate pan in steps for smooth visible motion (SLOWER)
-    for (let i = 1; i <= panSteps; i++) {
-      setTimeout(() => {
-        const progress = i / panSteps;
-        const currentLat = startLat + (latDiff * progress);
-        const currentLng = startLng + (lngDiff * progress);
-
-        map.panTo({ lat: currentLat, lng: currentLng });
-      }, i * 120); // 120ms per step = slower, more visible motion
-    }
-
-    // Start zoom AFTER pan completes
-    const panDuration = panSteps * 120;
+    // Wait for pan to complete before zooming (longer wait = more visible pan)
+    const panDuration = 800; // 800ms to see the pan movement
     const zoomDiff = targetZoom - currentZoom;
     const zoomSteps = Math.abs(Math.ceil(zoomDiff / 2));
 
