@@ -65,7 +65,11 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   const [selectedMarker, setSelectedMarker] = useState<Activity | Hotel | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<Activity | Hotel | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(10);
+
+  // USE REF FOR ZOOM - don't trigger re-renders on every zoom change!
+  const zoomLevelRef = React.useRef(10);
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+
   const hoverTimeoutRef = React.useRef<number | null>(null);
   const isUserInteractingRef = React.useRef(false);
   const lastAnimatedIdRef = React.useRef<string | null>(null);
@@ -77,15 +81,11 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   console.log('   Props:');
   console.log('   - selectedItem:', selectedItem?.name || 'null');
   console.log('   - selectedDay:', selectedDay);
-  console.log('   - selectedPlace:', selectedPlace);
-  console.log('   - activities count:', activities.length);
-  console.log('   - hotels count:', hotels.length);
   console.log('   State:');
-  console.log('   - zoomLevel:', zoomLevel);
+  console.log('   - zoomLevel (REF):', zoomLevelRef.current);
   console.log('   - selectedMarker:', selectedMarker?.name || 'null');
   console.log('   - hoveredMarker:', hoveredMarker?.name || 'null');
   console.log('   - map instance:', map ? 'exists' : 'null');
-  console.log('   - isUserInteracting:', isUserInteractingRef.current);
   console.log('========================================');
 
   // Debug state
@@ -181,20 +181,30 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     },
   }), []); // Never changes - same object every render!
 
-  // Listen to zoom changes for auto-scaling markers
+  // Listen to zoom changes - USE REF to avoid triggering re-renders!
   useEffect(() => {
     if (map) {
       const zoomListener = map.addListener('zoom_changed', () => {
         const currentZoom = map.getZoom();
         if (currentZoom) {
-          console.log('🔍 ZOOM_CHANGED:', currentZoom.toFixed(2), '→ calling setZoomLevel (TRIGGERS RE-RENDER)');
-          setZoomLevel(currentZoom);
+          const previousZoom = zoomLevelRef.current;
+          zoomLevelRef.current = currentZoom;
+
+          // Only force re-render if we cross the label threshold (zoom 11)
+          const crossedLabelThreshold =
+            (previousZoom < 11 && currentZoom >= 11) ||
+            (previousZoom >= 11 && currentZoom < 11);
+
+          if (crossedLabelThreshold) {
+            console.log('🔍 ZOOM crossed label threshold:', currentZoom.toFixed(2), '→ forcing update for labels');
+            forceUpdate(); // Only re-render when labels need to show/hide
+          } else {
+            console.log('🔍 ZOOM changed:', currentZoom.toFixed(2), '→ stored in ref, NO RE-RENDER');
+          }
         }
       });
 
-      // REMOVED tilt and heading listeners - they were causing snap-back!
-      // We already disable tilt/heading in map options, no need to listen and force them back
-      console.log('✅ Zoom listener attached, tilt/heading listeners REMOVED to prevent snap-back');
+      console.log('✅ Zoom listener using REF (no re-renders except for label threshold)');
 
       return () => {
         google.maps.event.removeListener(zoomListener);
@@ -247,10 +257,10 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, selectedItem]); // animateToLocation is stable (useCallback), don't need it as dependency
 
-  // Calculate marker scale based on zoom level
+  // Calculate marker scale based on zoom level (from ref, not state!)
   const getMarkerScale = (baseScale: number) => {
     // Scale markers based on zoom: zoom 8 = 0.8x, zoom 10 = 1x, zoom 15 = 1.5x
-    const scaleFactor = Math.pow(1.15, zoomLevel - 10);
+    const scaleFactor = Math.pow(1.15, zoomLevelRef.current - 10);
     return baseScale * scaleFactor;
   };
 
@@ -298,13 +308,18 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     onMarkerClick?.(item);
   };
 
-  // Handle hover with delay to prevent flickering
+  // Handle hover with DEBOUNCE to prevent re-renders during drag!
   const handleMarkerHover = (item: Activity | Hotel | any) => {
-    console.log('🎯 Hover state change:', item.name);
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
-    setHoveredMarker(item);
+
+    // DEBOUNCE: Wait 100ms before setting hover state
+    // This prevents re-renders if user is just dragging across markers
+    hoverTimeoutRef.current = setTimeout(() => {
+      console.log('🎯 Hover state change (debounced):', item.name);
+      setHoveredMarker(item);
+    }, 100);
   };
 
   const handleMarkerUnhover = () => {
@@ -344,16 +359,14 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     <div className="relative w-full h-full">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
+        defaultCenter={defaultCenter}
+        defaultZoom={10}
         onLoad={(mapInstance) => {
           setMap(mapInstance);
-
-          // Set initial position - ONLY ONCE on load!
-          mapInstance.setCenter(defaultCenter);
-          mapInstance.setZoom(10);
           mapInstance.setMapTypeId('hybrid');
 
-          // Don't manually set tilt/heading - already in options, setting them here caused issues
-          console.log('✅ Map loaded - initial position set, tilt/heading controlled by options only');
+          // UNCONTROLLED MODE: Use default props, don't set center/zoom manually
+          console.log('✅ Map loaded in UNCONTROLLED mode (default props)');
 
           // === COMPREHENSIVE DRAG LOGGING ===
           // Track every drag movement to see snap-back in real-time
@@ -486,7 +499,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           {/* Location markers - circles with names */}
           {locations.map((location) => {
             // Vertical offset to place label above circle
-            let verticalOffset = 0.025 / Math.pow(1.15, zoomLevel - 10);
+            let verticalOffset = 0.025 / Math.pow(1.15, zoomLevelRef.current - 10);
 
             // Check if this location is being hovered (hide label if InfoWindow is showing)
             const isHovered = hoveredMarker && 'isLocationMarker' in hoveredMarker && hoveredMarker.name === location.name;
@@ -558,7 +571,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Hotel markers */}
       {filteredHotels.map((hotel) => {
-        const showLabel = zoomLevel >= 11; // Show labels when zoomed in
+        const showLabel = zoomLevelRef.current >= 11; // Show labels when zoomed in
         const isSelected = selectedItem && selectedItem.id === hotel.id;
         return (
           <React.Fragment key={hotel.id}>
@@ -613,7 +626,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               <Marker
                 position={{
                   lat: hotel.location.lat,
-                  lng: hotel.location.lng + (0.008 / Math.pow(1.15, zoomLevel - 10))
+                  lng: hotel.location.lng + (0.008 / Math.pow(1.15, zoomLevelRef.current - 10))
                 }}
                 icon={{
                   path: 'M 0,0',
@@ -635,7 +648,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Activity markers */}
       {filteredActivities.map((activity) => {
-        const showLabel = zoomLevel >= 11; // Show labels when zoomed in
+        const showLabel = zoomLevelRef.current >= 11; // Show labels when zoomed in
         const isSelected = selectedItem && selectedItem.id === activity.id;
         const activityColor = getMarkerColor({ type: activity.type });
         return (
@@ -691,7 +704,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               <Marker
                 position={{
                   lat: activity.location.lat,
-                  lng: activity.location.lng + (0.008 / Math.pow(1.15, zoomLevel - 10))
+                  lng: activity.location.lng + (0.008 / Math.pow(1.15, zoomLevelRef.current - 10))
                 }}
                 icon={{
                   path: 'M 0,0',
@@ -713,7 +726,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Bookmark markers - shown when bookmarks panel is open */}
       {showBookmarks && bookmarks && bookmarks.map((bookmark) => {
-        const showLabel = zoomLevel >= 11;
+        const showLabel = zoomLevelRef.current >= 11;
         const isSelected = selectedItem && selectedItem.id === bookmark.id;
         const bookmarkColor = '#FFA500'; // Orange/gold color for bookmarks
         return (
@@ -775,7 +788,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
               <Marker
                 position={{
                   lat: bookmark.location.lat,
-                  lng: bookmark.location.lng + (0.008 / Math.pow(1.15, zoomLevel - 10))
+                  lng: bookmark.location.lng + (0.008 / Math.pow(1.15, zoomLevelRef.current - 10))
                 }}
                 icon={{
                   path: 'M 0,0',
