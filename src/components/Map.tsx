@@ -845,6 +845,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
             position={infoWindowPosition}
             options={{
               pixelOffset: new google.maps.Size(0, -40), // Move up 40px to not cover marker
+              disableAutoPan: true, // CRITICAL: Prevent map from moving when InfoWindow appears on hover
             }}
             onCloseClick={() => {
               setSelectedMarker(null);
