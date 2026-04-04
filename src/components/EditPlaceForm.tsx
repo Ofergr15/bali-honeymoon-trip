@@ -30,8 +30,8 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
 
   // Hotel-specific fields
   const [price, setPrice] = useState(isActivity(item) ? '' : (item.price || ''));
-  const [checkIn, setCheckIn] = useState(isActivity(item) ? '' : item.checkIn);
-  const [checkOut, setCheckOut] = useState(isActivity(item) ? '' : item.checkOut);
+  const [checkIn, setCheckIn] = useState(isActivity(item) ? '' : (item.checkIn || ''));
+  const [checkOut, setCheckOut] = useState(isActivity(item) ? '' : (item.checkOut || ''));
   const [bookingUrl, setBookingUrl] = useState(isActivity(item) ? '' : (item.bookingUrl || ''));
 
   const handleSubmit = (e: React.FormEvent) => {

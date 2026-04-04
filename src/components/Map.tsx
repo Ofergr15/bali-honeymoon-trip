@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Activity, Hotel, DayItinerary } from '../types/trip';
 import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoordinates } from '../utils/colors';
 import ColorLegend from './ColorLegend';
+import MapDebugPanel from './MapDebugPanel';
 
 interface MapProps {
   activities: Activity[];
@@ -57,14 +58,32 @@ function getPlaceNameFromDay(day: DayItinerary): string {
 const libraries: ("places")[] = ["places"];
 
 export default function Map({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, selectedItem }: MapProps) {
+  // Track render count to see how often component re-renders
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current++;
+  console.log(`🔄 Map component render #${renderCountRef.current}`);
+
   const [selectedMarker, setSelectedMarker] = useState<Activity | Hotel | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<Activity | Hotel | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [zoomLevel, setZoomLevel] = useState(10);
   const hoverTimeoutRef = React.useRef<number | null>(null);
-  const userInteractingRef = React.useRef(false);
-  const previousSelectedItemRef = React.useRef<Activity | Hotel | null>(null);
-  const animationLockRef = React.useRef<boolean>(false);
+  const isUserInteractingRef = React.useRef(false);
+  const lastAnimatedIdRef = React.useRef<string | null>(null);
+
+  // Debug state
+  const [debugState, setDebugState] = useState({
+    isUserInteracting: false,
+    lastAnimatedId: null as string | null,
+    mapCenter: null as { lat: number; lng: number } | null,
+    mapZoom: null as number | null,
+    lastAnimationAttempt: null as {
+      source: string;
+      timestamp: number;
+      blocked: boolean;
+    } | null,
+  });
+
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries: libraries,
@@ -76,7 +95,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
       }
-      animationLockRef.current = false;
     };
   }, []);
 
@@ -103,12 +121,56 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
   console.log('🗺️ Map component initialized with locations:', locations.map(l => `${l.name}: ${l.lat}, ${l.lng}`));
 
+  // Memoize options to prevent new object on every render (which causes fast pan issues)
+  const mapOptions = useMemo(() => ({
+    styles: [
+      {
+        featureType: 'poi',
+        elementType: 'labels',
+        stylers: [{ visibility: 'off' }],
+      },
+    ],
+    mapTypeId: 'hybrid',
+    gestureHandling: 'greedy',
+    zoomControl: true,
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: 1, // HORIZONTAL_BAR
+      position: 2, // TOP_CENTER
+      mapTypeIds: ['roadmap', 'satellite', 'hybrid', 'terrain']
+    },
+    streetViewControl: false,
+    fullscreenControl: false,
+    keyboardShortcuts: false,
+    scaleControl: false,
+    panControl: false,
+    rotateControl: false,
+    tilt: 0,
+    heading: 0,
+    clickableIcons: false,
+    disableDoubleClickZoom: false,
+    maxZoom: 20,
+    minZoom: 8,
+    draggableCursor: 'default',
+    draggingCursor: 'move',
+    restriction: {
+      latLngBounds: {
+        north: -8.0,
+        south: -9.0,
+        west: 114.5,
+        east: 116.5,
+      },
+      strictBounds: false,
+    },
+  }), []); // Never changes - same object every render!
+
   // Listen to zoom changes for auto-scaling markers and prevent rotation/tilt
   useEffect(() => {
     if (map) {
       const zoomListener = map.addListener('zoom_changed', () => {
         const currentZoom = map.getZoom();
         if (currentZoom) {
+          console.log('🔍 ZOOM_CHANGED:', currentZoom.toFixed(2));
           setZoomLevel(currentZoom);
         }
       });
@@ -134,178 +196,48 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Google Earth-style animation: zoom out → pan → zoom in
-  const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, label: string) => {
-    if (!map || animationLockRef.current || userInteractingRef.current) return;
-
-    // Lock to prevent overlapping clicks
-    animationLockRef.current = true;
-
-    const startCenter = map.getCenter();
-    const startZoom = map.getZoom() || 10;
-    const targetLatLng = { lat: targetLat, lng: targetLng };
-
-    // Calculate distance to determine zoom out level
-    const latDiff = Math.abs((startCenter?.lat() || 0) - targetLat);
-    const lngDiff = Math.abs((startCenter?.lng() || 0) - targetLng);
-    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-
-    console.log(`🎯 Animating to ${label}:`, { lat: targetLat, lng: targetLng, zoom: targetZoom, distance: distance.toFixed(3) });
-
-    // Determine intermediate zoom level to ensure BOTH locations are visible
-    // This prevents showing random places during the pan
-    let intermediateZoom = 9;
-    if (distance < 0.05) {
-      // Very close - minimal zoom out
-      intermediateZoom = Math.max(startZoom - 2, 11);
-      console.log('   Strategy: Very close - minimal zoom out to', intermediateZoom);
-    } else if (distance < 0.2) {
-      // Close distance - zoom out enough to see both
-      intermediateZoom = 10;
-      console.log('   Strategy: Close - zoom to', intermediateZoom);
-    } else if (distance < 0.5) {
-      // Medium distance - need more zoom out
-      intermediateZoom = 9;
-      console.log('   Strategy: Medium distance - zoom to', intermediateZoom);
-    } else if (distance < 1.0) {
-      // Far distance - zoom way out
-      intermediateZoom = 8;
-      console.log('   Strategy: Far - zoom to', intermediateZoom);
-    } else {
-      // Very far - zoom out to see all of Bali
-      intermediateZoom = 7;
-      console.log('   Strategy: Very far - zoom to', intermediateZoom);
-    }
-
-    // STEP 1: Use fitBounds to show BOTH start and destination (official Google approach)
-    console.log('   Step 1: Fitting bounds to show both locations');
-    const bounds = new google.maps.LatLngBounds();
-    if (startCenter) {
-      bounds.extend(startCenter);
-    }
-    bounds.extend(targetLatLng);
-
-    // Add padding so locations aren't at edge
-    map.fitBounds(bounds, { top: 100, bottom: 100, left: 100, right: 100 });
-
-    const zoomOutListener = map.addListener('idle', () => {
-      google.maps.event.removeListener(zoomOutListener);
-
-      // STEP 2: Pan to destination at zoomed-out level
-      console.log('   Step 2: Panning to destination');
-      map.panTo(targetLatLng);
-
-      const panListener = map.addListener('idle', () => {
-        google.maps.event.removeListener(panListener);
-
-        // STEP 3: Zoom in to final zoom level
-        console.log('   Step 3: Zooming in to', targetZoom);
-        map.setZoom(targetZoom);
-
-        const zoomInListener = map.addListener('idle', () => {
-          google.maps.event.removeListener(zoomInListener);
-
-          // STEP 4: Verify and force final position
-          const finalCenter = map.getCenter();
-          const finalZoom = map.getZoom();
-
-          if (finalCenter) {
-            const latDiff = Math.abs(finalCenter.lat() - targetLat);
-            const lngDiff = Math.abs(finalCenter.lng() - targetLng);
-            const zoomDiff = Math.abs((finalZoom || 0) - targetZoom);
-
-            console.log('✅ Animation complete!');
-            console.log('   Target:', { lat: targetLat, lng: targetLng, zoom: targetZoom });
-            console.log('   Final:', { lat: finalCenter.lat().toFixed(4), lng: finalCenter.lng().toFixed(4), zoom: finalZoom });
-
-            // Force exact position if not accurate
-            if (latDiff > 0.001 || lngDiff > 0.001 || zoomDiff > 0.5) {
-              console.log('⚠️ Forcing exact position');
-              map.setCenter(targetLatLng);
-              map.setZoom(targetZoom);
-            }
-          }
-
-          // Release lock
-          animationLockRef.current = false;
-        });
-      });
-    });
-
-    // Fallback timeout
-    setTimeout(() => {
-      if (animationLockRef.current) {
-        console.log('⏱️ Timeout - forcing unlock and final position');
-        map.setCenter(targetLatLng);
-        map.setZoom(targetZoom);
-        animationLockRef.current = false;
-      }
-    }, 5000);
-  }, [map]);
-
-  // Zoom to selected place, day, or item with Google Earth-style animation
-  useEffect(() => {
-    console.log('📍 Map useEffect triggered:', { selectedPlace, selectedDay, selectedItem: selectedItem?.name });
-
+  // Atomic camera movement - SINGLE OPERATION (prevents dual-action conflict)
+  const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) {
-      console.log('⚠️ Map not ready yet');
+      console.log('❌ No map instance');
       return;
     }
 
-    if (selectedItem && 'location' in selectedItem && selectedItem.location) {
-      console.log('🎯 Selected item:', selectedItem.name, 'at', selectedItem.location);
-      previousSelectedItemRef.current = selectedItem;
-      animateToLocation(
-        selectedItem.location.lat,
-        selectedItem.location.lng,
-        17,
-        `${selectedItem.name} (marker)`
-      );
-    } else {
-      previousSelectedItemRef.current = null;
+    // Disable debug state updates to prevent re-renders during pan!
+    const currentCenter = map.getCenter();
+
+    console.log('🎥 Animation triggered from:', source);
+    console.log('   Current:', currentCenter ? `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}` : 'unknown');
+    console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
+
+    // Use simple panTo + setZoom for reliability
+    console.log('📍 Animating with panTo + setZoom...');
+    map.panTo({ lat: targetLat, lng: targetLng });
+    map.setZoom(targetZoom);
+    console.log('✅ Animation commands sent');
+  }, [map]);
+
+  // ONLY animate when a marker is explicitly selected from sidebar
+  // This prevents the "reactive loop trap" where state changes trigger unwanted animations
+  useEffect(() => {
+    if (!map || !selectedItem || !('location' in selectedItem) || !selectedItem.location) {
+      lastAnimatedIdRef.current = null;
+      setDebugState(prev => ({ ...prev, lastAnimatedId: null }));
+      return;
     }
 
-    if (selectedPlace && !selectedItem) {
-      console.log('🏖️ Selected place from navigation bar:', selectedPlace);
-      console.log('🏖️ Available locations:', locations.map(l => `${l.name} (${l.lat}, ${l.lng})`));
-
-      const location = locations.find(loc => loc.name === selectedPlace);
-      console.log('🏖️ Found location match:', location);
-
-      if (location) {
-        console.log('✅ Animating to:', location.name, 'at coordinates:', location.lat, location.lng, 'zoom: 15');
-        animateToLocation(
-          location.lat,
-          location.lng,
-          15,
-          `${selectedPlace} (navigation bar)`
-        );
-      } else {
-        console.error('❌ Location NOT found for:', selectedPlace);
-        console.error('❌ This means the place name doesn\'t match any location in the array');
-      }
-    } else if (selectedDay && days && !selectedItem && !selectedPlace) {
-      // Find the place for the selected day and zoom to it
-      const selectedDayData = days.find(d => d.day === selectedDay);
-      if (selectedDayData) {
-        const placeName = getPlaceNameFromDay(selectedDayData);
-        const location = locations.find(loc => loc.name === placeName);
-        if (location) {
-          animateToLocation(
-            location.lat,
-            location.lng,
-            15,
-            `${placeName} (day ${selectedDay})`
-          );
-        }
-      }
-    } else if (!selectedPlace && !selectedDay && !selectedItem) {
-      // Reset to default view
-      animationLockRef.current = false; // Release lock for reset
-      map.panTo(defaultCenter);
-      map.setZoom(10);
+    // Deduplication: Don't re-animate to the same item
+    if (lastAnimatedIdRef.current === selectedItem.id) {
+      console.log('⏭️ Already animated to:', selectedItem.name);
+      return;
     }
-  }, [map, selectedPlace, selectedDay, selectedItem, locations, days, animateToLocation]);
+
+    console.log('🎯 Explicit selection:', selectedItem.name);
+    lastAnimatedIdRef.current = selectedItem.id;
+    setDebugState(prev => ({ ...prev, lastAnimatedId: selectedItem.id }));
+    animateToLocation(selectedItem.location.lat, selectedItem.location.lng, 17, 'selectedItem-useEffect');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, selectedItem]); // animateToLocation is stable (useCallback), don't need it as dependency
 
   // Calculate marker scale based on zoom level
   const getMarkerScale = (baseScale: number) => {
@@ -359,6 +291,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
   // Handle hover with delay to prevent flickering
   const handleMarkerHover = (item: Activity | Hotel | any) => {
+    console.log('🎯 Hover state change:', item.name);
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
@@ -366,10 +299,12 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   };
 
   const handleMarkerUnhover = () => {
+    console.log('🎯 Unhover - clearing after delay');
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
     hoverTimeoutRef.current = setTimeout(() => {
+      console.log('🎯 Hover cleared');
       setHoveredMarker(null);
     }, 150); // 150ms delay before hiding
   };
@@ -400,93 +335,53 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     <div className="relative w-full h-full">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
-        zoom={10}
-        center={defaultCenter}
         onLoad={(mapInstance) => {
           setMap(mapInstance);
-          // Aggressively force flat 2D map
+
+          // Set initial position - ONLY ONCE on load!
+          mapInstance.setCenter(defaultCenter);
+          mapInstance.setZoom(10);
+
+          // Force flat 2D map
           mapInstance.setTilt(0);
           mapInstance.setHeading(0);
           mapInstance.setMapTypeId('hybrid');
 
-          // Disable all rotation/tilt gestures at the Maps API level
-          const mapOptions = {
-            gestureHandling: 'greedy',
-            tilt: 0,
-            heading: 0,
-            rotateControl: false,
-            keyboardShortcuts: false,
-          };
-          mapInstance.setOptions(mapOptions);
+          console.log('✅ Map loaded - initial position set, now uncontrolled');
 
-          // Detect user interactions to prevent animation interference
+          // === COMPREHENSIVE DRAG LOGGING ===
+          // Track every drag movement to see snap-back in real-time
+
           mapInstance.addListener('dragstart', () => {
-            console.log('👆 User started dragging');
-            userInteractingRef.current = true;
-            animationLockRef.current = false; // Release animation lock
+            const center = mapInstance.getCenter();
+            console.log('🖱️ DRAGSTART - User started dragging');
+            console.log('   Start position:', center ? `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}` : 'unknown');
+            isUserInteractingRef.current = true;
+          });
+
+          mapInstance.addListener('drag', () => {
+            const center = mapInstance.getCenter();
+            if (center) {
+              console.log('👋 DRAG - Position:', `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
+            }
           });
 
           mapInstance.addListener('dragend', () => {
-            console.log('👆 User stopped dragging');
-            setTimeout(() => {
-              userInteractingRef.current = false;
-            }, 500); // Small delay to prevent immediate re-animation
+            const center = mapInstance.getCenter();
+            console.log('🛑 DRAGEND - User stopped dragging');
+            console.log('   End position:', center ? `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}` : 'unknown');
+            isUserInteractingRef.current = false;
           });
 
-          // Detect manual zoom changes
-          mapInstance.addListener('zoom_changed', () => {
-            if (!animationLockRef.current) {
-              // User is manually zooming
-              userInteractingRef.current = true;
-              setTimeout(() => {
-                userInteractingRef.current = false;
-              }, 1000);
+          // Track center changes (this fires when map center changes for ANY reason)
+          mapInstance.addListener('center_changed', () => {
+            const center = mapInstance.getCenter();
+            if (center) {
+              console.log('📍 CENTER_CHANGED:', `${center.lat().toFixed(6)}, ${center.lng().toFixed(6)}`);
             }
           });
         }}
-        options={{
-          styles: [
-            {
-              featureType: 'poi',
-              elementType: 'labels',
-              stylers: [{ visibility: 'off' }],
-            },
-          ],
-          mapTypeId: 'hybrid',
-          gestureHandling: 'greedy',
-          zoomControl: true,
-          mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_CENTER,
-            mapTypeIds: ['roadmap', 'satellite', 'hybrid', 'terrain']
-          },
-          streetViewControl: false,
-          fullscreenControl: false,
-          keyboardShortcuts: false,
-          scaleControl: false,
-          panControl: false,
-          rotateControl: false,
-          tilt: 0,
-          heading: 0,
-          clickableIcons: false,
-          disableDoubleClickZoom: false,
-          maxZoom: 20, // Allow close zoom for detailed views
-          minZoom: 8,
-          // Disable all rotation capabilities
-          draggableCursor: 'default',
-          draggingCursor: 'move',
-          // Force disable 45° imagery
-          restriction: {
-            latLngBounds: {
-              north: -8.0,
-              south: -9.0,
-              west: 114.5,
-              east: 116.5,
-            },
-            strictBounds: false,
-          },
-        }}
+        options={mapOptions}
       >
       {/* Route line - color-coded by location */}
       {!selectedDay && (
@@ -532,18 +427,9 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                 <Marker
                   position={{ lat: location.lat, lng: location.lng }}
                   onClick={() => {
-                    // Trigger smooth Google Earth animation
-                    console.log('🏝️ Clicked on MAP CHIP:', location.name);
-                    console.log('🏝️ Target coordinates:', { lat: location.lat, lng: location.lng, zoom: 15 });
-                    console.log('🏝️ Full location data:', location);
-
-                    // Start smooth animation (cleanup is handled internally)
-                    animateToLocation(
-                      location.lat,
-                      location.lng,
-                      15,
-                      `${location.name} (map chip)`
-                    );
+                    // Event-driven animation - explicit user click
+                    console.log('🏝️ Clicked location chip:', location.name);
+                    animateToLocation(location.lat, location.lng, 15, `location-chip-${location.name}`);
                   }}
                   onMouseOver={() => {
                     // Show location info on hover
@@ -963,6 +849,15 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Color Legend */}
       <ColorLegend />
+
+      {/* Debug Panel */}
+      <MapDebugPanel
+        isUserInteracting={debugState.isUserInteracting}
+        lastAnimatedId={debugState.lastAnimatedId}
+        mapCenter={debugState.mapCenter}
+        mapZoom={debugState.mapZoom}
+        lastAnimationAttempt={debugState.lastAnimationAttempt}
+      />
     </div>
   );
 }
