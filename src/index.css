@@ -168,6 +168,11 @@ html {
   border: 1px solid rgba(0,0,0,0.1) !important;
 }
 
+/* Selected marker emoji styling */
+.selected-marker {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 4px rgba(255, 215, 0, 1)) !important;
+}
+
 /* CRITICAL: Disable tile transitions to prevent camera movement interference */
 /* This prevents map tiles from animating opacity during camera movements */
 .gm-style img,
