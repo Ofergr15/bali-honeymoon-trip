@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X, Bookmark } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
@@ -9,6 +10,23 @@ interface BookmarksPanelProps {
 }
 
 export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: BookmarksPanelProps) {
+  const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
+
+  // Filter bookmarks based on selected type
+  const filteredBookmarks = filterType === 'all'
+    ? bookmarks
+    : bookmarks.filter(b => b.type === filterType);
+
+  // Count bookmarks by type
+  const typeCounts = {
+    all: bookmarks.length,
+    hotel: bookmarks.filter(b => b.type === 'hotel').length,
+    restaurant: bookmarks.filter(b => b.type === 'restaurant').length,
+    beach: bookmarks.filter(b => b.type === 'beach').length,
+    temple: bookmarks.filter(b => b.type === 'temple').length,
+    attraction: bookmarks.filter(b => b.type === 'attraction').length,
+    activity: bookmarks.filter(b => b.type === 'activity').length,
+  };
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-premium-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
@@ -30,6 +48,99 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
             <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
+
+        {/* Filter Buttons */}
+        {bookmarks.length > 0 && (
+          <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Filter by type
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setFilterType('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  filterType === 'all'
+                    ? 'bg-travel-teal text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                All ({typeCounts.all})
+              </button>
+              {typeCounts.hotel > 0 && (
+                <button
+                  onClick={() => setFilterType('hotel')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'hotel'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  🏨 Hotels ({typeCounts.hotel})
+                </button>
+              )}
+              {typeCounts.restaurant > 0 && (
+                <button
+                  onClick={() => setFilterType('restaurant')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'restaurant'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  🍽️ Restaurants ({typeCounts.restaurant})
+                </button>
+              )}
+              {typeCounts.beach > 0 && (
+                <button
+                  onClick={() => setFilterType('beach')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'beach'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  🏖️ Beaches ({typeCounts.beach})
+                </button>
+              )}
+              {typeCounts.temple > 0 && (
+                <button
+                  onClick={() => setFilterType('temple')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'temple'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  ⛩️ Temples ({typeCounts.temple})
+                </button>
+              )}
+              {typeCounts.attraction > 0 && (
+                <button
+                  onClick={() => setFilterType('attraction')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'attraction'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  📍 Attractions ({typeCounts.attraction})
+                </button>
+              )}
+              {typeCounts.activity > 0 && (
+                <button
+                  onClick={() => setFilterType('activity')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterType === 'activity'
+                      ? 'bg-travel-teal text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  🎯 Activities ({typeCounts.activity})
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-6">
@@ -56,15 +167,33 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
             <>
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-gray-600">
-                  {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
+                  {filteredBookmarks.length} of {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
+                  {filterType !== 'all' && (
+                    <span className="ml-2 text-xs text-travel-teal font-medium">
+                      (filtered)
+                    </span>
+                  )}
                 </p>
                 <div className="text-xs text-gray-500">
                   💡 Click Edit to assign to a day
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                {bookmarks.map((activity) => {
+              {filteredBookmarks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-sm">
+                    No bookmarks in this category
+                  </p>
+                  <button
+                    onClick={() => setFilterType('all')}
+                    className="mt-2 text-sm text-travel-teal hover:underline font-medium"
+                  >
+                    Show all bookmarks
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {filteredBookmarks.map((activity) => {
                   const typeInfo = getActivityTypeColor(activity.type);
                   return (
                     <div
@@ -140,6 +269,7 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
                   );
                 })}
               </div>
+              )}
             </>
           )}
         </div>
