@@ -11,6 +11,7 @@ import { baliTripData } from './data/tripData';
 import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId } from './services/tripService';
+import { supabase } from './lib/supabase';
 import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
@@ -92,8 +93,9 @@ function App() {
 
       if (isSupabaseConfigured) {
         console.log('🚀 Supabase configured - loading from database');
+        console.log('📌 SINGLETON MODE: Only 1 trip allowed');
 
-        // Try to load existing trip
+        // Try to load existing trip by stored ID
         if (tripId) {
           console.log('📥 Loading existing trip:', tripId);
           const data = await loadTrip(tripId);
@@ -101,22 +103,27 @@ function App() {
             console.log('✅ Trip loaded from database');
             console.log('   Days in loaded trip:', data.days.length);
 
-            // Safety check: if loaded trip has no days, it's corrupted - create new one
+            // Safety check: if loaded trip has no days, it's corrupted - recreate it
             if (data.days.length === 0) {
               console.log('⚠️ Loaded trip has NO DAYS - data is corrupted!');
-              console.log('🔄 Clearing corrupted trip ID and creating fresh trip...');
-              localStorage.removeItem(TRIP_ID_KEY);
-              setTripId(null);
+              console.log('🔄 Recreating trip with full data...');
 
-              // Create new trip
-              const newTripId = await createTrip(baliTripData);
-              if (newTripId) {
-                console.log('✅ Fresh trip created with ID:', newTripId);
-                setTripId(newTripId);
-                localStorage.setItem(TRIP_ID_KEY, newTripId);
-                setTripData(baliTripData);
+              // Recreate the SAME trip (don't create a new ID, just repopulate)
+              const recreated = await createTrip(baliTripData);
+              if (recreated) {
+                // Load the newly recreated trip
+                const freshData = await loadTrip(recreated);
+                if (freshData && freshData.days.length > 0) {
+                  console.log('✅ Trip recreated successfully with', freshData.days.length, 'days');
+                  setTripData(freshData);
+                  setTripId(recreated);
+                  localStorage.setItem(TRIP_ID_KEY, recreated);
+                } else {
+                  console.log('⚠️ Recreated trip still empty, using baliTripData locally');
+                  setTripData(baliTripData);
+                }
               } else {
-                console.error('❌ Failed to create trip, using baliTripData');
+                console.error('❌ Failed to recreate trip, using baliTripData');
                 setTripData(baliTripData);
               }
               setLoading(false);
@@ -127,15 +134,46 @@ function App() {
             setLoading(false);
             return;
           } else {
-            console.log('⚠️ Trip not found in database, will create new one');
+            console.log('⚠️ Stored trip ID not found in database');
+            localStorage.removeItem(TRIP_ID_KEY);
+            setTripId(null);
+            // Continue to check for ANY existing trip
           }
         }
 
-        // Create new trip in database
-        console.log('📝 Creating new trip in database...');
+        // No stored ID - check if ANY trip exists in database (SINGLETON check)
+        console.log('🔍 Checking if any trip exists in database...');
+        const { data: existingTrips, error } = await supabase
+          .from('trips')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (!error && existingTrips) {
+          // Found an existing trip - use it!
+          console.log('✅ Found existing trip in database:', existingTrips.id);
+          console.log('   Using this trip (SINGLETON MODE)');
+          setTripId(existingTrips.id);
+          localStorage.setItem(TRIP_ID_KEY, existingTrips.id);
+
+          const data = await loadTrip(existingTrips.id);
+          if (data) {
+            console.log('✅ Trip loaded with', data.days.length, 'days');
+            setTripData(data);
+          } else {
+            console.error('❌ Failed to load found trip');
+            setTripData(baliTripData);
+          }
+          setLoading(false);
+          return;
+        }
+
+        // No trip exists at all - create the FIRST and ONLY trip
+        console.log('📝 No trip exists - creating the FIRST trip...');
         const newTripId = await createTrip(baliTripData);
         if (newTripId) {
           console.log('✅ Trip created with ID:', newTripId);
+          console.log('   This is the ONLY trip (SINGLETON MODE)');
           setTripId(newTripId);
           localStorage.setItem(TRIP_ID_KEY, newTripId);
           setTripData(baliTripData);
