@@ -213,7 +213,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Smart Google Earth-style animation - checks if target is visible first
+  // Google Earth-style SMOOTH FLYOVER - continuous interpolation
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) {
       console.log('❌ No map instance');
@@ -222,100 +222,92 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom() || 10;
-    const bounds = map.getBounds();
 
-    if (!currentCenter || !bounds) return;
+    if (!currentCenter) return;
 
-    console.log('🎥 Smart animation from:', source);
-    console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
+    const startLat = currentCenter.lat();
+    const startLng = currentCenter.lng();
+    const startZoom = currentZoom;
+
+    console.log('🌍 Google Earth flyover from:', source);
+    console.log('   Start:', `${startLat.toFixed(4)}, ${startLng.toFixed(4)}, zoom: ${startZoom}`);
     console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
 
-    // Check if target is visible AND centered enough in current viewport
-    const targetLatLng = new google.maps.LatLng(targetLat, targetLng);
-    const isVisible = bounds.contains(targetLatLng);
-
-    // Calculate distance from center - if close enough, we can just zoom
-    const centerDistanceLat = Math.abs(targetLat - currentCenter.lat());
-    const centerDistanceLng = Math.abs(targetLng - currentCenter.lng());
-    const centerDistance = Math.sqrt(centerDistanceLat * centerDistanceLat + centerDistanceLng * centerDistanceLng);
-    const isNearlyCentered = centerDistance < 0.01; // Within ~1km of center
-
-    console.log('   Target visible:', isVisible, '| Nearly centered:', isNearlyCentered, '| Distance from center:', centerDistance.toFixed(4));
-
-    // CASE 1: Target is VISIBLE AND CENTERED - just zoom in smoothly
-    if (isVisible && isNearlyCentered) {
-      console.log('   👁️ Target visible & centered - smooth zoom in only');
-
-      // Gradually zoom in with multiple steps for smooth effect
-      const zoomSteps = Math.ceil((targetZoom - currentZoom) / 2);
-      for (let i = 1; i <= zoomSteps; i++) {
-        const stepZoom = currentZoom + (i * 2);
-        const finalStepZoom = Math.min(stepZoom, targetZoom);
-        setTimeout(() => {
-          console.log('   Zoom step', i, '→', finalStepZoom);
-          map.setZoom(finalStepZoom);
-        }, i * 300);
-      }
-      return;
-    }
-
-    // CASE 1.5: Target is VISIBLE but NOT centered - pan to center it first, then zoom
-    if (isVisible && !isNearlyCentered) {
-      console.log('   👁️ Target visible but off-center - pan to center then zoom');
-      map.panTo({ lat: targetLat, lng: targetLng });
-      setTimeout(() => {
-        map.setZoom(targetZoom);
-      }, 400);
-      return;
-    }
-
-    // CASE 2: Target NOT visible - need to navigate there
-    // Calculate distance to determine animation style
-    const latDiff = Math.abs(targetLat - currentCenter.lat());
-    const lngDiff = Math.abs(targetLng - currentCenter.lng());
+    // Calculate distance for animation duration
+    const latDiff = targetLat - startLat;
+    const lngDiff = targetLng - startLng;
     const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
 
-    console.log('   Distance:', distance.toFixed(4));
+    // Determine animation parameters based on distance
+    let duration: number;
+    let midZoom: number;
 
-    // SHORT DISTANCE: Direct smooth pan + zoom
-    if (distance < 0.05) {
-      console.log('   📍 Short distance - direct animation');
-      map.panTo({ lat: targetLat, lng: targetLng });
-      setTimeout(() => map.setZoom(targetZoom), 300);
-      return;
-    }
-
-    // LONG DISTANCE: Google Earth style - zoom out → pan → zoom in
-    console.log('   🌍 Long distance - Google Earth flyover');
-
-    // Calculate mid zoom - ONLY zoom out if currently zoomed in
-    const overviewZoom = 10; // Overview level for Bali region
-    const needsZoomOut = currentZoom > overviewZoom;
-    const midZoom = needsZoomOut ? Math.max(8, overviewZoom) : currentZoom;
-
-    // Step 1: Zoom out (ONLY IF NEEDED)
-    if (needsZoomOut) {
-      map.setZoom(midZoom);
-      console.log('   Step 1: Zoom out to', midZoom, '(from', currentZoom, ')');
+    if (distance < 0.02) {
+      // VERY SHORT - quick direct animation
+      duration = 800;
+      midZoom = Math.max(startZoom, targetZoom);
+    } else if (distance < 0.1) {
+      // SHORT - slight zoom out for perspective
+      duration = 1200;
+      midZoom = Math.max(Math.min(startZoom, targetZoom) - 1, 9);
     } else {
-      console.log('   Step 1: Already at overview - skip zoom out');
+      // LONG - dramatic zoom out to see the journey
+      duration = 2000;
+      midZoom = 8;
     }
 
-    // Step 2: Pan to target
-    const panDelay = needsZoomOut ? 300 : 0;
-    setTimeout(() => {
-      console.log('   Step 2: Pan to target');
-      map.panTo({ lat: targetLat, lng: targetLng });
-    }, panDelay);
+    console.log('   Distance:', distance.toFixed(4), '| Duration:', duration, 'ms | Mid zoom:', midZoom);
 
-    // Step 3: Zoom in to final zoom
-    const zoomDelay = needsZoomOut ? 1000 : 700;
-    setTimeout(() => {
-      console.log('   Step 3: Zoom in to', targetZoom);
-      map.setZoom(targetZoom);
-    }, zoomDelay);
+    // SMOOTH INTERPOLATION with easing
+    const startTime = Date.now();
+    let animationFrame: number;
 
-    console.log('✅ Animation started');
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeInOutCubic(progress);
+
+      // Interpolate position (lat/lng)
+      const currentLat = startLat + latDiff * easedProgress;
+      const currentLng = startLng + lngDiff * easedProgress;
+
+      // Interpolate zoom with arc (zoom out then in)
+      let currentZoom: number;
+      if (progress < 0.5) {
+        // First half: zoom out to midZoom
+        const zoomOutProgress = progress * 2; // 0 to 1
+        currentZoom = startZoom + (midZoom - startZoom) * easeInOutCubic(zoomOutProgress);
+      } else {
+        // Second half: zoom in to targetZoom
+        const zoomInProgress = (progress - 0.5) * 2; // 0 to 1
+        currentZoom = midZoom + (targetZoom - midZoom) * easeInOutCubic(zoomInProgress);
+      }
+
+      // Update map camera
+      map.setCenter({ lat: currentLat, lng: currentLng });
+      map.setZoom(currentZoom);
+
+      // Continue animation or finish
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        console.log('✅ Flyover complete');
+      }
+    };
+
+    // Start animation
+    animationFrame = requestAnimationFrame(animate);
+
+    // Cleanup function (if component unmounts during animation)
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
