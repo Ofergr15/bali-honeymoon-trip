@@ -203,13 +203,31 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) return;
 
+    const bounds = map.getBounds();
+    const currentZoom = map.getZoom() || 10;
+
     console.log('📍 Navigate to:', source);
 
-    // SIMPLE & SMOOTH: Let Google Maps handle everything
-    // Just pan to target (smooth built-in animation) and zoom
+    // Check if target is already visible
+    if (bounds) {
+      const targetLatLng = new google.maps.LatLng(targetLat, targetLng);
+      const isVisible = bounds.contains(targetLatLng);
+
+      if (isVisible) {
+        // Target is visible - just zoom in smoothly (no pan needed)
+        console.log('   ✅ Target visible - direct zoom');
+        map.setZoom(targetZoom);
+        return;
+      }
+    }
+
+    // Target NOT visible - need to pan there
+    console.log('   🗺️ Target not visible - pan + zoom');
+
+    // Pan to target (smooth built-in animation)
     map.panTo({ lat: targetLat, lng: targetLng });
 
-    // Zoom after a brief delay so you see the pan first
+    // Zoom after pan completes
     setTimeout(() => {
       map.setZoom(targetZoom);
     }, 400);
