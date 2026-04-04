@@ -1094,4 +1094,3 @@ function App() {
 }
 
 export default App;
-# Deployed with authentication
