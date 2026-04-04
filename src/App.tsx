@@ -1030,6 +1030,7 @@ function App() {
             days={tripData.days}
             onMarkerClick={handleMarkerClick}
             onPlaceClick={handlePlaceSelect}
+            onEdit={handleEditPlace}
             selectedItem={selectedItem}
           />
         </div>

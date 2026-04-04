@@ -5,7 +5,7 @@ import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoord
 import { PLACE_LOCATIONS, getPlaceInfo } from '../utils/locations';
 import ColorLegend from './ColorLegend';
 import OpeningHoursDisplay from './OpeningHoursDisplay';
-import { Star, MapPin } from 'lucide-react';
+import { Star, MapPin, Clock, Edit, ExternalLink } from 'lucide-react';
 
 interface MapProps {
   activities: Activity[];
@@ -18,6 +18,7 @@ interface MapProps {
   days?: DayItinerary[]; // All days to determine place for selected day
   onMarkerClick?: (item: Activity | Hotel) => void;
   onPlaceClick?: (placeName: string) => void; // NEW: Callback when clicking location chip
+  onEdit?: (item: Activity | Hotel) => void; // NEW: Callback when clicking edit button
   selectedItem?: Activity | Hotel | null;
 }
 
@@ -64,7 +65,7 @@ function getPlaceNameFromDay(day: DayItinerary): string {
 // Load Places library for auto-fill functionality
 const libraries: ("places")[] = ["places"];
 
-const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, selectedItem }, ref) => {
+const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, onEdit, selectedItem }, ref) => {
   // Track render count to see how often component re-renders
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
@@ -1071,20 +1072,61 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
                   {markerToShow.name}
                 </h3>
 
+                {/* Time and Duration */}
+                {'type' in markerToShow && markerToShow.time && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-200 mb-2">
+                    <Clock className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                    <span>
+                      {markerToShow.time}
+                      {'duration' in markerToShow && markerToShow.duration && ` • ${markerToShow.duration}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Description */}
+                {'description' in markerToShow && markerToShow.description && (
+                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                    {markerToShow.description}
+                  </p>
+                )}
+
                 {/* Address */}
                 {'address' in markerToShow && markerToShow.address && (
                   <div className="bg-gray-50 p-2 rounded-lg border border-gray-200 mb-2">
-                    <p className="text-xs text-gray-600 line-clamp-2 flex items-start gap-1">
+                    <p className="text-xs text-gray-600 line-clamp-1 flex items-start gap-1">
                       <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
                       <span>{markerToShow.address}</span>
                     </p>
                   </div>
                 )}
 
-                {/* Click hint */}
-                <p className="text-xs text-travel-teal font-medium text-center pt-2 border-t border-gray-200">
-                  💡 Click marker for full details
-                </p>
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMarkerClick?.(markerToShow);
+                      setHoveredMarker(null);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-travel-teal text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-[#0c8c8c] transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    View Details
+                  </button>
+                  {onEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(markerToShow);
+                        setHoveredMarker(null);
+                      }}
+                      className="flex items-center justify-center gap-1.5 bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-blue-600 transition-colors"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </InfoWindow>
