@@ -636,6 +636,11 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                       lat: location.lat + verticalOffset,
                       lng: location.lng
                     }}
+                    onClick={() => {
+                      // Make label clickable too!
+                      console.log('🏝️ Clicked location label:', location.name);
+                      animateToLocation(location.lat, location.lng, 15, `location-label-${location.name}`);
+                    }}
                     icon={{
                       path: 'M 0,0',
                       scale: 0,
@@ -648,7 +653,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
                       className: 'map-label',
                     }}
                     options={{
-                      clickable: false, // Don't capture mouse events
+                      cursor: 'pointer', // Show pointer cursor
                     }}
                     zIndex={99} // Below the circle so it doesn't block hover
                   />
