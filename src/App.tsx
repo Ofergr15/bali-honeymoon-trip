@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import Map from './components/Map';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import Map, { type MapRef } from './components/Map';
 import ItinerarySidebar from './components/ItinerarySidebar';
 import DetailsPanel from './components/DetailsPanel';
 import AddPlaceForm from './components/AddPlaceForm';
@@ -75,6 +75,9 @@ function App() {
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Ref to access Map component methods
+  const mapRef = useRef<MapRef>(null);
 
   // Track if Supabase is configured
   const [isSupabaseConfigured] = useState(() => {
@@ -285,6 +288,8 @@ function App() {
     // Open sidebar when a place is selected
     if (place) {
       setSidebarOpen(true);
+      // Zoom map to selected place
+      mapRef.current?.zoomToPlace(place);
     }
   };
 
@@ -1009,6 +1014,7 @@ function App() {
         {/* Map - Full Width */}
         <div className="flex-1 relative bg-gray-50">
           <Map
+            ref={mapRef}
             activities={allActivities}
             hotels={allHotels}
             bookmarks={filteredBookmarks}

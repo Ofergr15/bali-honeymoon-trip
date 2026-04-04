@@ -1,7 +1,8 @@
 import { GoogleMap, useLoadScript, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useImperativeHandle, forwardRef } from 'react';
 import type { Activity, Hotel, DayItinerary } from '../types/trip';
 import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoordinates } from '../utils/colors';
+import { PLACE_LOCATIONS } from '../utils/locations';
 import ColorLegend from './ColorLegend';
 
 interface MapProps {
@@ -16,6 +17,10 @@ interface MapProps {
   onMarkerClick?: (item: Activity | Hotel) => void;
   onPlaceClick?: (placeName: string) => void; // NEW: Callback when clicking location chip
   selectedItem?: Activity | Hotel | null;
+}
+
+export interface MapRef {
+  zoomToPlace: (placeName: string) => void;
 }
 
 const mapContainerStyle = {
@@ -57,7 +62,7 @@ function getPlaceNameFromDay(day: DayItinerary): string {
 // Load Places library for auto-fill functionality
 const libraries: ("places")[] = ["places"];
 
-export default function Map({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, selectedItem }: MapProps) {
+const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, selectedItem }, ref) => {
   // Track render count to see how often component re-renders
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
@@ -243,6 +248,17 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       }
     }
   }, [map]);
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    zoomToPlace: (placeName: string) => {
+      const placeData = PLACE_LOCATIONS[placeName as keyof typeof PLACE_LOCATIONS];
+      if (placeData && map) {
+        console.log('🗺️ Zooming to place from sidebar:', placeName);
+        animateToLocation(placeData.lat, placeData.lng, 14, `sidebar-place-${placeName}`);
+      }
+    }
+  }), [map, animateToLocation]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
   // This prevents the "reactive loop trap" where state changes trigger unwanted animations
@@ -884,4 +900,8 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
       <ColorLegend />
     </div>
   );
-}
+});
+
+Map.displayName = 'Map';
+
+export default Map;
