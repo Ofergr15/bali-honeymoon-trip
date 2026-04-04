@@ -2,8 +2,10 @@ import { GoogleMap, useLoadScript, Marker, InfoWindow, Polyline } from '@react-g
 import React, { useState, useMemo, useEffect, useImperativeHandle, forwardRef } from 'react';
 import type { Activity, Hotel, DayItinerary } from '../types/trip';
 import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoordinates } from '../utils/colors';
-import { PLACE_LOCATIONS } from '../utils/locations';
+import { PLACE_LOCATIONS, getPlaceInfo } from '../utils/locations';
 import ColorLegend from './ColorLegend';
+import OpeningHoursDisplay from './OpeningHoursDisplay';
+import { Star, MapPin } from 'lucide-react';
 
 interface MapProps {
   activities: Activity[];
@@ -930,74 +932,116 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
             }}
           >
             <div
-              className="p-3 max-w-[250px] bg-white rounded-lg shadow-lg"
+              className="bg-white rounded-lg shadow-2xl border border-gray-200 w-[320px]"
               onMouseEnter={handleInfoWindowMouseEnter}
               onMouseLeave={handleInfoWindowMouseLeave}
             >
-              {/* Compact image preview */}
+              {/* Large image header */}
               {markerToShow.imageUrl && (
-                <img
-                  src={markerToShow.imageUrl}
-                  alt={markerToShow.name}
-                  className="w-full h-24 object-cover rounded-md mb-2"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+                <div className="relative w-full h-32 bg-gray-100 rounded-t-lg overflow-hidden">
+                  <img
+                    src={markerToShow.imageUrl}
+                    alt={markerToShow.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.parentElement!.style.display = 'none';
+                    }}
+                  />
+                </div>
               )}
 
-              {/* Type badge only */}
-              <div className="flex items-center gap-2 mb-2">
-                {/* Don't show type badge for location markers */}
-                {!('isLocationMarker' in markerToShow) && (
-                  <>
+              <div className="p-3">
+                {/* Badges row with Location, Type, and Rating/Status */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  {/* Left side: Location and Type badges */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Location badge */}
+                    {(() => {
+                      const isActivity = 'type' in markerToShow;
+                      const manualPlace = isActivity && 'place' in markerToShow ? (markerToShow as Activity).place : undefined;
+                      const area = getPlaceInfo(markerToShow.location.lat, markerToShow.location.lng, manualPlace);
+                      return (
+                        <span
+                          className="inline-flex items-center px-2 py-1 text-xs font-bold rounded-lg border"
+                          style={{
+                            backgroundColor: `${area.color}20`,
+                            color: area.color,
+                            borderColor: area.color
+                          }}
+                        >
+                          <span className="text-sm mr-1">{area.emoji}</span>
+                          <span>{area.name}</span>
+                        </span>
+                      );
+                    })()}
+
+                    {/* Type badge */}
                     {'type' in markerToShow ? (() => {
                       const typeInfo = getActivityTypeColor(markerToShow.type);
                       return (
                         <span
-                          className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded capitalize border"
+                          className="inline-flex items-center px-2 py-1 text-xs font-bold rounded-lg capitalize border"
                           style={{
                             backgroundColor: `${typeInfo.color}15`,
                             color: typeInfo.color,
                             borderColor: typeInfo.color
                           }}
                         >
-                          {typeInfo.emoji} {typeInfo.name}
+                          <span className="text-sm">{typeInfo.emoji}</span>
+                          <span className="ml-1">{typeInfo.name}</span>
                         </span>
                       );
                     })() : (
                       <span
-                        className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded capitalize border"
+                        className="inline-flex items-center px-2 py-1 text-xs font-bold rounded-lg capitalize border"
                         style={{
                           backgroundColor: `${ACTIVITY_COLORS.hotel.color}15`,
                           color: ACTIVITY_COLORS.hotel.color,
                           borderColor: ACTIVITY_COLORS.hotel.color
                         }}
                       >
-                        {ACTIVITY_COLORS.hotel.emoji} Hotel
+                        <span className="text-sm">{ACTIVITY_COLORS.hotel.emoji}</span>
+                        <span className="ml-1">Hotel</span>
                       </span>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
 
-              {/* Name */}
-              <h3 className="font-semibold text-base mb-1 text-gray-900">
-                {markerToShow.name}
-              </h3>
-
-              {/* Rating */}
-              {'rating' in markerToShow && markerToShow.rating && (
-                <div className="flex items-center gap-1 mb-2">
-                  <span className="text-yellow-500">⭐</span>
-                  <span className="text-sm font-medium">{markerToShow.rating}</span>
+                  {/* Right side: Open/Closed Status and Rating */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {/* Open/Closed Status */}
+                    {'type' in markerToShow && 'openingHours' in markerToShow && markerToShow.openingHours && (
+                      <OpeningHoursDisplay openingHours={markerToShow.openingHours} rating={markerToShow.rating} compact={true} inline={true} />
+                    )}
+                    {/* Rating for items without opening hours */}
+                    {markerToShow.rating && !('openingHours' in markerToShow && markerToShow.openingHours) && (
+                      <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-400 px-2 py-1 rounded-lg">
+                        <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                        <span className="text-yellow-700 font-bold text-sm">{markerToShow.rating}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {/* Click hint */}
-              <p className="text-xs text-gray-500 mt-2 italic">
-                Click marker for full details
-              </p>
+                {/* Name */}
+                <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
+                  {markerToShow.name}
+                </h3>
+
+                {/* Address */}
+                {'address' in markerToShow && markerToShow.address && (
+                  <div className="bg-gray-50 p-2 rounded-lg border border-gray-200 mb-2">
+                    <p className="text-xs text-gray-600 line-clamp-2 flex items-start gap-1">
+                      <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                      <span>{markerToShow.address}</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Click hint */}
+                <p className="text-xs text-travel-teal font-medium text-center pt-2 border-t border-gray-200">
+                  💡 Click marker for full details
+                </p>
+              </div>
             </div>
           </InfoWindow>
         );
