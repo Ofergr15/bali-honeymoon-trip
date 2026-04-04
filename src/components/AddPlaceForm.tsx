@@ -234,13 +234,14 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
           imageUrl?: string;
           description?: string;
           openingHours?: any;
+          types?: string[];
         } = await new Promise((resolve, reject) => {
           const service = new google.maps.places.PlacesService(document.createElement('div'));
 
           service.getDetails(
             {
               placeId: placeId,
-              fields: ['name', 'rating', 'photos', 'vicinity', 'formatted_address', 'user_ratings_total', 'opening_hours']
+              fields: ['name', 'rating', 'photos', 'vicinity', 'formatted_address', 'user_ratings_total', 'opening_hours', 'types']
             },
             (place, status) => {
               console.log('📥 Places Service response:', { status, place });
@@ -251,6 +252,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                   imageUrl?: string;
                   description?: string;
                   openingHours?: any;
+                  types?: string[];
                 } = {};
 
                 if (place.rating) {
@@ -267,6 +269,12 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                   result.description = place.vicinity;
                 } else if (place.formatted_address) {
                   result.description = place.formatted_address;
+                }
+
+                // Get place types (lodging, restaurant, etc.)
+                if (place.types && place.types.length > 0) {
+                  result.types = place.types;
+                  console.log('✅ Place Types:', result.types);
                 }
 
                 // Extract opening hours
@@ -371,39 +379,62 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
         }
       }
 
-      // AI-powered type detection - check name, description, and address
+      // AI-powered type detection - check Google types first, then fallback to keywords
       const lowerName = extractedName.toLowerCase();
       const lowerDesc = extractedDescription.toLowerCase();
       const lowerAddr = address.toLowerCase();
       const combinedText = `${lowerName} ${lowerDesc} ${lowerAddr}`;
 
-      // Hotel detection keywords - comprehensive list for accommodations
-      const hotelKeywords = [
-        'hotel', 'resort', 'villa', 'hostel', 'accommodation',
-        'guest house', 'guesthouse', 'homestay', 'lodge', 'inn',
-        'bungalow', 'cottage', 'house', 'apartment', 'suites',
-        'retreat', 'stay', 'rooms', 'airbnb', 'bnb', 'bed and breakfast',
-        'vacation rental', 'holiday home', 'glamping', 'cabana', 'eco lodge'
-      ];
+      // BEST: Use Google Places types (most accurate!)
+      const placeTypes = placeDetails.types || [];
+      const lodgingTypes = ['lodging', 'hotel', 'guest_house', 'hostel', 'campground', 'rv_park'];
+      let isHotel = placeTypes.some(type => lodgingTypes.includes(type));
 
-      // Check if it's a hotel/accommodation
-      let isHotel = hotelKeywords.some(keyword => combinedText.includes(keyword));
+      console.log('🔍 Google Place Types:', placeTypes);
+      console.log('🏨 Is Hotel (from types)?', isHotel);
 
-      // Special handling: If name contains "house" but also contains accommodation indicators
-      if (!isHotel && lowerName.includes('house')) {
-        // Check if it's likely accommodation (not a restaurant/cafe/museum)
-        const notAccommodation = ['coffee house', 'tea house', 'house of', 'warehouse', 'greenhouse'];
-        const isNotAccommodation = notAccommodation.some(term => combinedText.includes(term));
+      // FALLBACK: If no types data, use keyword detection
+      if (!isHotel && placeTypes.length === 0) {
+        console.log('⚠️ No types data from Google, using keyword fallback...');
 
-        if (!isNotAccommodation) {
-          // Likely an accommodation if it has "house" and isn't explicitly something else
-          isHotel = true;
+        const hotelKeywords = [
+          'hotel', 'resort', 'villa', 'hostel', 'accommodation',
+          'guest house', 'guesthouse', 'homestay', 'lodge', 'inn',
+          'bungalow', 'cottage', 'house', 'apartment', 'suites',
+          'retreat', 'stay', 'rooms', 'airbnb', 'bnb', 'bed and breakfast',
+          'vacation rental', 'holiday home', 'glamping', 'cabana', 'eco lodge'
+        ];
+
+        isHotel = hotelKeywords.some(keyword => combinedText.includes(keyword));
+
+        // Special handling: If name contains "house"
+        if (!isHotel && lowerName.includes('house')) {
+          const notAccommodation = ['coffee house', 'tea house', 'house of', 'warehouse', 'greenhouse'];
+          const isNotAccommodation = notAccommodation.some(term => combinedText.includes(term));
+
+          if (!isNotAccommodation) {
+            isHotel = true;
+          }
         }
+
+        console.log('🏨 Is Hotel (from keywords)?', isHotel);
       }
 
-      // Activity type detection
+      // Activity type detection - use Google types first, then keywords
       let guessedType: Activity['type'] = 'activity';
-      if (lowerName.includes('restaurant') || lowerName.includes('cafe') || lowerName.includes('warung') || lowerName.includes('kitchen') || lowerName.includes('dining') || lowerName.includes('eatery')) {
+
+      // Use Google Place types for accurate detection
+      if (placeTypes.includes('restaurant') || placeTypes.includes('cafe') || placeTypes.includes('food') || placeTypes.includes('meal_delivery') || placeTypes.includes('meal_takeaway')) {
+        guessedType = 'restaurant';
+      } else if (placeTypes.includes('hindu_temple') || placeTypes.includes('place_of_worship') || placeTypes.includes('temple')) {
+        guessedType = 'temple';
+      } else if (placeTypes.includes('natural_feature') && (lowerName.includes('beach') || lowerName.includes('coast'))) {
+        guessedType = 'beach';
+      } else if (placeTypes.includes('tourist_attraction') || placeTypes.includes('museum') || placeTypes.includes('art_gallery') || placeTypes.includes('park')) {
+        guessedType = 'attraction';
+      }
+      // Fallback to keyword detection if Google types don't match
+      else if (lowerName.includes('restaurant') || lowerName.includes('cafe') || lowerName.includes('warung') || lowerName.includes('kitchen') || lowerName.includes('dining') || lowerName.includes('eatery')) {
         guessedType = 'restaurant';
       } else if (lowerName.includes('temple') || lowerName.includes('pura') || lowerName.includes('shrine')) {
         guessedType = 'temple';
@@ -412,6 +443,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
       } else if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('park') || lowerName.includes('attraction')) {
         guessedType = 'attraction';
       }
+
+      console.log('🎯 Detected Type:', isHotel ? 'hotel' : guessedType);
 
       // AI: Try to auto-extract check-in/out dates from name or description
       let extractedCheckIn = '';
