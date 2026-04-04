@@ -69,6 +69,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
 
   const [selectedMarker, setSelectedMarker] = useState<Activity | Hotel | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<Activity | Hotel | null>(null);
+  const [hoveredPlace, setHoveredPlace] = useState<string | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // USE REF FOR ZOOM - don't trigger re-renders on every zoom change!
@@ -361,6 +362,36 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
     return;
   };
 
+  // Place chip hover handlers with delay
+  const placeHoverTimeoutRef = React.useRef<number | null>(null);
+
+  const handlePlaceHover = (placeName: string) => {
+    // Clear any existing timeout
+    if (placeHoverTimeoutRef.current) {
+      clearTimeout(placeHoverTimeoutRef.current);
+    }
+    setHoveredPlace(placeName);
+  };
+
+  const handlePlaceUnhover = () => {
+    // Add delay before closing to allow moving mouse to InfoWindow
+    placeHoverTimeoutRef.current = window.setTimeout(() => {
+      setHoveredPlace(null);
+    }, 300);
+  };
+
+  const handlePlaceInfoWindowMouseEnter = () => {
+    // Keep InfoWindow open when hovering over it
+    if (placeHoverTimeoutRef.current) {
+      clearTimeout(placeHoverTimeoutRef.current);
+    }
+  };
+
+  const handlePlaceInfoWindowMouseLeave = () => {
+    // Close InfoWindow when leaving it
+    setHoveredPlace(null);
+  };
+
   if (loadError) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-100">
@@ -545,6 +576,8 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
                     // Trigger place selection to show activity pins
                     onPlaceClick?.(location.name);
                   }}
+                  onMouseOver={() => handlePlaceHover(location.name)}
+                  onMouseOut={handlePlaceUnhover}
                   icon={{
                     path: google.maps.SymbolPath.CIRCLE,
                     fillColor: location.color,
@@ -571,6 +604,8 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
                     animateToLocation(location.lat, location.lng, 14, `location-label-${location.name}`);
                     onPlaceClick?.(location.name);
                   }}
+                  onMouseOver={() => handlePlaceHover(location.name)}
+                  onMouseOut={handlePlaceUnhover}
                   icon={{
                     path: 'M 0,0',
                     scale: 0,
@@ -590,6 +625,54 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
               </React.Fragment>
             );
           })}
+
+          {/* InfoWindow for hovered place */}
+          {hoveredPlace && (() => {
+            const placeLocation = locations.find(loc => loc.name === hoveredPlace);
+            if (!placeLocation) return null;
+
+            // Count days and activities for this place
+            const placeDaysForInfo = days?.filter(day => getPlaceNameFromDay(day) === hoveredPlace) || [];
+            const dayCount = placeDaysForInfo.length;
+            const activityCount = placeDaysForInfo.reduce((sum, day) => sum + day.activities.length, 0);
+
+            return (
+              <InfoWindow
+                position={{ lat: placeLocation.lat, lng: placeLocation.lng }}
+                options={{
+                  pixelOffset: new google.maps.Size(0, -15),
+                  disableAutoPan: true,
+                }}
+                onCloseClick={() => setHoveredPlace(null)}
+              >
+                <div
+                  onMouseEnter={handlePlaceInfoWindowMouseEnter}
+                  onMouseLeave={handlePlaceInfoWindowMouseLeave}
+                  className="p-3 min-w-[200px]"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{placeLocation.emoji}</span>
+                    <h3 className="text-base font-bold text-gray-900">{hoveredPlace}</h3>
+                  </div>
+
+                  {dayCount > 0 && (
+                    <div className="text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{dayCount} day{dayCount !== 1 ? 's' : ''}</span>
+                        {activityCount > 0 && (
+                          <span className="text-gray-500">• {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-travel-teal font-medium pt-2 border-t border-gray-200">
+                    💡 Click to zoom and view activities
+                  </div>
+                </div>
+              </InfoWindow>
+            );
+          })()}
         </>
       )}
 
