@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Activity, Hotel, DayItinerary } from '../types/trip';
 import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoordinates } from '../utils/colors';
 import ColorLegend from './ColorLegend';
-import MapDebugPanel from './MapDebugPanel';
 
 interface MapProps {
   activities: Activity[];
@@ -87,19 +86,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
   console.log('   - hoveredMarker:', hoveredMarker?.name || 'null');
   console.log('   - map instance:', map ? 'exists' : 'null');
   console.log('========================================');
-
-  // Debug state
-  const [debugState, setDebugState] = useState({
-    isUserInteracting: false,
-    lastAnimatedId: null as string | null,
-    mapCenter: null as { lat: number; lng: number } | null,
-    mapZoom: null as number | null,
-    lastAnimationAttempt: null as {
-      source: string;
-      timestamp: number;
-      blocked: boolean;
-    } | null,
-  });
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -317,7 +303,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     if (!map || !selectedItem || !('location' in selectedItem) || !selectedItem.location) {
       lastAnimatedIdRef.current = null;
-      setDebugState(prev => ({ ...prev, lastAnimatedId: null }));
       console.log('   ↳ No animation (no item or no location)');
       return;
     }
@@ -330,7 +315,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     console.log('🎯 Explicit selection:', selectedItem.name, '→ TRIGGERING ANIMATION');
     lastAnimatedIdRef.current = selectedItem.id;
-    setDebugState(prev => ({ ...prev, lastAnimatedId: selectedItem.id }));
     animateToLocation(selectedItem.location.lat, selectedItem.location.lng, 17, 'selectedItem-useEffect');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, selectedItem]); // animateToLocation is stable (useCallback), don't need it as dependency
@@ -1019,15 +1003,6 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
       {/* Color Legend */}
       <ColorLegend />
-
-      {/* Debug Panel */}
-      <MapDebugPanel
-        isUserInteracting={debugState.isUserInteracting}
-        lastAnimatedId={debugState.lastAnimatedId}
-        mapCenter={debugState.mapCenter}
-        mapZoom={debugState.mapZoom}
-        lastAnimationAttempt={debugState.lastAnimationAttempt}
-      />
     </div>
   );
 }
