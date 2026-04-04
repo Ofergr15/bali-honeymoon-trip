@@ -1,7 +1,49 @@
 import { useState } from 'react';
-import { X, Bookmark } from 'lucide-react';
+import { X, Bookmark, MapPin } from 'lucide-react';
 import type { Activity } from '../types/trip';
 import { getActivityTypeColor } from '../utils/colors';
+
+// Known place locations in Bali
+const PLACE_LOCATIONS = {
+  'Canggu': { lat: -8.6489, lng: 115.1328, emoji: '🏖️' },
+  'Ubud': { lat: -8.5069, lng: 115.2625, emoji: '🌿' },
+  'Munduk': { lat: -8.2661, lng: 115.0717, emoji: '🏔️' },
+  'Sidemen': { lat: -8.4833, lng: 115.4167, emoji: '🌾' },
+  'Gili Trawangan': { lat: -8.3500, lng: 116.0417, emoji: '🏝️' },
+  'Gili Air': { lat: -8.3614, lng: 116.0861, emoji: '🌊' },
+  'Nusa Penida': { lat: -8.7292, lng: 115.5431, emoji: '⛰️' },
+  'Uluwatu': { lat: -8.8286, lng: 115.1036, emoji: '🌅' },
+  'Seminyak': { lat: -8.6920, lng: 115.1737, emoji: '🌴' },
+};
+
+// Calculate distance between two GPS coordinates (in km)
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Find the nearest place to given coordinates
+function findNearestPlace(lat: number, lng: number): { name: string; distance: number; emoji: string } | null {
+  let nearest: { name: string; distance: number; emoji: string } | null = null;
+  let minDistance = Infinity;
+
+  for (const [placeName, placeCoords] of Object.entries(PLACE_LOCATIONS)) {
+    const distance = calculateDistance(lat, lng, placeCoords.lat, placeCoords.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = { name: placeName, distance, emoji: placeCoords.emoji };
+    }
+  }
+
+  return nearest;
+}
 
 interface BookmarksPanelProps {
   bookmarks: Activity[];
@@ -11,11 +53,29 @@ interface BookmarksPanelProps {
 
 export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: BookmarksPanelProps) {
   const [filterType, setFilterType] = useState<Activity['type'] | 'all'>('all');
+  const [filterLocation, setFilterLocation] = useState<string | 'all'>('all');
 
-  // Filter bookmarks based on selected type
-  const filteredBookmarks = filterType === 'all'
-    ? bookmarks
-    : bookmarks.filter(b => b.type === filterType);
+  // Add nearest place info to each bookmark
+  const bookmarksWithLocation = bookmarks.map(bookmark => {
+    const nearestPlace = findNearestPlace(bookmark.location.lat, bookmark.location.lng);
+    return {
+      ...bookmark,
+      nearestPlace: nearestPlace?.name || 'Unknown',
+      nearestPlaceEmoji: nearestPlace?.emoji || '📍',
+      distanceKm: nearestPlace?.distance || 0
+    };
+  });
+
+  // Filter bookmarks based on selected type and location
+  let filteredBookmarks = bookmarksWithLocation;
+
+  if (filterType !== 'all') {
+    filteredBookmarks = filteredBookmarks.filter(b => b.type === filterType);
+  }
+
+  if (filterLocation !== 'all') {
+    filteredBookmarks = filteredBookmarks.filter(b => b.nearestPlace === filterLocation);
+  }
 
   // Count bookmarks by type
   const typeCounts = {
@@ -27,6 +87,12 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
     attraction: bookmarks.filter(b => b.type === 'attraction').length,
     activity: bookmarks.filter(b => b.type === 'activity').length,
   };
+
+  // Count bookmarks by location
+  const locationCounts: Record<string, number> = {};
+  bookmarksWithLocation.forEach(b => {
+    locationCounts[b.nearestPlace] = (locationCounts[b.nearestPlace] || 0) + 1;
+  });
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-premium-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
@@ -52,8 +118,46 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
         {/* Filter Buttons */}
         {bookmarks.length > 0 && (
           <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
+            {/* Location Filter */}
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                📍 Filter by location
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterLocation('all')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filterLocation === 'all'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  All Locations
+                </button>
+                {Object.entries(locationCounts)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([location, count]) => {
+                    const placeInfo = PLACE_LOCATIONS[location as keyof typeof PLACE_LOCATIONS];
+                    return (
+                      <button
+                        key={location}
+                        onClick={() => setFilterLocation(location)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          filterLocation === location
+                            ? 'bg-purple-600 text-white shadow-sm'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {placeInfo?.emoji || '📍'} {location} ({count})
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Type Filter */}
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Filter by type
+              🏷️ Filter by type
             </p>
             <div className="flex flex-wrap gap-2">
               <button
@@ -168,27 +272,43 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-gray-600">
                   {filteredBookmarks.length} of {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
-                  {filterType !== 'all' && (
+                  {(filterType !== 'all' || filterLocation !== 'all') && (
                     <span className="ml-2 text-xs text-travel-teal font-medium">
                       (filtered)
                     </span>
                   )}
                 </p>
-                <div className="text-xs text-gray-500">
-                  💡 Click Edit to assign to a day
+                <div className="flex items-center gap-2">
+                  {(filterType !== 'all' || filterLocation !== 'all') && (
+                    <button
+                      onClick={() => {
+                        setFilterType('all');
+                        setFilterLocation('all');
+                      }}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    💡 Click to edit or assign to a day
+                  </div>
                 </div>
               </div>
 
               {filteredBookmarks.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">
-                    No bookmarks in this category
+                  <p className="text-gray-500 text-sm mb-2">
+                    No bookmarks match your filters
                   </p>
                   <button
-                    onClick={() => setFilterType('all')}
-                    className="mt-2 text-sm text-travel-teal hover:underline font-medium"
+                    onClick={() => {
+                      setFilterType('all');
+                      setFilterLocation('all');
+                    }}
+                    className="mt-2 px-4 py-2 text-sm bg-travel-teal text-white rounded-lg hover:bg-[#0c8c8c] font-medium transition-colors"
                   >
-                    Show all bookmarks
+                    Clear all filters
                   </button>
                 </div>
               ) : (
@@ -231,15 +351,21 @@ export default function BookmarksPanel({ bookmarks, onClose, onBookmarkClick }: 
                             <h3 className="text-base font-semibold text-gray-900 group-hover:text-travel-teal transition-colors flex-1">
                               {activity.name}
                             </h3>
-                            <span
-                              className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold flex-shrink-0"
-                              style={{
-                                backgroundColor: `${typeInfo.color}15`,
-                                color: typeInfo.color,
-                              }}
-                            >
-                              {typeInfo.emoji} {typeInfo.name}
-                            </span>
+                            <div className="flex flex-col gap-1 flex-shrink-0">
+                              <span
+                                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold"
+                                style={{
+                                  backgroundColor: `${typeInfo.color}15`,
+                                  color: typeInfo.color,
+                                }}
+                              >
+                                {typeInfo.emoji} {typeInfo.name}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                <MapPin className="w-3 h-3" />
+                                {activity.nearestPlaceEmoji} {activity.nearestPlace}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Rating */}
