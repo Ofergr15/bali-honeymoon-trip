@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Activity, Hotel } from '../types/trip';
 import { X, Phone, Star, Clock, DollarSign, ExternalLink, Trash2, Copy, Check, Edit } from 'lucide-react';
-import { getAreaFromCoordinates, getActivityTypeColor } from '../utils/colors';
+import { getActivityTypeColor } from '../utils/colors';
+import { findNearestPlace } from '../utils/locations';
 import OpeningHoursDisplay from './OpeningHoursDisplay';
 
 interface DetailsPanelProps {
@@ -29,7 +30,11 @@ export default function DetailsPanel({ item, onClose, onDelete, onEdit }: Detail
     return null;
   }
 
-  const area = getAreaFromCoordinates(item.location);
+  // Find nearest place using GPS distance (same as BookmarksPanel)
+  const nearestPlaceInfo = findNearestPlace(item.location.lat, item.location.lng);
+  const area = nearestPlaceInfo
+    ? { name: nearestPlaceInfo.name, emoji: nearestPlaceInfo.emoji, color: nearestPlaceInfo.color }
+    : { name: 'Bali', emoji: '📍', color: '#6B7280' };
 
   // Fetch address if not available
   const hasAddress = 'address' in item && item.address;
