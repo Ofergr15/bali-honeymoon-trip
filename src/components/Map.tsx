@@ -199,7 +199,7 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Google Earth-style SMOOTH FLYOVER - continuous interpolation
+  // Google Earth-style smooth animation using native Maps API
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) {
       console.log('❌ No map instance');
@@ -211,89 +211,61 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
 
     if (!currentCenter) return;
 
-    const startLat = currentCenter.lat();
-    const startLng = currentCenter.lng();
-    const startZoom = currentZoom;
-
-    console.log('🌍 Google Earth flyover from:', source);
-    console.log('   Start:', `${startLat.toFixed(4)}, ${startLng.toFixed(4)}, zoom: ${startZoom}`);
+    console.log('🌍 Smooth flyover from:', source);
+    console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
     console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
 
-    // Calculate distance for animation duration
-    const latDiff = targetLat - startLat;
-    const lngDiff = targetLng - startLng;
+    // Calculate distance
+    const latDiff = targetLat - currentCenter.lat();
+    const lngDiff = targetLng - currentCenter.lng();
     const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
 
-    // Determine animation parameters based on distance
-    let duration: number;
-    let midZoom: number;
+    console.log('   Distance:', distance.toFixed(4));
 
+    // SIMPLE APPROACH: Multi-stage with native panTo() for smoothness
     if (distance < 0.02) {
-      // VERY SHORT - quick direct animation
-      duration = 800;
-      midZoom = Math.max(startZoom, targetZoom);
+      // VERY SHORT - direct pan + zoom
+      console.log('   📍 Short distance - direct');
+      map.panTo({ lat: targetLat, lng: targetLng });
+      setTimeout(() => map.setZoom(targetZoom), 300);
     } else if (distance < 0.1) {
-      // SHORT - slight zoom out for perspective
-      duration = 1200;
-      midZoom = Math.max(Math.min(startZoom, targetZoom) - 1, 9);
+      // MEDIUM - slight zoom out, pan, zoom in
+      console.log('   🛫 Medium distance - arc');
+      const midZoom = Math.max(Math.min(currentZoom, targetZoom) - 2, 9);
+
+      // Stage 1: Zoom out slightly (if needed)
+      if (currentZoom > midZoom) {
+        map.setZoom(midZoom);
+      }
+
+      // Stage 2: Pan with native smooth animation (400ms delay if we zoomed out)
+      setTimeout(() => {
+        map.panTo({ lat: targetLat, lng: targetLng });
+      }, currentZoom > midZoom ? 400 : 0);
+
+      // Stage 3: Zoom to target
+      setTimeout(() => {
+        map.setZoom(targetZoom);
+      }, currentZoom > midZoom ? 1200 : 800);
     } else {
-      // LONG - dramatic zoom out to see the journey
-      duration = 2000;
-      midZoom = 8;
+      // LONG - dramatic zoom out, pan, zoom in
+      console.log('   🌍 Long distance - flyover');
+
+      // Stage 1: Zoom out to overview
+      map.setZoom(8);
+
+      // Stage 2: Pan to target
+      setTimeout(() => {
+        map.panTo({ lat: targetLat, lng: targetLng });
+      }, 500);
+
+      // Stage 3: Zoom in to target
+      setTimeout(() => {
+        map.setZoom(targetZoom);
+      }, 1500);
     }
 
-    console.log('   Distance:', distance.toFixed(4), '| Duration:', duration, 'ms | Mid zoom:', midZoom);
-
-    // SMOOTH INTERPOLATION with easing
-    const startTime = Date.now();
-    let animationFrame: number;
-
-    const easeInOutCubic = (t: number): number => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    };
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easedProgress = easeInOutCubic(progress);
-
-      // Interpolate position (lat/lng)
-      const currentLat = startLat + latDiff * easedProgress;
-      const currentLng = startLng + lngDiff * easedProgress;
-
-      // Interpolate zoom with arc (zoom out then in)
-      let currentZoom: number;
-      if (progress < 0.5) {
-        // First half: zoom out to midZoom
-        const zoomOutProgress = progress * 2; // 0 to 1
-        currentZoom = startZoom + (midZoom - startZoom) * easeInOutCubic(zoomOutProgress);
-      } else {
-        // Second half: zoom in to targetZoom
-        const zoomInProgress = (progress - 0.5) * 2; // 0 to 1
-        currentZoom = midZoom + (targetZoom - midZoom) * easeInOutCubic(zoomInProgress);
-      }
-
-      // Update map camera
-      map.setCenter({ lat: currentLat, lng: currentLng });
-      map.setZoom(currentZoom);
-
-      // Continue animation or finish
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      } else {
-        console.log('✅ Flyover complete');
-      }
-    };
-
-    // Start animation
-    animationFrame = requestAnimationFrame(animate);
-
-    // Cleanup function (if component unmounts during animation)
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
+    console.log('✅ Animation started');
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
