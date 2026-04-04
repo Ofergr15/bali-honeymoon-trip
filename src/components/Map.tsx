@@ -230,15 +230,21 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     console.log('   Current:', `${currentCenter.lat().toFixed(4)}, ${currentCenter.lng().toFixed(4)}, zoom: ${currentZoom}`);
     console.log('   Target:', `${targetLat.toFixed(4)}, ${targetLng.toFixed(4)}, zoom: ${targetZoom}`);
 
-    // Check if target is visible in current viewport
+    // Check if target is visible AND centered enough in current viewport
     const targetLatLng = new google.maps.LatLng(targetLat, targetLng);
     const isVisible = bounds.contains(targetLatLng);
 
-    console.log('   Target visible in viewport:', isVisible);
+    // Calculate distance from center - if close enough, we can just zoom
+    const centerDistanceLat = Math.abs(targetLat - currentCenter.lat());
+    const centerDistanceLng = Math.abs(targetLng - currentCenter.lng());
+    const centerDistance = Math.sqrt(centerDistanceLat * centerDistanceLat + centerDistanceLng * centerDistanceLng);
+    const isNearlyCentered = centerDistance < 0.01; // Within ~1km of center
 
-    // CASE 1: Target is VISIBLE - just zoom in smoothly (no pan, no zoom out)
-    if (isVisible) {
-      console.log('   👁️ Target visible - smooth zoom in only');
+    console.log('   Target visible:', isVisible, '| Nearly centered:', isNearlyCentered, '| Distance from center:', centerDistance.toFixed(4));
+
+    // CASE 1: Target is VISIBLE AND CENTERED - just zoom in smoothly
+    if (isVisible && isNearlyCentered) {
+      console.log('   👁️ Target visible & centered - smooth zoom in only');
 
       // Gradually zoom in with multiple steps for smooth effect
       const zoomSteps = Math.ceil((targetZoom - currentZoom) / 2);
@@ -250,6 +256,16 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
           map.setZoom(finalStepZoom);
         }, i * 300);
       }
+      return;
+    }
+
+    // CASE 1.5: Target is VISIBLE but NOT centered - pan to center it first, then zoom
+    if (isVisible && !isNearlyCentered) {
+      console.log('   👁️ Target visible but off-center - pan to center then zoom');
+      map.panTo({ lat: targetLat, lng: targetLng });
+      setTimeout(() => {
+        map.setZoom(targetZoom);
+      }, 400);
       return;
     }
 
