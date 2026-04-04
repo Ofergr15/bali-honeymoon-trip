@@ -906,7 +906,7 @@ function App() {
               >
                 <Settings className="w-4 h-4" />
               </button>
-              {isSupabaseConfigured && (
+              {isSupabaseConfigured && isSuperUser && (
                 <button
                   onClick={handleCleanupDatabase}
                   disabled={cleaningUp}
