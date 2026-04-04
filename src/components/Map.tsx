@@ -199,38 +199,36 @@ export default function Map({ activities, hotels, bookmarks, showBookmarks, sele
     }
   }, [map]);
 
-  // Simple, reliable animation - just pan + zoom
+  // Smooth animation - always use panTo for continuity
   const animateToLocation = React.useCallback((targetLat: number, targetLng: number, targetZoom: number, source: string = 'unknown') => {
     if (!map) return;
 
-    const bounds = map.getBounds();
     const currentZoom = map.getZoom() || 10;
 
-    console.log('📍 Navigate to:', source);
+    console.log('📍 Smooth navigate to:', source);
+    console.log('   Current zoom:', currentZoom, '→ Target zoom:', targetZoom);
 
-    // Check if target is already visible
-    if (bounds) {
-      const targetLatLng = new google.maps.LatLng(targetLat, targetLng);
-      const isVisible = bounds.contains(targetLatLng);
-
-      if (isVisible) {
-        // Target is visible - just zoom in smoothly (no pan needed)
-        console.log('   ✅ Target visible - direct zoom');
-        map.setZoom(targetZoom);
-        return;
-      }
-    }
-
-    // Target NOT visible - need to pan there
-    console.log('   🗺️ Target not visible - pan + zoom');
-
-    // Pan to target (smooth built-in animation)
+    // ALWAYS use panTo for smooth animation (even if target visible)
+    // This ensures smooth continuous motion, not instant teleports
     map.panTo({ lat: targetLat, lng: targetLng });
 
-    // Zoom after pan completes
-    setTimeout(() => {
-      map.setZoom(targetZoom);
-    }, 400);
+    // Smooth multi-step zoom for gradual effect
+    const zoomDiff = targetZoom - currentZoom;
+    const steps = Math.abs(Math.ceil(zoomDiff / 2)); // Zoom by 2 levels per step
+
+    if (steps > 0) {
+      for (let i = 1; i <= steps; i++) {
+        setTimeout(() => {
+          const stepZoom = currentZoom + (zoomDiff > 0 ? i * 2 : -i * 2);
+          const clampedZoom = zoomDiff > 0
+            ? Math.min(stepZoom, targetZoom)
+            : Math.max(stepZoom, targetZoom);
+
+          console.log('   Zoom step', i, '→', clampedZoom);
+          map.setZoom(clampedZoom);
+        }, 300 + (i * 300)); // Progressive delay
+      }
+    }
   }, [map]);
 
   // ONLY animate when a marker is explicitly selected from sidebar
