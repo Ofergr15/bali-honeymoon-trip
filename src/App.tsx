@@ -277,8 +277,16 @@ function App() {
       .map(day => day.day);
 
     console.log(`📍 placeDays for "${selectedPlace}":`, days);
+    console.log(`   Total activities in trip:`, allActivities.length);
+    console.log(`   Activities with days:`, allActivities.filter(a => a.day).length);
+
+    const matchingActivities = allActivities.filter(activity =>
+      activity.day && days.includes(activity.day)
+    );
+    console.log(`   Activities matching placeDays:`, matchingActivities.length, matchingActivities.map(a => a.name));
+
     return days;
-  }, [selectedPlace, tripData.days]);
+  }, [selectedPlace, tripData.days, allActivities]);
 
   const handleDaySelect = (day: number | null) => {
     setSelectedDay(day);
@@ -292,6 +300,8 @@ function App() {
       mapRef.current?.zoomToPlace(place);
       // Close sidebar for full map view
       setSidebarOpen(false);
+      // Reset filtered view to show regular place pins
+      setShowFilteredOnMap(false);
     }
 
     // Then update state
