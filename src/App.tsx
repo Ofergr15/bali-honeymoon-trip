@@ -290,7 +290,8 @@ function App() {
     // Always zoom first (even if place is already selected)
     if (place) {
       mapRef.current?.zoomToPlace(place);
-      // Don't auto-open sidebar - let user open it manually
+      // Close sidebar for full map view
+      setSidebarOpen(false);
     }
 
     // Then update state
