@@ -256,10 +256,15 @@ function App() {
   }, [tripData, loading]);
 
   // Collect all activities and hotels from the trip data
-  const allActivities = useMemo(() =>
-    tripData.days.flatMap(day => day.activities),
-    [tripData]
-  );
+  const allActivities = useMemo(() => {
+    const activities = tripData.days.flatMap(day => day.activities);
+    console.log('🔵 allActivities calculated:', {
+      totalDays: tripData.days.length,
+      activitiesPerDay: tripData.days.map(d => `Day ${d.day}: ${d.activities.length} activities`),
+      totalActivities: activities.length
+    });
+    return activities;
+  }, [tripData]);
 
   const allHotels = useMemo(() =>
     tripData.days
@@ -308,6 +313,17 @@ function App() {
   const handlePlaceSelect = (place: string | null) => {
     console.log('🎯 handlePlaceSelect called with:', place);
 
+    // DEBUG: Check trip data immediately
+    if (place) {
+      const matchingDays = tripData.days.filter(day => getPlaceName(day) === place);
+      console.log(`   📊 Trip has ${tripData.days.length} total days`);
+      console.log(`   📊 Days matching "${place}":`, matchingDays.map(d => `Day ${d.day}: ${d.title}`));
+      console.log(`   📊 Day numbers: [${matchingDays.map(d => d.day).join(', ')}]`);
+      console.log(`   📊 Total activities: ${allActivities.length}`);
+      console.log(`   📊 Activities with day assigned: ${allActivities.filter(a => a.day).length}`);
+      console.log(`   📊 Total bookmarks: ${tripData.unassignedActivities?.length || 0}`);
+    }
+
     // Always zoom first (even if place is already selected)
     if (place) {
       mapRef.current?.zoomToPlace(place);
@@ -315,14 +331,19 @@ function App() {
       setSidebarOpen(false);
       // Reset filtered view to show regular place pins
       setShowFilteredOnMap(false);
-      console.log('   ✓ Zoomed to place, closed sidebar, reset filtered view');
+      // IMPORTANT: Enable showing bookmarks when selecting a place so all pins are visible
+      setShowBookmarksOnMap(true);
+      console.log('   ✓ Zoomed to place, closed sidebar, enabled bookmarks, reset filtered view');
+    } else {
+      // When clearing place selection, hide bookmarks too
+      setShowBookmarksOnMap(false);
     }
 
     // Then update state
     setSelectedPlace(place);
     setSelectedDay(null); // Clear day filter when place is selected
     setSelectedItem(null);
-    console.log('   ✓ State updated: selectedPlace =', place);
+    console.log('   ✓ State updated: selectedPlace =', place, ', showBookmarks =', place !== null);
   };
 
   const handleMarkerClick = (item: Activity | Hotel) => {
@@ -986,7 +1007,7 @@ function App() {
                 title="Show bookmarks on map"
               >
                 <span className="text-base">📌</span>
-                <span className="hidden sm:inline">{showBookmarksOnMap ? 'Hide' : 'Show'} Pins [v2]</span>
+                <span className="hidden sm:inline">{showBookmarksOnMap ? 'Hide' : 'Show'} Pins</span>
               </button>
               <button
                 onClick={() => {

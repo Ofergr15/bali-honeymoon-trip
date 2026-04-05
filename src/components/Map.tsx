@@ -2,7 +2,7 @@ import { GoogleMap, useLoadScript, Marker, InfoWindow, Polyline } from '@react-g
 import React, { useState, useMemo, useEffect, useImperativeHandle, forwardRef } from 'react';
 import type { Activity, Hotel, DayItinerary } from '../types/trip';
 import { getMarkerColor, ACTIVITY_COLORS, getActivityTypeColor, getAreaFromCoordinates } from '../utils/colors';
-import { PLACE_LOCATIONS, getPlaceInfo } from '../utils/locations';
+import { PLACE_LOCATIONS, getPlaceInfo, calculateDistance } from '../utils/locations';
 import ColorLegend from './ColorLegend';
 import OpeningHoursDisplay from './OpeningHoursDisplay';
 import { Star, MapPin, Clock, Edit, ExternalLink } from 'lucide-react';
@@ -348,7 +348,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
     return baseScale * scaleFactor;
   };
 
-  // Filter activities by selected day or place
+  // Filter activities by selected day or place (geographic filtering for places)
   const filteredActivities = useMemo(() => {
     console.log('🔍 Map: Filtering activities...');
     console.log('   Input activities:', activities.length);
@@ -362,21 +362,37 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
       return [];
     }
 
+    // If a specific day is selected, filter by day
     if (selectedDay) {
       const filtered = activities.filter(activity => activity.day === selectedDay);
       console.log(`   ✅ Filtered by selectedDay: ${filtered.length} activities for Day ${selectedDay}`);
       return filtered;
     }
-    if (placeDays && placeDays.length > 0) {
-      const filtered = activities.filter(activity => activity.day && placeDays.includes(activity.day));
-      console.log(`   ✅ Filtered by placeDays: ${filtered.length} activities for ${selectedPlace} (days: ${placeDays.join(', ')})`);
-      return filtered;
+
+    // If a place is selected, filter by GEOGRAPHIC PROXIMITY (not by day)
+    if (selectedPlace) {
+      const placeCoords = PLACE_LOCATIONS[selectedPlace as keyof typeof PLACE_LOCATIONS];
+      if (placeCoords) {
+        const radiusKm = 10; // Show activities within 10km of the place
+        const filtered = activities.filter(activity => {
+          const distance = calculateDistance(
+            placeCoords.lat,
+            placeCoords.lng,
+            activity.location.lat,
+            activity.location.lng
+          );
+          return distance <= radiusKm;
+        });
+        console.log(`   ✅ Filtered by location: ${filtered.length} activities within ${radiusKm}km of ${selectedPlace}`);
+        return filtered;
+      }
     }
+
     console.log(`   ⚠️ No filtering applied → returning all ${activities.length} activities`);
     return activities;
-  }, [activities, selectedDay, placeDays, selectedPlace]);
+  }, [activities, selectedDay, selectedPlace]);
 
-  // Filter hotels by selected day or place
+  // Filter hotels by selected day or place (geographic filtering for places)
   const filteredHotels = useMemo(() => {
     console.log('🏨 Map: Filtering hotels...');
     console.log('   Input hotels:', hotels.length);
@@ -387,6 +403,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
       return [];
     }
 
+    // If a specific day is selected, filter by date
     if (selectedDay) {
       const filtered = hotels.filter(hotel => {
         const checkInDate = new Date(hotel.checkIn);
@@ -399,23 +416,65 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
       console.log(`   ✅ Filtered by selectedDay: ${filtered.length} hotels for Day ${selectedDay}`);
       return filtered;
     }
-    if (placeDays && placeDays.length > 0) {
-      // Filter hotels that overlap with any of the place days
-      const filtered = hotels.filter(hotel => {
-        const checkInDate = new Date(hotel.checkIn);
-        const checkOutDate = new Date(hotel.checkOut);
-        return placeDays.some(day => {
-          const dayDate = new Date('2026-05-06');
-          dayDate.setDate(dayDate.getDate() + day - 1);
-          return dayDate >= checkInDate && dayDate < checkOutDate;
+
+    // If a place is selected, filter by GEOGRAPHIC PROXIMITY
+    if (selectedPlace) {
+      const placeCoords = PLACE_LOCATIONS[selectedPlace as keyof typeof PLACE_LOCATIONS];
+      if (placeCoords) {
+        const radiusKm = 10; // Show hotels within 10km of the place
+        const filtered = hotels.filter(hotel => {
+          const distance = calculateDistance(
+            placeCoords.lat,
+            placeCoords.lng,
+            hotel.location.lat,
+            hotel.location.lng
+          );
+          return distance <= radiusKm;
         });
-      });
-      console.log(`   ✅ Filtered by placeDays: ${filtered.length} hotels for ${selectedPlace} (days: ${placeDays.join(', ')})`);
-      return filtered;
+        console.log(`   ✅ Filtered by location: ${filtered.length} hotels within ${radiusKm}km of ${selectedPlace}`);
+        return filtered;
+      }
     }
+
     console.log(`   ⚠️ No filtering applied → returning all ${hotels.length} hotels`);
     return hotels;
-  }, [hotels, selectedDay, placeDays, selectedPlace]);
+  }, [hotels, selectedDay, selectedPlace]);
+
+  // Filter bookmarks by geographic proximity to selected place
+  const filteredBookmarks = useMemo(() => {
+    console.log('📌 Map: Filtering bookmarks...');
+    console.log('   Input bookmarks:', bookmarks?.length || 0);
+    console.log('   selectedPlace:', selectedPlace);
+    console.log('   showBookmarks:', showBookmarks);
+
+    if (!bookmarks || bookmarks.length === 0 || !showBookmarks) {
+      console.log('   ❌ No bookmarks or showBookmarks=false → returning empty array');
+      return [];
+    }
+
+    // If a place is selected, filter bookmarks by geographic proximity
+    if (selectedPlace) {
+      const placeCoords = PLACE_LOCATIONS[selectedPlace as keyof typeof PLACE_LOCATIONS];
+      if (placeCoords) {
+        const radiusKm = 10; // Show bookmarks within 10km of the place
+        const filtered = bookmarks.filter(bookmark => {
+          const distance = calculateDistance(
+            placeCoords.lat,
+            placeCoords.lng,
+            bookmark.location.lat,
+            bookmark.location.lng
+          );
+          return distance <= radiusKm;
+        });
+        console.log(`   ✅ Filtered by location: ${filtered.length} bookmarks within ${radiusKm}km of ${selectedPlace}`);
+        return filtered;
+      }
+    }
+
+    // If no place selected, show all bookmarks (when showBookmarks is true)
+    console.log(`   ⚠️ No place filter → returning all ${bookmarks.length} bookmarks`);
+    return bookmarks;
+  }, [bookmarks, selectedPlace, showBookmarks]);
 
   const handleMarkerClick = (item: Activity | Hotel) => {
     console.log('🖱️ MARKER CLICKED:', item.name, '→ opening DetailsPanel');
@@ -902,7 +961,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
       })}
 
       {/* Bookmark markers - shown when bookmarks panel is open */}
-      {showBookmarks && bookmarks && bookmarks.map((bookmark) => {
+      {filteredBookmarks.map((bookmark) => {
         const isSelected = selectedItem && selectedItem.id === bookmark.id;
         const showLabel = isSelected; // Only show label when clicked/selected
         const bookmarkColor = '#FFA500'; // Orange/gold color for bookmarks
