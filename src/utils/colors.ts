@@ -9,7 +9,7 @@ export const ACTIVITY_COLORS = {
   },
   restaurant: {
     color: '#EF4444',      // Red
-    emoji: '🍽️',
+    emoji: '🍴',
     name: 'Restaurant'
   },
   beach: {

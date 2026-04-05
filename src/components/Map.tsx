@@ -350,33 +350,45 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
 
   // Filter activities by selected day or place
   const filteredActivities = useMemo(() => {
+    console.log('🔍 Map: Filtering activities...');
+    console.log('   Input activities:', activities.length);
+    console.log('   selectedPlace:', selectedPlace);
+    console.log('   selectedDay:', selectedDay);
+    console.log('   placeDays:', placeDays);
+
     // If no place selected, don't show any activity pins
     if (!selectedPlace && !selectedDay) {
+      console.log('   ❌ No place or day selected → returning empty array');
       return [];
     }
 
     if (selectedDay) {
       const filtered = activities.filter(activity => activity.day === selectedDay);
-      console.log(`🎯 Showing ${filtered.length} activities for Day ${selectedDay}`);
+      console.log(`   ✅ Filtered by selectedDay: ${filtered.length} activities for Day ${selectedDay}`);
       return filtered;
     }
     if (placeDays && placeDays.length > 0) {
       const filtered = activities.filter(activity => activity.day && placeDays.includes(activity.day));
-      console.log(`🎯 Showing ${filtered.length} activities for ${selectedPlace} (days: ${placeDays})`);
+      console.log(`   ✅ Filtered by placeDays: ${filtered.length} activities for ${selectedPlace} (days: ${placeDays.join(', ')})`);
       return filtered;
     }
+    console.log(`   ⚠️ No filtering applied → returning all ${activities.length} activities`);
     return activities;
   }, [activities, selectedDay, placeDays, selectedPlace]);
 
   // Filter hotels by selected day or place
   const filteredHotels = useMemo(() => {
+    console.log('🏨 Map: Filtering hotels...');
+    console.log('   Input hotels:', hotels.length);
+
     // If no place selected, don't show any hotel pins
     if (!selectedPlace && !selectedDay) {
+      console.log('   ❌ No place or day selected → returning empty array');
       return [];
     }
 
     if (selectedDay) {
-      return hotels.filter(hotel => {
+      const filtered = hotels.filter(hotel => {
         const checkInDate = new Date(hotel.checkIn);
         const checkOutDate = new Date(hotel.checkOut);
         // Trip starts on May 6, 2026
@@ -384,10 +396,12 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
         dayDate.setDate(dayDate.getDate() + selectedDay - 1);
         return dayDate >= checkInDate && dayDate < checkOutDate;
       });
+      console.log(`   ✅ Filtered by selectedDay: ${filtered.length} hotels for Day ${selectedDay}`);
+      return filtered;
     }
     if (placeDays && placeDays.length > 0) {
       // Filter hotels that overlap with any of the place days
-      return hotels.filter(hotel => {
+      const filtered = hotels.filter(hotel => {
         const checkInDate = new Date(hotel.checkIn);
         const checkOutDate = new Date(hotel.checkOut);
         return placeDays.some(day => {
@@ -396,7 +410,10 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
           return dayDate >= checkInDate && dayDate < checkOutDate;
         });
       });
+      console.log(`   ✅ Filtered by placeDays: ${filtered.length} hotels for ${selectedPlace} (days: ${placeDays.join(', ')})`);
+      return filtered;
     }
+    console.log(`   ⚠️ No filtering applied → returning all ${hotels.length} hotels`);
     return hotels;
   }, [hotels, selectedDay, placeDays, selectedPlace]);
 
@@ -640,6 +657,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
           {locations.map((location) => {
             // Vertical offset to place label above circle
             let verticalOffset = 0.025 / Math.pow(1.15, zoomLevelRef.current - 10);
+            const isHovered = hoveredPlace === location.name;
 
             return (
               <React.Fragment key={`location-${location.name}`}>
@@ -667,7 +685,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
                   options={{
                     cursor: 'pointer',
                   }}
-                  zIndex={100}
+                  zIndex={isHovered ? 1000 : 100}
                 />
                 {/* Text label above the circle - always visible */}
                 <Marker
@@ -697,7 +715,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
                   options={{
                     cursor: 'pointer', // Show pointer cursor
                   }}
-                  zIndex={99} // Below the circle so it doesn't block hover
+                  zIndex={isHovered ? 999 : 99} // Below the circle so it doesn't block hover
                 />
               </React.Fragment>
             );
@@ -854,7 +872,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
               }}
               label={{
                 text: activityTypeInfo.emoji,
-                fontSize: '22px',
+                fontSize: '24px',
                 className: isSelected ? 'selected-marker' : '',
               }}
               zIndex={isSelected ? 200 : 100}

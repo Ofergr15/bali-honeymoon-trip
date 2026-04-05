@@ -288,6 +288,17 @@ function App() {
     return days;
   }, [selectedPlace, tripData.days, allActivities]);
 
+  // Debug: Log what's being passed to Map component
+  useEffect(() => {
+    console.log('🗺️ Map Props Update:');
+    console.log('   selectedPlace:', selectedPlace);
+    console.log('   selectedDay:', selectedDay);
+    console.log('   placeDays:', placeDays);
+    console.log('   showFilteredOnMap:', showFilteredOnMap);
+    console.log('   activities being passed:', showFilteredOnMap ? 0 : allActivities.length);
+    console.log('   hotels being passed:', showFilteredOnMap ? 0 : allHotels.length);
+  }, [selectedPlace, selectedDay, placeDays, showFilteredOnMap, allActivities.length, allHotels.length]);
+
   const handleDaySelect = (day: number | null) => {
     setSelectedDay(day);
     setSelectedPlace(null); // Clear place filter when day is selected
@@ -295,6 +306,8 @@ function App() {
   };
 
   const handlePlaceSelect = (place: string | null) => {
+    console.log('🎯 handlePlaceSelect called with:', place);
+
     // Always zoom first (even if place is already selected)
     if (place) {
       mapRef.current?.zoomToPlace(place);
@@ -302,12 +315,14 @@ function App() {
       setSidebarOpen(false);
       // Reset filtered view to show regular place pins
       setShowFilteredOnMap(false);
+      console.log('   ✓ Zoomed to place, closed sidebar, reset filtered view');
     }
 
     // Then update state
     setSelectedPlace(place);
     setSelectedDay(null); // Clear day filter when place is selected
     setSelectedItem(null);
+    console.log('   ✓ State updated: selectedPlace =', place);
   };
 
   const handleMarkerClick = (item: Activity | Hotel) => {
@@ -956,6 +971,7 @@ function App() {
               )}
               <button
                 onClick={() => {
+                  console.log('🔵 Show Pins button clicked! Current state:', showBookmarksOnMap);
                   setShowBookmarksOnMap(!showBookmarksOnMap);
                   // Reset filtered view when toggling
                   if (showBookmarksOnMap) {
@@ -970,7 +986,7 @@ function App() {
                 title="Show bookmarks on map"
               >
                 <span className="text-base">📌</span>
-                <span className="hidden sm:inline">{showBookmarksOnMap ? 'Hide' : 'Show'} Pins</span>
+                <span className="hidden sm:inline">{showBookmarksOnMap ? 'Hide' : 'Show'} Pins [v2]</span>
               </button>
               <button
                 onClick={() => {

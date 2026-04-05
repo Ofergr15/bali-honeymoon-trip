@@ -98,6 +98,7 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
   const placeGroups = groupDaysByPlace(days);
 
   const handlePlaceClick = (placeName: string) => {
+    console.log('🔘 DayNavigationBar: Place button clicked:', placeName);
     // Always trigger place selection (this will zoom the map and show pins)
     onPlaceSelect(placeName);
 
