@@ -191,23 +191,15 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
 
         let placeId: string | null = null;
 
-        // First, try to extract place_id directly from the Google Maps URL
-        const placeIdMatch = targetLink.match(/!1s([^!&]+)/);
-        if (placeIdMatch) {
-          placeId = placeIdMatch[1];
-          console.log('✅ Extracted Place ID directly from URL:', placeId);
-        }
-
-        // If no place_id found in URL, try Nearby Search with the place name
-        if (!placeId) {
-          const nearbySearchPromise = new Promise<string | null>((resolve) => {
+        // Try Nearby Search with larger radius and the place name
+        const nearbySearchPromise = new Promise<string | null>((resolve) => {
           const service = new google.maps.places.PlacesService(document.createElement('div'));
           const location = new google.maps.LatLng(coords.lat, coords.lng);
 
           service.nearbySearch(
             {
               location: location,
-              radius: 50, // 50 meters radius
+              radius: 500, // 500 meters radius (was too small at 50)
               keyword: extractedName
             },
             (results, status) => {
@@ -228,8 +220,7 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
           );
         });
 
-          placeId = await nearbySearchPromise;
-        }
+        placeId = await nearbySearchPromise;
 
         // Fallback to Geocoding if Nearby Search didn't work
         if (!placeId) {
