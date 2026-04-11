@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, RefreshCw } from 'lucide-react';
 import type { Activity, Hotel } from '../types/trip';
 import { PLACE_LOCATIONS, findNearestPlace } from '../utils/locations';
 import { parseBookingUrl, calculateNights, formatPrice } from '../utils/bookingParser';
@@ -22,6 +22,7 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
   );
   const [rating, setRating] = useState(item.rating?.toString() || '');
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
+  const [refreshingImage, setRefreshingImage] = useState(false);
 
   // Place/Location - use manual if set, otherwise detect from GPS
   const detectedPlace = findNearestPlace(item.location.lat, item.location.lng);
@@ -126,6 +127,68 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
       };
       onUpdate(updatedHotel);
     }
+  };
+
+  const handleRefreshImage = () => {
+    if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+      alert('Google Maps is not loaded yet. Please try again in a moment.');
+      return;
+    }
+
+    setRefreshingImage(true);
+
+    const service = new google.maps.places.PlacesService(document.createElement('div'));
+
+    // Search for the place using nearby search
+    service.nearbySearch(
+      {
+        location: new google.maps.LatLng(item.location.lat, item.location.lng),
+        radius: 50,
+        keyword: name
+      },
+      (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          const placeId = results[0].place_id;
+
+          if (placeId) {
+            // Get place details including photos
+            service.getDetails(
+              {
+                placeId: placeId,
+                fields: ['photos']
+              },
+              (place, detailsStatus) => {
+                if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.photos && place.photos.length > 0) {
+                  // Use proper Google Places Photo API URL format
+                  const photoReference = place.photos[0].photo_reference;
+                  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+                  if (photoReference && apiKey) {
+                    const newImageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
+                    setImageUrl(newImageUrl);
+                    console.log('✅ Image refreshed:', newImageUrl);
+                  } else {
+                    // Fallback to getUrl()
+                    const newImageUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 800 });
+                    setImageUrl(newImageUrl);
+                  }
+                  setRefreshingImage(false);
+                } else {
+                  alert('Could not find a photo for this place.');
+                  setRefreshingImage(false);
+                }
+              }
+            );
+          } else {
+            alert('Could not find place ID.');
+            setRefreshingImage(false);
+          }
+        } else {
+          alert('Could not find this place on Google Maps.');
+          setRefreshingImage(false);
+        }
+      }
+    );
   };
 
   return (
@@ -404,13 +467,24 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Photo URL
             </label>
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://www.instagram.com/p/... or any image URL"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
-            />
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://www.instagram.com/p/... or any image URL"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-travel-teal focus:border-travel-teal"
+              />
+              <button
+                type="button"
+                onClick={handleRefreshImage}
+                disabled={refreshingImage}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshingImage ? 'animate-spin' : ''}`} />
+                {refreshingImage ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             {imageUrl && (
               <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden bg-white">
                 <img

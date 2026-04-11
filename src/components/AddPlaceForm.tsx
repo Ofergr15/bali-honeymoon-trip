@@ -277,8 +277,17 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                 }
 
                 if (place.photos && place.photos.length > 0) {
-                  result.imageUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 800 });
-                  console.log('✅ Photo URL:', result.imageUrl);
+                  // Use Google Places Photo API URL format for better reliability
+                  const photoReference = place.photos[0].photo_reference;
+                  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                  if (photoReference && apiKey) {
+                    result.imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
+                    console.log('✅ Photo URL:', result.imageUrl);
+                  } else {
+                    // Fallback to getUrl() if photo_reference not available
+                    result.imageUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 800 });
+                    console.log('✅ Photo URL (fallback):', result.imageUrl);
+                  }
                 }
 
                 if (place.vicinity) {
