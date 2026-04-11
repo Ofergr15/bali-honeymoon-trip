@@ -141,11 +141,11 @@ function refreshPlaceImage(
     console.log(`  🔍 Searching for images near: ${place.location_lat}, ${place.location_lng}`);
 
     // Just do a simple nearby search and grab the first place with photos
+    // Note: Cannot use both radius and rankBy together
     service.nearbySearch(
       {
         location: new google.maps.LatLng(place.location_lat, place.location_lng),
-        radius: 100, // 100 meters should catch most exact locations
-        rankBy: google.maps.places.RankBy.DISTANCE
+        radius: 100 // 100 meters should catch most exact locations
       },
       (results, status) => {
         console.log(`  📍 Nearby search status: ${status}, results: ${results?.length || 0}`);
