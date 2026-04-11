@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, GripVertical, Plus, Minus, Eye, EyeOff } from 'lucide-react';
+import { X, GripVertical, Plus, Minus, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import type { TripData, DayExpense } from '../types/trip';
 import BookingStatusView from './BookingStatusView';
 import DailyExpensesTracker from './DailyExpensesTracker';
@@ -7,6 +7,7 @@ import BudgetDashboardV2 from './BudgetDashboardV2';
 import TripDashboard from './TripDashboard';
 import UserManagement from './UserManagement';
 import { useAuth } from '../contexts/AuthContext';
+import { refreshAllImages } from '../utils/refreshAllImages';
 
 interface TripSettingsModalProps {
   tripData: TripData;
@@ -41,10 +42,11 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
   const { canManageUsers, isSuperUser } = useAuth();
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users'>('places');
+  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools'>('places');
   const [localTripData, setLocalTripData] = useState<TripData>(tripData);
   const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
   const [showTripDashboard, setShowTripDashboard] = useState(false);
+  const [refreshingImages, setRefreshingImages] = useState(false);
 
   // Initialize places from trip data
   useEffect(() => {
@@ -194,6 +196,23 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     setLocalTripData({ ...localTripData, days: updatedDays });
   };
 
+  const handleRefreshAllImages = async () => {
+    if (!confirm('This will fetch fresh images from Google Places API for ALL places.\n\nThis may take a few minutes. Continue?')) {
+      return;
+    }
+
+    setRefreshingImages(true);
+    try {
+      await refreshAllImages();
+      // Optionally reload the trip data here
+      alert('Image refresh complete! Please refresh the page to see updated images.');
+    } catch (error) {
+      console.error('Error refreshing images:', error);
+      alert('Error refreshing images. Check console for details.');
+    }
+    setRefreshingImages(false);
+  };
+
   const handleSave = () => {
     // Save hidden places to localStorage
     const hiddenPlacesData: Record<string, { days: number; order: number }> = {};
@@ -331,6 +350,18 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                 }`}
               >
                 👥 User Management
+              </button>
+            )}
+            {isSuperUser && (
+              <button
+                onClick={() => setActiveTab('tools')}
+                className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
+                  activeTab === 'tools'
+                    ? 'border-travel-teal text-travel-teal bg-white shadow-md'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                }`}
+              >
+                🛠️ Tools
               </button>
             )}
           </div>
@@ -534,6 +565,42 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
           {/* User Management Tab */}
           {activeTab === 'users' && canManageUsers && (
             <UserManagement isSuperUser={isSuperUser} />
+          )}
+
+          {/* Tools Tab */}
+          {activeTab === 'tools' && isSuperUser && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">🖼️ Refresh All Images</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Fetch fresh images from Google Places API for all activities and hotels. This will update image URLs to fix any broken images.
+                </p>
+                <button
+                  onClick={handleRefreshAllImages}
+                  disabled={refreshingImages}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg"
+                >
+                  <RefreshCw className={`w-5 h-5 ${refreshingImages ? 'animate-spin' : ''}`} />
+                  {refreshingImages ? 'Refreshing All Images...' : 'Refresh All Images'}
+                </button>
+                {refreshingImages && (
+                  <p className="text-sm text-gray-600 mt-3">
+                    ⏱️ This may take a few minutes... Please don't close this window.
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-6 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">How it works:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Fetches all activities and hotels from the database</li>
+                  <li>• Searches Google Places API for each location</li>
+                  <li>• Downloads fresh photo references</li>
+                  <li>• Updates database with new image URLs</li>
+                  <li>• Adds small delays to avoid rate limiting</li>
+                </ul>
+              </div>
+            </div>
           )}
 
           {/* Action Buttons */}
