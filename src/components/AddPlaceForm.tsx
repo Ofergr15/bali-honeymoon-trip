@@ -274,6 +274,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                 if (place.rating) {
                   result.rating = place.rating;
                   console.log('✅ Rating:', result.rating, `(${place.user_ratings_total || 0} reviews)`);
+                } else {
+                  console.log('⚠️  No rating available for this place');
                 }
 
                 if (place.photos && place.photos.length > 0) {
@@ -289,6 +291,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
                     result.imageUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 800 });
                     console.log('✅ Photo URL (fallback):', result.imageUrl);
                   }
+                } else {
+                  console.log('⚠️  No photos available for this place');
                 }
 
                 if (place.vicinity) {
