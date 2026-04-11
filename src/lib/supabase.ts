@@ -6,6 +6,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Make it globally available for console scripts
+if (typeof window !== 'undefined') {
+  (window as any).supabase = supabase;
+  (window as any).googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+}
+
 // Database types
 export interface Database {
   public: {
