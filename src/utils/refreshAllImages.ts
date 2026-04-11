@@ -138,94 +138,81 @@ function refreshPlaceImage(
   apiKey: string
 ): Promise<string | null> {
   return new Promise((resolve) => {
-    // Try multiple search strategies
-    const searchStrategies = [
-      // Strategy 1: Nearby search with tight radius
-      () => service.nearbySearch(
-        {
-          location: new google.maps.LatLng(place.location_lat, place.location_lng),
-          radius: 50,
-          keyword: place.name
-        },
-        handleResults
-      ),
-      // Strategy 2: Nearby search with larger radius
-      () => service.nearbySearch(
-        {
-          location: new google.maps.LatLng(place.location_lat, place.location_lng),
-          radius: 200,
-          keyword: place.name
-        },
-        handleResults
-      ),
-      // Strategy 3: Text search
-      () => service.textSearch(
-        {
-          query: place.name,
-          location: new google.maps.LatLng(place.location_lat, place.location_lng),
-          radius: 500
-        },
-        handleResults
-      )
-    ];
+    console.log(`  🔍 Searching for images near: ${place.location_lat}, ${place.location_lng}`);
 
-    let strategyIndex = 0;
+    // Just do a simple nearby search and grab the first place with photos
+    service.nearbySearch(
+      {
+        location: new google.maps.LatLng(place.location_lat, place.location_lng),
+        radius: 100, // 100 meters should catch most exact locations
+        rankBy: google.maps.places.RankBy.DISTANCE
+      },
+      (results, status) => {
+        console.log(`  📍 Nearby search status: ${status}, results: ${results?.length || 0}`);
 
-    function handleResults(results: any, status: any) {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-        const placeId = results[0].place_id;
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          // Try each result until we find one with photos
+          let currentIndex = 0;
 
-        if (placeId) {
-          // Get place details with photos
-          service.getDetails(
-            {
-              placeId: placeId,
-              fields: ['photos']
-            },
-            (placeDetails, detailsStatus) => {
-              if (
-                detailsStatus === google.maps.places.PlacesServiceStatus.OK &&
-                placeDetails &&
-                placeDetails.photos &&
-                placeDetails.photos.length > 0
-              ) {
-                const photo = placeDetails.photos[0] as any;
-                const photoReference = photo.photo_reference;
-
-                if (photoReference) {
-                  const imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
-                  resolve(imageUrl);
-                } else {
-                  tryNextStrategy();
-                }
-              } else {
-                tryNextStrategy();
-              }
+          function tryNextResult() {
+            if (currentIndex >= results.length) {
+              console.log(`  ⏭️  No photos found in any of ${results.length} nearby results`);
+              resolve(null);
+              return;
             }
-          );
+
+            const result = results[currentIndex];
+            console.log(`  🔎 Checking result ${currentIndex + 1}/${results.length}: ${result.name}`);
+
+            if (!result.place_id) {
+              currentIndex++;
+              tryNextResult();
+              return;
+            }
+
+            service.getDetails(
+              {
+                placeId: result.place_id,
+                fields: ['photos', 'name']
+              },
+              (placeDetails, detailsStatus) => {
+                if (
+                  detailsStatus === google.maps.places.PlacesServiceStatus.OK &&
+                  placeDetails &&
+                  placeDetails.photos &&
+                  placeDetails.photos.length > 0
+                ) {
+                  const photo = placeDetails.photos[0] as any;
+                  const photoReference = photo.photo_reference;
+
+                  if (photoReference) {
+                    const imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
+                    console.log(`  ✅ Found photo from: ${placeDetails.name}`);
+                    resolve(imageUrl);
+                  } else {
+                    console.log(`  ⚠️  Photo exists but no reference available`);
+                    currentIndex++;
+                    setTimeout(tryNextResult, 100);
+                  }
+                } else {
+                  console.log(`  ⚠️  No photos for ${placeDetails?.name || 'this place'}`);
+                  currentIndex++;
+                  setTimeout(tryNextResult, 100);
+                }
+              }
+            );
+          }
+
+          tryNextResult();
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          console.log(`  ❌ No places found near this location`);
+          resolve(null);
         } else {
-          tryNextStrategy();
+          console.log(`  ❌ Search failed with status: ${status}`);
+          resolve(null);
         }
-      } else {
-        tryNextStrategy();
       }
-    }
-
-    function tryNextStrategy() {
-      strategyIndex++;
-      if (strategyIndex < searchStrategies.length) {
-        // Wait a bit before trying next strategy
-        setTimeout(() => {
-          searchStrategies[strategyIndex]();
-        }, 200);
-      } else {
-        // All strategies exhausted
-        resolve(null);
-      }
-    }
-
-    // Start with first strategy
-    searchStrategies[0]();
+    );
   });
 }
 
