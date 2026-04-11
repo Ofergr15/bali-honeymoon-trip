@@ -197,20 +197,23 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
   };
 
   const handleRefreshAllImages = async () => {
-    if (!confirm('This will fetch fresh images from Google Places API for ALL places.\n\nThis may take a few minutes. Continue?')) {
+    if (!confirm('⚠️ REFRESH ALL IMAGES\n\nThis will:\n• Fetch fresh images from Google Places API\n• Update ALL activities and hotels in the database\n• Take several minutes to complete\n\nMake sure you have a stable internet connection.\n\nContinue?')) {
       return;
     }
 
     setRefreshingImages(true);
+    console.log('🔄 Starting image refresh...');
+
     try {
-      await refreshAllImages();
-      // Optionally reload the trip data here
-      alert('Image refresh complete! Please refresh the page to see updated images.');
+      const result = await refreshAllImages();
+      console.log('✅ Refresh complete:', result);
+      // The function shows its own alert with results
     } catch (error) {
-      console.error('Error refreshing images:', error);
-      alert('Error refreshing images. Check console for details.');
+      console.error('❌ Error refreshing images:', error);
+      // Error alert is shown by the function
+    } finally {
+      setRefreshingImages(false);
     }
-    setRefreshingImages(false);
   };
 
   const handleSave = () => {
