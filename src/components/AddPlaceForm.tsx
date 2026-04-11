@@ -191,36 +191,36 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
 
         let placeId: string | null = null;
 
-        // Try Nearby Search with larger radius and the place name
-        const nearbySearchPromise = new Promise<string | null>((resolve) => {
+        // Use Text Search for better results with named landmarks
+        const textSearchPromise = new Promise<string | null>((resolve) => {
           const service = new google.maps.places.PlacesService(document.createElement('div'));
           const location = new google.maps.LatLng(coords.lat, coords.lng);
 
-          service.nearbySearch(
+          service.textSearch(
             {
+              query: extractedName,
               location: location,
-              radius: 500, // 500 meters radius (was too small at 50)
-              keyword: extractedName
+              radius: 5000 // 5km radius for large landmarks
             },
             (results, status) => {
-              console.log('Nearby Search status:', status);
-              console.log('Nearby Search results:', results);
+              console.log('Text Search status:', status);
+              console.log('Text Search results:', results);
 
               if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
                 // Find the best match
                 const bestMatch = results[0];
-                console.log('✅ Found place via Nearby Search:', bestMatch.name);
+                console.log('✅ Found place via Text Search:', bestMatch.name);
                 console.log('Place ID:', bestMatch.place_id);
                 resolve(bestMatch.place_id || null);
               } else {
-                console.warn('⚠️ Nearby Search failed, falling back to Geocoding...');
+                console.warn('⚠️ Text Search failed, falling back to Geocoding...');
                 resolve(null);
               }
             }
           );
         });
 
-        placeId = await nearbySearchPromise;
+        placeId = await textSearchPromise;
 
         // Fallback to Geocoding if Nearby Search didn't work
         if (!placeId) {
