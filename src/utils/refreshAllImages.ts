@@ -138,14 +138,14 @@ function refreshPlaceImage(
   apiKey: string
 ): Promise<string | null> {
   return new Promise((resolve) => {
-    console.log(`  🔍 Searching for images near: ${place.location_lat}, ${place.location_lng}`);
+    console.log(`  🔍 Searching for "${place.name}" near: ${place.location_lat}, ${place.location_lng}`);
 
-    // Just do a simple nearby search and grab the first place with photos
-    // Note: Cannot use both radius and rankBy together
+    // Search for the specific place by name near the coordinates
     service.nearbySearch(
       {
         location: new google.maps.LatLng(place.location_lat, place.location_lng),
-        radius: 100 // 100 meters should catch most exact locations
+        radius: 50,
+        keyword: place.name // Use the place name to find the right location
       },
       (results, status) => {
         console.log(`  📍 Nearby search status: ${status}, results: ${results?.length || 0}`);
