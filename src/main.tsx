@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import AuthGuard from './components/AuthGuard'
+import './utils/refreshAllImages'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
