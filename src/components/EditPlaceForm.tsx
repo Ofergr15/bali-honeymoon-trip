@@ -160,7 +160,8 @@ export default function EditPlaceForm({ item, onUpdate, onClose, tripDays }: Edi
               (place, detailsStatus) => {
                 if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.photos && place.photos.length > 0) {
                   // Use proper Google Places Photo API URL format
-                  const photoReference = place.photos[0].photo_reference;
+                  const photo = place.photos[0] as any;
+                  const photoReference = photo.photo_reference;
                   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
                   if (photoReference && apiKey) {

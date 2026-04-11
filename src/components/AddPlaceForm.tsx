@@ -278,7 +278,8 @@ export default function AddPlaceForm({ onAddActivity, onAddHotel, onClose }: Add
 
                 if (place.photos && place.photos.length > 0) {
                   // Use Google Places Photo API URL format for better reliability
-                  const photoReference = place.photos[0].photo_reference;
+                  const photo = place.photos[0] as any;
+                  const photoReference = photo.photo_reference;
                   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
                   if (photoReference && apiKey) {
                     result.imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
