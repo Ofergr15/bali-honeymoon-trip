@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, GripVertical, Plus, Minus, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, GripVertical, Plus, Minus, Eye, EyeOff, RefreshCw, MapPin } from 'lucide-react';
 import type { TripData, DayExpense } from '../types/trip';
 import BookingStatusView from './BookingStatusView';
 import DailyExpensesTracker from './DailyExpensesTracker';
@@ -152,6 +152,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
   const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
   const [showTripDashboard, setShowTripDashboard] = useState(false);
   const [refreshingImages, setRefreshingImages] = useState(false);
+  const [showAddPlaceForm, setShowAddPlaceForm] = useState(false);
+  const [newPlaceName, setNewPlaceName] = useState('');
+  const [newPlaceDays, setNewPlaceDays] = useState(1);
+  const [newPlaceEmoji, setNewPlaceEmoji] = useState('📍');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   // Setup sensors for drag and drop
   const sensors = useSensors(
@@ -164,6 +170,29 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    if (showAddPlaceForm && searchInputRef.current && window.google) {
+      autocompleteRef.current = new google.maps.places.Autocomplete(searchInputRef.current, {
+        types: ['(cities)'],
+        componentRestrictions: { country: 'id' }, // Restrict to Indonesia
+      });
+
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (place?.name) {
+          setNewPlaceName(place.name);
+        }
+      });
+    }
+
+    return () => {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [showAddPlaceForm]);
 
   // Initialize places from trip data
   useEffect(() => {
@@ -292,6 +321,38 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
         return arrayMove(items, oldIndex, newIndex);
       });
     }
+  };
+
+  const handleAddPlace = () => {
+    if (!newPlaceName.trim()) {
+      alert('Please enter a place name');
+      return;
+    }
+
+    if (newPlaceDays < 1 || newPlaceDays > 15) {
+      alert('Days must be between 1 and 15');
+      return;
+    }
+
+    // Generate a random color for the new place
+    const colors = ['#06B6D4', '#10B981', '#8B4513', '#84CC16', '#3B82F6', '#60A5FA', '#1D4ED8', '#F97316', '#EC4899', '#8B5CF6'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    const newPlace: PlaceConfig = {
+      name: newPlaceName.trim(),
+      emoji: newPlaceEmoji,
+      days: newPlaceDays,
+      color: randomColor,
+      hidden: false,
+    };
+
+    setPlaces([...places, newPlace]);
+
+    // Reset form
+    setNewPlaceName('');
+    setNewPlaceDays(1);
+    setNewPlaceEmoji('📍');
+    setShowAddPlaceForm(false);
   };
 
   const handleUpdateExpenses = (dayNumber: number, expenses: DayExpense[]) => {
@@ -532,6 +593,124 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
               <li>• Click "Save Changes" when done</li>
             </ul>
           </div>
+
+          {/* Add Place Button */}
+          <div className="mb-4">
+            <button
+              onClick={() => setShowAddPlaceForm(!showAddPlaceForm)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-cyan-600 transition-all shadow-sm"
+            >
+              <Plus className="w-5 h-5" />
+              Add New Place
+            </button>
+          </div>
+
+          {/* Add Place Form */}
+          {showAddPlaceForm && (
+            <div className="mb-6 bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-300 rounded-xl p-5">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-teal-600" />
+                Add New Place
+              </h3>
+
+              <div className="space-y-4">
+                {/* Place Name with Google Autocomplete */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Place Name
+                  </label>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={newPlaceName}
+                    onChange={(e) => setNewPlaceName(e.target.value)}
+                    placeholder="Search for a place..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Start typing to search places in Indonesia
+                  </p>
+                </div>
+
+                {/* Emoji Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emoji Icon
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['🏖️', '🌿', '🏔️', '🌾', '🏝️', '🌊', '⛰️', '🌅', '🏛️', '🌋', '🌴', '🏞️', '🏰', '⛱️', '🏜️', '📍'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setNewPlaceEmoji(emoji)}
+                        className={`text-2xl p-2 rounded-lg transition-all ${
+                          newPlaceEmoji === emoji
+                            ? 'bg-teal-500 scale-110 shadow-md'
+                            : 'bg-white hover:bg-gray-50 hover:scale-105'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Days */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Days
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setNewPlaceDays(Math.max(1, newPlaceDays - 1))}
+                      className="p-2 rounded-lg bg-white hover:bg-gray-50 border border-gray-300"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="number"
+                      value={newPlaceDays}
+                      onChange={(e) => setNewPlaceDays(Math.max(1, Math.min(15, parseInt(e.target.value) || 1)))}
+                      className="w-20 text-center px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                      min="1"
+                      max="15"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setNewPlaceDays(Math.min(15, newPlaceDays + 1))}
+                      className="p-2 rounded-lg bg-white hover:bg-gray-50 border border-gray-300"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddPlaceForm(false);
+                      setNewPlaceName('');
+                      setNewPlaceDays(1);
+                      setNewPlaceEmoji('📍');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddPlace}
+                    className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600"
+                  >
+                    Add Place
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Active Places */}
           <div className="mb-4">
