@@ -35,6 +35,7 @@ interface TripSettingsModalProps {
 }
 
 interface PlaceConfig {
+  id: string; // Unique identifier for each place
   name: string;
   emoji: string;
   days: number;
@@ -72,7 +73,7 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlac
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: place.name });
+  } = useSortable({ id: place.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -225,6 +226,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     order.forEach((placeName, idx) => {
       if (placeMap.has(placeName)) {
         placeConfigs.push({
+          id: `${placeName}-${idx}-${Date.now()}`,
           name: placeName,
           emoji: getPlaceEmoji(placeName),
           days: placeMap.get(placeName)!,
@@ -235,9 +237,10 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     });
 
     // Add hidden places from localStorage
-    Object.entries(hiddenPlacesData).forEach(([placeName, data]) => {
+    Object.entries(hiddenPlacesData).forEach(([placeName, data], idx) => {
       if (!placeMap.has(placeName)) {
         placeConfigs.push({
+          id: `${placeName}-hidden-${idx}-${Date.now()}`,
           name: placeName,
           emoji: getPlaceEmoji(placeName),
           days: data.days,
@@ -324,8 +327,8 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
 
     if (over && active.id !== over.id) {
       setPlaces((items) => {
-        const oldIndex = items.findIndex((item) => item.name === active.id);
-        const newIndex = items.findIndex((item) => item.name === over.id);
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
 
         return arrayMove(items, oldIndex, newIndex);
       });
@@ -348,6 +351,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
     const newPlace: PlaceConfig = {
+      id: `${newPlaceName.trim()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: newPlaceName.trim(),
       emoji: newPlaceEmoji,
       days: newPlaceDays,
@@ -740,7 +744,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={places.filter(p => !p.hidden).map(p => p.name)}
+                items={places.filter(p => !p.hidden).map(p => p.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-3">
@@ -748,7 +752,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                     const actualIndex = places.indexOf(place);
                     return (
                       <SortablePlaceItem
-                        key={place.name}
+                        key={place.id}
                         place={place}
                         onUpdateDays={(change) => updateDays(actualIndex, change)}
                         onToggleHidden={() => toggleHidden(actualIndex)}
@@ -772,7 +776,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                   const actualIndex = places.indexOf(place);
                   return (
                     <div
-                      key={place.name}
+                      key={place.id}
                       className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 transition-all opacity-60 hover:opacity-80"
                     >
                       <div className="flex items-center gap-4">
