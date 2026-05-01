@@ -8,6 +8,23 @@ import TripDashboard from './TripDashboard';
 import UserManagement from './UserManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { refreshAllImages } from '../utils/refreshAllImages';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TripSettingsModalProps {
   tripData: TripData;
@@ -38,15 +55,115 @@ function getPlaceName(title: string): string {
 
 const HIDDEN_PLACES_KEY = 'bali-trip-hidden-places';
 
+// Sortable place item component
+interface SortablePlaceItemProps {
+  place: PlaceConfig;
+  onUpdateDays: (change: number) => void;
+  onToggleHidden: () => void;
+}
+
+function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlaceItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: place.name });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    borderColor: place.color,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-white border-2 rounded-xl p-4 transition-all ${
+        isDragging ? 'opacity-50 scale-95 shadow-2xl z-50' : 'hover:shadow-md'
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none"
+        >
+          <GripVertical className="w-5 h-5" />
+        </div>
+
+        {/* Place Info */}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-2xl">{place.emoji}</span>
+            <h3 className="text-lg font-semibold text-gray-900">{place.name}</h3>
+          </div>
+          <p className="text-sm text-gray-500">
+            {place.days} {place.days === 1 ? 'day' : 'days'}
+          </p>
+        </div>
+
+        {/* Hide Toggle */}
+        <button
+          onClick={onToggleHidden}
+          className="p-2 rounded-lg transition-colors bg-blue-50 hover:bg-blue-100 text-blue-600"
+          title="Hide from trip"
+        >
+          <EyeOff className="w-5 h-5" />
+        </button>
+
+        {/* Days Control */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onUpdateDays(-1)}
+            disabled={place.days <= 1}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Minus className="w-4 h-4 text-gray-700" />
+          </button>
+          <div
+            className="w-16 h-10 flex items-center justify-center rounded-lg font-bold text-lg text-white"
+            style={{ backgroundColor: place.color }}
+          >
+            {place.days}
+          </div>
+          <button
+            onClick={() => onUpdateDays(1)}
+            disabled={place.days >= 15}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Plus className="w-4 h-4 text-gray-700" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TripSettingsModal({ tripData, onSave, onClose }: TripSettingsModalProps) {
   const { canManageUsers, isSuperUser } = useAuth();
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools'>('places');
   const [localTripData, setLocalTripData] = useState<TripData>(tripData);
   const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
   const [showTripDashboard, setShowTripDashboard] = useState(false);
   const [refreshingImages, setRefreshingImages] = useState(false);
+
+  // Setup sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px of movement required before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Initialize places from trip data
   useEffect(() => {
@@ -164,25 +281,17 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     setPlaces(newPlaces);
   };
 
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
+    if (over && active.id !== over.id) {
+      setPlaces((items) => {
+        const oldIndex = items.findIndex((item) => item.name === active.id);
+        const newIndex = items.findIndex((item) => item.name === over.id);
 
-    const newPlaces = [...places];
-    const draggedPlace = newPlaces[draggedIndex];
-    newPlaces.splice(draggedIndex, 1);
-    newPlaces.splice(index, 0, draggedPlace);
-
-    setPlaces(newPlaces);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const handleUpdateExpenses = (dayNumber: number, expenses: DayExpense[]) => {
@@ -430,77 +539,30 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
               <Eye className="w-4 h-4" />
               Active Places
             </h3>
-            <div className="space-y-3">
-              {places.filter(p => !p.hidden).map((place, index) => {
-                const actualIndex = places.indexOf(place);
-                return (
-                <div
-                  key={place.name}
-                  draggable
-                  onDragStart={() => handleDragStart(actualIndex)}
-                  onDragOver={(e) => handleDragOver(e, actualIndex)}
-                  onDragEnd={handleDragEnd}
-                  className={`bg-white border-2 rounded-xl p-4 transition-all ${
-                    draggedIndex === actualIndex ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-md'
-                  }`}
-                  style={{
-                    borderColor: place.color,
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Drag Handle */}
-                    <div className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
-
-                    {/* Place Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-2xl">{place.emoji}</span>
-                        <h3 className="text-lg font-semibold text-gray-900">{place.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        {place.days} {place.days === 1 ? 'day' : 'days'}
-                      </p>
-                    </div>
-
-                    {/* Hide Toggle */}
-                    <button
-                      onClick={() => toggleHidden(actualIndex)}
-                      className="p-2 rounded-lg transition-colors bg-blue-50 hover:bg-blue-100 text-blue-600"
-                      title="Hide from trip"
-                    >
-                      <EyeOff className="w-5 h-5" />
-                    </button>
-
-                    {/* Days Control */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateDays(actualIndex, -1)}
-                        disabled={place.days <= 1}
-                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Minus className="w-4 h-4 text-gray-700" />
-                      </button>
-                      <div
-                        className="w-16 h-10 flex items-center justify-center rounded-lg font-bold text-lg text-white"
-                        style={{ backgroundColor: place.color }}
-                      >
-                        {place.days}
-                      </div>
-                      <button
-                        onClick={() => updateDays(actualIndex, 1)}
-                        disabled={place.days >= 15}
-                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Plus className="w-4 h-4 text-gray-700" />
-                      </button>
-                    </div>
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={places.filter(p => !p.hidden).map(p => p.name)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {places.filter(p => !p.hidden).map((place) => {
+                    const actualIndex = places.indexOf(place);
+                    return (
+                      <SortablePlaceItem
+                        key={place.name}
+                        place={place}
+                        onUpdateDays={(change) => updateDays(actualIndex, change)}
+                        onToggleHidden={() => toggleHidden(actualIndex)}
+                      />
+                    );
+                  })}
                 </div>
-              );
-            })}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* Hidden Places Section */}
