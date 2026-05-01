@@ -615,6 +615,77 @@ export async function createDefaultPlaces(tripId: string): Promise<boolean> {
   }
 }
 
+// Save places configuration
+export async function saveTripPlaces(tripId: string, places: Array<{ id: string; name: string; emoji: string; color: string; days: number; hidden: boolean }>): Promise<boolean> {
+  try {
+    console.log('💾 Saving places to database...', places);
+
+    // Delete existing places for this trip
+    const { error: deleteError } = await supabase
+      .from('trip_places')
+      .delete()
+      .eq('trip_id', tripId);
+
+    if (deleteError) throw deleteError;
+
+    // Insert new places
+    const placesToInsert = places.map((place, index) => ({
+      trip_id: tripId,
+      place_name: place.name,
+      place_emoji: place.emoji,
+      place_color: place.color,
+      days_count: place.days,
+      display_order: index,
+      is_hidden: place.hidden,
+    }));
+
+    const { error: insertError } = await supabase
+      .from('trip_places')
+      .insert(placesToInsert);
+
+    if (insertError) throw insertError;
+
+    console.log('✅ Places saved to database');
+    return true;
+  } catch (error) {
+    console.error('❌ Error saving places:', error);
+    return false;
+  }
+}
+
+// Load places configuration
+export async function loadTripPlaces(tripId: string): Promise<Array<{ id: string; name: string; emoji: string; color: string; days: number; hidden: boolean }> | null> {
+  try {
+    const { data, error } = await supabase
+      .from('trip_places')
+      .select('*')
+      .eq('trip_id', tripId)
+      .order('display_order');
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      console.log('📝 No places found in database');
+      return null;
+    }
+
+    const places = data.map(p => ({
+      id: p.id,
+      name: p.place_name,
+      emoji: p.place_emoji,
+      color: p.place_color,
+      days: p.days_count,
+      hidden: p.is_hidden,
+    }));
+
+    console.log('✅ Loaded places from database:', places);
+    return places;
+  } catch (error) {
+    console.error('❌ Error loading places:', error);
+    return null;
+  }
+}
+
 // Update trip with new trip data (dates, days structure)
 export async function updateTrip(tripId: string, tripData: TripData): Promise<boolean> {
   try {

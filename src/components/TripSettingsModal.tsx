@@ -30,8 +30,9 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface TripSettingsModalProps {
   tripData: TripData;
-  onSave: (newTripData: TripData) => void;
+  onSave: (newTripData: TripData, places: PlaceConfig[]) => void;
   onClose: () => void;
+  tripId: string | null;
 }
 
 interface PlaceConfig {
@@ -57,6 +58,7 @@ function getPlaceName(title: string): string {
 }
 
 const HIDDEN_PLACES_KEY = 'bali-trip-hidden-places';
+const PLACES_CONFIG_KEY = 'bali-trip-places-config';
 
 // Sortable place item component
 interface SortablePlaceItemProps {
@@ -159,7 +161,7 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden, dateRange }: S
   );
 }
 
-export default function TripSettingsModal({ tripData, onSave, onClose }: TripSettingsModalProps) {
+export default function TripSettingsModal({ tripData, onSave, onClose, tripId }: TripSettingsModalProps) {
   const { canManageUsers, isSuperUser } = useAuth();
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
   const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools' | 'calendar'>('places');
@@ -215,8 +217,41 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     };
   }, [showAddPlaceForm]);
 
-  // Initialize places from trip data
+  // Initialize places from database, localStorage, or trip data
   useEffect(() => {
+    async function loadPlaces() {
+      // Try to load from database first
+      if (tripId) {
+        try {
+          const { loadTripPlaces } = await import('../services/tripService');
+          const dbPlaces = await loadTripPlaces(tripId);
+
+          if (dbPlaces && dbPlaces.length > 0) {
+            console.log('✅ Loaded places from database:', dbPlaces);
+            setPlaces(dbPlaces as PlaceConfig[]);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Failed to load places from database:', error);
+        }
+      }
+
+      // Try to load places config from localStorage
+      const savedPlacesConfig = localStorage.getItem(PLACES_CONFIG_KEY);
+
+      if (savedPlacesConfig) {
+        try {
+          const parsedPlaces: PlaceConfig[] = JSON.parse(savedPlacesConfig);
+          console.log('✅ Loaded places from localStorage:', parsedPlaces);
+          setPlaces(parsedPlaces);
+          return;
+        } catch (error) {
+          console.error('❌ Failed to parse saved places config:', error);
+        }
+      }
+
+    // Fallback: reconstruct from trip data
+    console.log('📝 Reconstructing places from trip data');
     const placeMap = new Map<string, number>();
 
     tripData.days.forEach(day => {
@@ -270,8 +305,11 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
       return aOrder - bOrder;
     });
 
-    setPlaces(placeConfigs);
-  }, [tripData]);
+      setPlaces(placeConfigs);
+    }
+
+    loadPlaces();
+  }, [tripData, tripId]);
 
   const getPlaceEmoji = (name: string) => {
     const emojiMap: Record<string, string> = {
@@ -411,7 +449,11 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
   };
 
   const handleSave = () => {
-    // Save hidden places to localStorage
+    // Save complete places configuration to localStorage
+    localStorage.setItem(PLACES_CONFIG_KEY, JSON.stringify(places));
+    console.log('💾 Saved places config to localStorage:', places);
+
+    // Save hidden places to localStorage (for backward compatibility)
     const hiddenPlacesData: Record<string, { days: number; order: number }> = {};
     places.forEach((place, index) => {
       if (place.hidden) {
@@ -466,7 +508,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
       days: newDays,
     };
 
-    onSave(newTripData);
+    onSave(newTripData, places);
   };
 
   const totalDays = places.filter(p => !p.hidden).reduce((sum, place) => sum + place.days, 0);

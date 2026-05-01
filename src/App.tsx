@@ -10,7 +10,7 @@ import TripSettingsModal from './components/TripSettingsModal';
 import { baliTripData } from './data/tripData';
 import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark, User as UserIcon, LogOut } from 'lucide-react';
-import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId, updateTrip } from './services/tripService';
+import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId, updateTrip, saveTripPlaces, loadTripPlaces } from './services/tripService';
 import { supabase } from './lib/supabase';
 import { cleanupDatabase, verifyDatabase } from './services/cleanupDatabase';
 import { useAuth } from './contexts/AuthContext';
@@ -517,7 +517,7 @@ function App() {
     setShowAddForm(false);
   };
 
-  const handleSaveTripSettings = async (newTripData: TripData) => {
+  const handleSaveTripSettings = async (newTripData: TripData, places: any[]) => {
     setTripData(newTripData);
     setShowReorderModal(false);
     // Trigger re-read of hidden places from localStorage
@@ -526,11 +526,17 @@ function App() {
     // Save to database if Supabase is configured
     if (isSupabaseConfigured && tripId) {
       console.log('💾 Saving trip settings to database...');
-      const success = await updateTrip(tripId, newTripData);
-      if (success) {
-        console.log('✅ Trip settings saved to database');
+
+      // Save trip data (dates, days)
+      const tripSuccess = await updateTrip(tripId, newTripData);
+
+      // Save places configuration
+      const placesSuccess = await saveTripPlaces(tripId, places);
+
+      if (tripSuccess && placesSuccess) {
+        console.log('✅ Trip settings and places saved to database');
       } else {
-        console.error('❌ Failed to save trip settings to database');
+        console.error('❌ Failed to save to database');
         alert('Warning: Changes saved locally but failed to sync to database. Try refreshing the page.');
       }
     }
@@ -1211,6 +1217,7 @@ function App() {
           tripData={tripData}
           onSave={handleSaveTripSettings}
           onClose={() => setShowReorderModal(false)}
+          tripId={tripId}
         />
       )}
     </div>
