@@ -638,7 +638,14 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                     Emoji Icon
                   </label>
                   <div className="flex gap-2 flex-wrap">
-                    {['🏖️', '🌿', '🏔️', '🌾', '🏝️', '🌊', '⛰️', '🌅', '🏛️', '🌋', '🌴', '🏞️', '🏰', '⛱️', '🏜️', '📍'].map((emoji) => (
+                    {[
+                      '🏖️', '🌿', '🏔️', '🌾', '🏝️', '🌊', '⛰️', '🌅',
+                      '🏛️', '🌋', '🌴', '🏞️', '🏰', '⛱️', '🏜️', '📍',
+                      '🎉', '🎊', '🥳', '🍻', '🎭', '🎪', '🎨', '🎵',
+                      '🍹', '🍸', '🥂', '🎶', '💃', '🕺', '🔥', '✨',
+                      '🌺', '🌸', '🌼', '🏄', '🤿', '🚣', '🛶', '⛵',
+                      '🏊', '🧘', '🕌', '⛩️', '🗿', '🎋', '🎑', '🏯'
+                    ].map((emoji) => (
                       <button
                         key={emoji}
                         type="button"
