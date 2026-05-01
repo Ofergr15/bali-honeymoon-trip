@@ -9,6 +9,7 @@ interface ItinerarySidebarProps {
   onDaySelect: (day: number | null) => void;
   onClose?: () => void;
   onActivityClick?: (item: Activity | Hotel) => void;
+  hiddenPlaces?: Set<string>;
 }
 
 const getActivityIcon = (type: string) => {
@@ -77,16 +78,19 @@ function getPlaceEmoji(placeName: string): string {
   return emojiMap[placeName] || '📍';
 }
 
-export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onDaySelect, onClose, onActivityClick }: ItinerarySidebarProps) {
+export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onDaySelect, onClose, onActivityClick, hiddenPlaces = new Set() }: ItinerarySidebarProps) {
   // Debug logging
   console.log('📋 ItinerarySidebar render:');
   console.log('   Total days:', days.length);
   console.log('   Selected place:', selectedPlace);
 
-  // Filter days by selected place
-  const filteredDays = selectedPlace
-    ? days.filter(day => getPlaceName(day) === selectedPlace)
-    : days;
+  // Filter days by selected place and exclude hidden places
+  const filteredDays = days.filter(day => {
+    const placeName = getPlaceName(day);
+    const isHidden = hiddenPlaces.has(placeName);
+    const matchesSelectedPlace = !selectedPlace || placeName === selectedPlace;
+    return !isHidden && matchesSelectedPlace;
+  });
 
   console.log('   Filtered days:', filteredDays.length);
 

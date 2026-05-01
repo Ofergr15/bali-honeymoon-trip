@@ -8,6 +8,7 @@ interface DayNavigationBarProps {
   selectedPlace: string | null;
   onDaySelect: (day: number | null) => void;
   onPlaceSelect: (place: string | null) => void;
+  hiddenPlaces?: Set<string>;
 }
 
 interface PlaceGroup {
@@ -92,10 +93,10 @@ function groupDaysByPlace(days: DayItinerary[]): PlaceGroup[] {
   return groups;
 }
 
-export default function DayNavigationBar({ days, selectedDay, selectedPlace, onDaySelect, onPlaceSelect }: DayNavigationBarProps) {
+export default function DayNavigationBar({ days, selectedDay, selectedPlace, onDaySelect, onPlaceSelect, hiddenPlaces = new Set() }: DayNavigationBarProps) {
   const [expandedPlace, setExpandedPlace] = useState<string | null>(null);
 
-  const placeGroups = groupDaysByPlace(days);
+  const placeGroups = groupDaysByPlace(days).filter(group => !hiddenPlaces.has(group.placeName));
 
   const handlePlaceClick = (placeName: string) => {
     console.log('🔘 DayNavigationBar: Place button clicked:', placeName);

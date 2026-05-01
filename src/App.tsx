@@ -255,22 +255,39 @@ function App() {
     }
   }, [tripData, loading]);
 
-  // Collect all activities and hotels from the trip data
+  // Get hidden places from localStorage
+  const hiddenPlaces = useMemo(() => {
+    const HIDDEN_PLACES_KEY = 'bali-trip-hidden-places';
+    const savedHiddenPlaces = localStorage.getItem(HIDDEN_PLACES_KEY);
+    if (!savedHiddenPlaces) return new Set<string>();
+
+    try {
+      const hiddenPlacesData = JSON.parse(savedHiddenPlaces);
+      return new Set(Object.keys(hiddenPlacesData));
+    } catch {
+      return new Set<string>();
+    }
+  }, []);
+
+  // Collect all activities and hotels from the trip data, excluding hidden places
   const allActivities = useMemo(() => {
-    const activities = tripData.days.flatMap(day => day.activities);
+    const activities = tripData.days
+      .filter(day => !hiddenPlaces.has(getPlaceName(day)))
+      .flatMap(day => day.activities);
     console.log('🔵 allActivities calculated:', {
       totalDays: tripData.days.length,
+      hiddenPlaces: Array.from(hiddenPlaces),
       activitiesPerDay: tripData.days.map(d => `Day ${d.day}: ${d.activities.length} activities`),
       totalActivities: activities.length
     });
     return activities;
-  }, [tripData]);
+  }, [tripData, hiddenPlaces]);
 
   const allHotels = useMemo(() =>
     tripData.days
-      .filter(day => day.hotel)
+      .filter(day => day.hotel && !hiddenPlaces.has(getPlaceName(day)))
       .map(day => day.hotel!),
-    [tripData]
+    [tripData, hiddenPlaces]
   );
 
   // Calculate which days belong to the selected place
@@ -704,7 +721,7 @@ function App() {
                   <div className="relative pt-6 overflow-visible">
                     <div className="flex items-center h-3 rounded-full shadow-sm relative overflow-visible">
                       {(() => {
-                        // Build location segments
+                        // Build location segments, excluding hidden places
                         const segments: Array<{ place: string; days: number; startDay: number; color: string }> = [];
                         let currentPlace = '';
                         let dayCount = 0;
@@ -712,13 +729,13 @@ function App() {
 
                         tripData.days.forEach((day, idx) => {
                           const place = getPlaceName(day);
-                          // Skip "Other" places - they'll be counted as unplanned
-                          if (place === 'Other') {
+                          // Skip "Other" places and hidden places - they'll be counted as unplanned
+                          if (place === 'Other' || hiddenPlaces.has(place)) {
                             return;
                           }
 
                           if (place !== currentPlace) {
-                            if (dayCount > 0 && currentPlace !== 'Other') {
+                            if (dayCount > 0 && currentPlace !== 'Other' && !hiddenPlaces.has(currentPlace)) {
                               segments.push({ place: currentPlace, days: dayCount, startDay, color: '' });
                               startDay += dayCount;
                             }
@@ -727,7 +744,7 @@ function App() {
                           }
                           dayCount++;
 
-                          if (idx === tripData.days.length - 1 && currentPlace !== 'Other') {
+                          if (idx === tripData.days.length - 1 && currentPlace !== 'Other' && !hiddenPlaces.has(currentPlace)) {
                             segments.push({ place: currentPlace, days: dayCount, startDay, color: '' });
                           }
                         });
@@ -1049,6 +1066,7 @@ function App() {
               selectedPlace={selectedPlace}
               onDaySelect={handleDaySelect}
               onPlaceSelect={handlePlaceSelect}
+              hiddenPlaces={hiddenPlaces}
             />
           </div>
         </div>
@@ -1076,6 +1094,7 @@ function App() {
                 onDaySelect={handleDaySelect}
                 onClose={() => setSidebarOpen(false)}
                 onActivityClick={(item) => setSelectedItem(item)}
+                hiddenPlaces={hiddenPlaces}
               />
             </div>
           </div>
