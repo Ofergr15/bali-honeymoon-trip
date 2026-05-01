@@ -255,6 +255,9 @@ function App() {
     }
   }, [tripData, loading]);
 
+  // Track hidden places changes
+  const [hiddenPlacesVersion, setHiddenPlacesVersion] = useState(0);
+
   // Get hidden places from localStorage
   const hiddenPlaces = useMemo(() => {
     const HIDDEN_PLACES_KEY = 'bali-trip-hidden-places';
@@ -263,11 +266,12 @@ function App() {
 
     try {
       const hiddenPlacesData = JSON.parse(savedHiddenPlaces);
+      console.log('🔄 Reloading hidden places from localStorage:', Object.keys(hiddenPlacesData));
       return new Set(Object.keys(hiddenPlacesData));
     } catch {
       return new Set<string>();
     }
-  }, []);
+  }, [hiddenPlacesVersion]);
 
   // Collect all activities and hotels from the trip data, excluding hidden places
   const allActivities = useMemo(() => {
@@ -516,6 +520,8 @@ function App() {
   const handleSaveTripSettings = (newTripData: TripData) => {
     setTripData(newTripData);
     setShowReorderModal(false);
+    // Trigger re-read of hidden places from localStorage
+    setHiddenPlacesVersion(prev => prev + 1);
   };
 
   const handleDeletePlace = async (item: Activity | Hotel) => {
