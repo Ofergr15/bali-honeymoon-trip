@@ -614,3 +614,77 @@ export async function createDefaultPlaces(tripId: string): Promise<boolean> {
     return false;
   }
 }
+
+// Update trip with new trip data (dates, days structure)
+export async function updateTrip(tripId: string, tripData: TripData): Promise<boolean> {
+  try {
+    console.log('🔄 Updating trip in database...', tripId);
+
+    // Update trip metadata
+    const { error: tripError } = await supabase
+      .from('trips')
+      .update({
+        title: tripData.title,
+        destination: tripData.destination,
+        start_date: tripData.startDate,
+        end_date: tripData.endDate,
+      })
+      .eq('id', tripId);
+
+    if (tripError) throw tripError;
+
+    // Get existing days to update/delete
+    const { data: existingDays } = await supabase
+      .from('days')
+      .select('*')
+      .eq('trip_id', tripId)
+      .order('day_number');
+
+    // Delete days that no longer exist in new structure
+    if (existingDays && existingDays.length > tripData.days.length) {
+      const daysToDelete = existingDays.slice(tripData.days.length);
+      const dayIdsToDelete = daysToDelete.map(d => d.id);
+
+      // Delete activities and hotels for these days
+      await supabase.from('activities').delete().in('day_id', dayIdsToDelete);
+      await supabase.from('hotels').delete().in('day_id', dayIdsToDelete);
+      await supabase.from('days').delete().in('id', dayIdsToDelete);
+    }
+
+    // Update or insert days
+    for (const day of tripData.days) {
+      const existingDay = existingDays?.find(d => d.day_number === day.day);
+
+      if (existingDay) {
+        // Update existing day
+        const { error: dayError } = await supabase
+          .from('days')
+          .update({
+            date: day.date,
+            title: day.title,
+          })
+          .eq('id', existingDay.id);
+
+        if (dayError) throw dayError;
+      } else {
+        // Insert new day
+        const { error: dayError } = await supabase
+          .from('days')
+          .insert({
+            trip_id: tripId,
+            day_number: day.day,
+            date: day.date,
+            title: day.title,
+          });
+
+        if (dayError) throw dayError;
+      }
+    }
+
+    console.log('✅ Trip updated successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error updating trip:', error);
+    return false;
+  }
+}
