@@ -13,6 +13,8 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
+  MouseSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -83,7 +85,7 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlac
       ref={setNodeRef}
       style={style}
       className={`bg-white border-2 rounded-xl p-4 transition-all ${
-        isDragging ? 'opacity-50 scale-95 shadow-2xl z-50' : 'hover:shadow-md'
+        isDragging ? 'opacity-50 scale-105 shadow-2xl z-50 ring-4 ring-teal-200' : 'hover:shadow-md'
       }`}
     >
       <div className="flex items-center gap-4">
@@ -91,9 +93,10 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlac
         <div
           {...attributes}
           {...listeners}
-          className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none"
+          className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none p-2 -m-2 hover:bg-gray-100 rounded-lg transition-colors"
+          style={{ touchAction: 'none' }}
         >
-          <GripVertical className="w-5 h-5" />
+          <GripVertical className="w-6 h-6" />
         </div>
 
         {/* Place Info */}
@@ -159,11 +162,17 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
   const searchInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-  // Setup sensors for drag and drop
+  // Setup sensors for drag and drop with better touch support
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8, // 8px of movement required before drag starts
+        distance: 10, // Require 10px movement before drag starts
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200, // 200ms hold before drag starts on touch
+        tolerance: 5, // 5px movement tolerance during delay
       },
     }),
     useSensor(KeyboardSensor, {
