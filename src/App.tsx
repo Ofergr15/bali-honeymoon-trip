@@ -1122,6 +1122,7 @@ function App() {
             onPlaceClick={handlePlaceSelect}
             onEdit={handleEditPlace}
             selectedItem={selectedItem}
+            hiddenPlaces={hiddenPlaces}
           />
         </div>
 

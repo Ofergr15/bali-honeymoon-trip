@@ -20,6 +20,7 @@ interface MapProps {
   onPlaceClick?: (placeName: string) => void; // NEW: Callback when clicking location chip
   onEdit?: (item: Activity | Hotel) => void; // NEW: Callback when clicking edit button
   selectedItem?: Activity | Hotel | null;
+  hiddenPlaces?: Set<string>;
 }
 
 export interface MapRef {
@@ -65,7 +66,7 @@ function getPlaceNameFromDay(day: DayItinerary): string {
 // Load Places library for auto-fill functionality
 const libraries: ("places")[] = ["places"];
 
-const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, onEdit, selectedItem }, ref) => {
+const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showBookmarks, selectedDay, selectedPlace, placeDays, days, onMarkerClick, onPlaceClick, onEdit, selectedItem, hiddenPlaces = new Set() }, ref) => {
   // Track render count to see how often component re-renders
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
@@ -121,7 +122,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
   // - Gili Air: Island northwest of Lombok
   // - Nusa Penida: Island southeast of Bali
   // - Uluwatu: Peninsula in south Bali
-  const locations = useMemo(() => [
+  const allLocations = useMemo(() => [
     { lat: -8.6489, lng: 115.1328, name: 'Canggu', emoji: '🏖️', color: '#06B6D4', days: 3 },
     { lat: -8.5069, lng: 115.2625, name: 'Ubud', emoji: '🌿', color: '#10B981', days: 3 },
     { lat: -8.2661, lng: 115.0717, name: 'Munduk', emoji: '🏔️', color: '#8B4513', days: 3 },
@@ -131,6 +132,13 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
     { lat: -8.7292, lng: 115.5431, name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', days: 1 },
     { lat: -8.8286, lng: 115.1036, name: 'Uluwatu', emoji: '🌅', color: '#F97316', days: 8 },
   ], []);
+
+  // Filter out hidden places
+  const locations = useMemo(() => {
+    const filtered = allLocations.filter(loc => !hiddenPlaces.has(loc.name));
+    console.log('🗺️ Filtering locations. Hidden:', Array.from(hiddenPlaces), 'Visible:', filtered.map(l => l.name));
+    return filtered;
+  }, [allLocations, hiddenPlaces]);
 
   console.log('🗺️ Map component initialized with locations:', locations.map(l => `${l.name}: ${l.lat}, ${l.lng}`));
 
