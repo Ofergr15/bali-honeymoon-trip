@@ -946,44 +946,37 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                                     return (
                                       <div
                                         key={i}
-                                        className={`aspect-square rounded-xl p-3 transition-all cursor-pointer border-3 hover:scale-105 hover:shadow-xl ${
-                                          isToday ? 'ring-4 ring-orange-400 ring-offset-2' : ''
+                                        className={`aspect-square rounded-xl p-2 transition-all cursor-pointer hover:scale-105 hover:shadow-xl relative overflow-hidden ${
+                                          isToday ? 'ring-4 ring-orange-400' : ''
                                         }`}
                                         style={{
                                           borderWidth: '3px',
+                                          borderStyle: 'solid',
                                           borderColor: tripDay.place?.color || '#06B6D4',
-                                          background: `linear-gradient(135deg, ${tripDay.place?.color}20 0%, ${tripDay.place?.color}10 100%)`,
+                                          background: `linear-gradient(135deg, ${tripDay.place?.color}15 0%, ${tripDay.place?.color}05 100%)`,
                                         }}
                                       >
-                                        <div className="flex flex-col h-full justify-between">
-                                          {/* Date number */}
-                                          <div className="flex items-center justify-between">
-                                            <div
-                                              className="text-sm font-bold px-2 py-1 rounded-md"
-                                              style={{
-                                                backgroundColor: tripDay.place?.color,
-                                                color: 'white'
-                                              }}
-                                            >
-                                              {day.date.getDate()}
-                                            </div>
+                                        <div className="flex flex-col h-full">
+                                          {/* Date number - top left corner */}
+                                          <div
+                                            className="absolute top-1 left-1 text-xs font-bold px-1.5 py-0.5 rounded text-white"
+                                            style={{ backgroundColor: tripDay.place?.color }}
+                                          >
+                                            {day.date.getDate()}
                                           </div>
 
                                           {/* Emoji - Large and centered */}
-                                          <div className="flex-1 flex items-center justify-center">
-                                            <div className="text-4xl">{tripDay.place?.emoji}</div>
+                                          <div className="flex-1 flex items-center justify-center pt-4">
+                                            <div className="text-5xl">{tripDay.place?.emoji}</div>
                                           </div>
 
-                                          {/* Place name and day number */}
-                                          <div className="text-center">
-                                            <div className="text-xs font-bold text-gray-800 mb-1 truncate">
-                                              {tripDay.place?.name}
-                                            </div>
+                                          {/* Day number at bottom */}
+                                          <div className="text-center pb-1">
                                             <div
-                                              className="text-xs font-semibold px-2 py-1 rounded-full inline-block"
+                                              className="text-xs font-bold px-1.5 py-0.5 rounded-full inline-block"
                                               style={{
-                                                backgroundColor: `${tripDay.place?.color}30`,
-                                                color: tripDay.place?.color
+                                                backgroundColor: tripDay.place?.color,
+                                                color: 'white'
                                               }}
                                             >
                                               Day {tripDay.dayNumber}
