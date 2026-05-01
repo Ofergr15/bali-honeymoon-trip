@@ -415,13 +415,13 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     // Rebuild the trip data with new order and days (excluding hidden places)
     const newDays: typeof localTripData.days = [];
     let dayCounter = 1;
-    const startDate = new Date(tripData.startDate);
+    // Parse date string to avoid timezone issues
+    const [startYear, startMonth, startDay] = tripData.startDate.split('-').map(Number);
     const visiblePlaces = places.filter(p => !p.hidden);
 
     visiblePlaces.forEach((place) => {
       for (let i = 0; i < place.days; i++) {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + dayCounter - 1);
+        const date = new Date(startYear, startMonth - 1, startDay + dayCounter - 1);
 
         let title = place.name;
         if (dayCounter === 1) {
@@ -447,8 +447,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
     });
 
     const totalDays = visiblePlaces.reduce((sum, p) => sum + p.days, 0);
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + totalDays - 1);
+    const endDate = new Date(startYear, startMonth - 1, startDay + totalDays - 1);
 
     const newTripData: TripData = {
       ...localTripData,
@@ -859,8 +858,9 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
 
                 visiblePlaces.forEach((place) => {
                   for (let i = 0; i < place.days; i++) {
-                    const date = new Date(startDate);
-                    date.setDate(date.getDate() + currentDayNumber - 1);
+                    // Parse date string to avoid timezone issues
+                    const [year, month, day] = tripData.startDate.split('-').map(Number);
+                    const date = new Date(year, month - 1, day + currentDayNumber - 1);
                     calendarDays.push({
                       date,
                       dayNumber: currentDayNumber,
