@@ -839,10 +839,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
           {/* Calendar Tab */}
           {activeTab === 'calendar' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">📅 Your Trip Calendar</h3>
+              <div className="bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 border-2 border-teal-200 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  📅 Your Trip Calendar
+                </h3>
                 <p className="text-sm text-gray-600">
-                  View your complete trip route by date. Each day shows which place you'll be visiting.
+                  Visual timeline of your complete journey. Each day shows your destination with emoji, place name, and trip day number.
                 </p>
               </div>
 
@@ -879,34 +881,33 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                 });
 
                 return (
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {Object.entries(monthGroups).map(([month, days]) => (
-                      <div key={month} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-4">
-                          <h3 className="text-xl font-bold">{month}</h3>
-                          <p className="text-sm text-teal-50">{days.length} days</p>
+                      <div key={month} className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-lg">
+                        {/* Month Header */}
+                        <div className="bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 text-white px-6 py-5">
+                          <h3 className="text-2xl font-bold tracking-tight">{month}</h3>
+                          <p className="text-sm text-teal-100 mt-1">
+                            {days.length} {days.length === 1 ? 'day' : 'days'} of adventure
+                          </p>
                         </div>
 
                         {/* Calendar Grid */}
-                        <div className="p-4">
+                        <div className="p-6 bg-gradient-to-br from-gray-50 to-white">
                           {/* Weekday Headers */}
-                          <div className="grid grid-cols-7 gap-2 mb-2">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                              <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
-                                {day}
+                          <div className="grid grid-cols-7 gap-3 mb-3">
+                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                              <div key={day} className="text-center text-sm font-bold text-gray-600 py-2">
+                                {day.substring(0, 3)}
                               </div>
                             ))}
                           </div>
 
                           {/* Calendar Days */}
-                          <div className="grid grid-cols-7 gap-2">
+                          <div className="grid grid-cols-7 gap-3">
                             {(() => {
                               // Get first day of month and pad with empty cells
                               const firstDay = days[0].date;
-                              const firstDayOfWeek = firstDay.getDay();
-                              const paddingCells = Array(firstDayOfWeek).fill(null);
-
-                              // Get all days in this month for the calendar
                               const monthStart = new Date(firstDay.getFullYear(), firstDay.getMonth(), 1);
                               const monthEnd = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
                               const allDaysInMonth: Array<{ date: Date; tripDay: typeof days[0] | null }> = [];
@@ -922,45 +923,72 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
 
                               return (
                                 <>
-                                  {paddingCells.map((_, i) => (
+                                  {Array(allDaysInMonth[0].date.getDay()).fill(null).map((_, i) => (
                                     <div key={`pad-${i}`} className="aspect-square" />
                                   ))}
                                   {allDaysInMonth.map((day, i) => {
                                     const isToday = day.date.toDateString() === new Date().toDateString();
                                     const tripDay = day.tripDay;
 
+                                    if (!tripDay) {
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="aspect-square rounded-xl bg-gray-100 border border-gray-200 p-3 flex items-start"
+                                        >
+                                          <div className="text-sm font-semibold text-gray-400">
+                                            {day.date.getDate()}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
                                     return (
                                       <div
                                         key={i}
-                                        className={`aspect-square rounded-lg border-2 p-2 transition-all ${
-                                          tripDay
-                                            ? 'border-current shadow-md hover:shadow-lg cursor-pointer'
-                                            : 'border-gray-100 bg-gray-50'
-                                        } ${isToday ? 'ring-2 ring-orange-400' : ''}`}
+                                        className={`aspect-square rounded-xl p-3 transition-all cursor-pointer border-3 hover:scale-105 hover:shadow-xl ${
+                                          isToday ? 'ring-4 ring-orange-400 ring-offset-2' : ''
+                                        }`}
                                         style={{
-                                          borderColor: tripDay?.place?.color || '#E5E7EB',
-                                          backgroundColor: tripDay?.place?.color
-                                            ? `${tripDay.place.color}15`
-                                            : undefined
+                                          borderWidth: '3px',
+                                          borderColor: tripDay.place?.color || '#06B6D4',
+                                          background: `linear-gradient(135deg, ${tripDay.place?.color}20 0%, ${tripDay.place?.color}10 100%)`,
                                         }}
                                       >
-                                        <div className="flex flex-col h-full">
-                                          <div className={`text-xs font-semibold mb-1 ${
-                                            tripDay ? 'text-gray-900' : 'text-gray-400'
-                                          }`}>
-                                            {day.date.getDate()}
+                                        <div className="flex flex-col h-full justify-between">
+                                          {/* Date number */}
+                                          <div className="flex items-center justify-between">
+                                            <div
+                                              className="text-sm font-bold px-2 py-1 rounded-md"
+                                              style={{
+                                                backgroundColor: tripDay.place?.color,
+                                                color: 'white'
+                                              }}
+                                            >
+                                              {day.date.getDate()}
+                                            </div>
                                           </div>
-                                          {tripDay && (
-                                            <>
-                                              <div className="text-lg mb-1">{tripDay.place?.emoji}</div>
-                                              <div className="text-xs font-medium text-gray-700 truncate">
-                                                {tripDay.place?.name}
-                                              </div>
-                                              <div className="text-xs text-gray-500 mt-auto">
-                                                Day {tripDay.dayNumber}
-                                              </div>
-                                            </>
-                                          )}
+
+                                          {/* Emoji - Large and centered */}
+                                          <div className="flex-1 flex items-center justify-center">
+                                            <div className="text-4xl">{tripDay.place?.emoji}</div>
+                                          </div>
+
+                                          {/* Place name and day number */}
+                                          <div className="text-center">
+                                            <div className="text-xs font-bold text-gray-800 mb-1 truncate">
+                                              {tripDay.place?.name}
+                                            </div>
+                                            <div
+                                              className="text-xs font-semibold px-2 py-1 rounded-full inline-block"
+                                              style={{
+                                                backgroundColor: `${tripDay.place?.color}30`,
+                                                color: tripDay.place?.color
+                                              }}
+                                            >
+                                              Day {tripDay.dayNumber}
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
                                     );
@@ -971,8 +999,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                           </div>
                         </div>
 
-                        {/* Legend */}
-                        <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                        {/* Legend - Redesigned */}
+                        <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-gray-200">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-4 bg-gradient-to-b from-teal-500 to-cyan-500 rounded-full"></div>
+                            <h4 className="text-sm font-bold text-gray-700">Trip Route</h4>
+                          </div>
                           <div className="flex flex-wrap gap-3">
                             {Array.from(new Set(days.map(d => d.place?.name))).map(placeName => {
                               const place = days.find(d => d.place?.name === placeName)?.place;
@@ -982,17 +1014,23 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                               const endDate = placeDays[placeDays.length - 1].date;
 
                               return (
-                                <div key={placeName} className="flex items-center gap-2 text-sm">
-                                  <div
-                                    className="w-4 h-4 rounded"
-                                    style={{ backgroundColor: place.color }}
-                                  />
-                                  <span className="font-medium text-gray-700">
-                                    {place.emoji} {place.name}
-                                  </span>
-                                  <span className="text-gray-500">
-                                    ({startDate.getDate()}-{endDate.getDate()})
-                                  </span>
+                                <div
+                                  key={placeName}
+                                  className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 shadow-sm hover:shadow-md transition-shadow"
+                                  style={{
+                                    borderColor: place.color,
+                                    backgroundColor: `${place.color}15`
+                                  }}
+                                >
+                                  <div className="text-xl">{place.emoji}</div>
+                                  <div>
+                                    <div className="text-sm font-bold text-gray-800">
+                                      {place.name}
+                                    </div>
+                                    <div className="text-xs font-semibold" style={{ color: place.color }}>
+                                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })}
