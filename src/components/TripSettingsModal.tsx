@@ -63,9 +63,10 @@ interface SortablePlaceItemProps {
   place: PlaceConfig;
   onUpdateDays: (change: number) => void;
   onToggleHidden: () => void;
+  dateRange?: string;
 }
 
-function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlaceItemProps) {
+function SortablePlaceItem({ place, onUpdateDays, onToggleHidden, dateRange }: SortablePlaceItemProps) {
   const {
     attributes,
     listeners,
@@ -106,9 +107,19 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden }: SortablePlac
             <span className="text-2xl">{place.emoji}</span>
             <h3 className="text-lg font-semibold text-gray-900">{place.name}</h3>
           </div>
-          <p className="text-sm text-gray-500">
-            {place.days} {place.days === 1 ? 'day' : 'days'}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-500">
+              {place.days} {place.days === 1 ? 'day' : 'days'}
+            </p>
+            {dateRange && (
+              <>
+                <span className="text-gray-300">•</span>
+                <p className="text-sm font-medium text-gray-600">
+                  {dateRange}
+                </p>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Hide Toggle */}
@@ -756,18 +767,50 @@ export default function TripSettingsModal({ tripData, onSave, onClose }: TripSet
                 items={places.filter(p => !p.hidden).map(p => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-3">
-                  {places.filter(p => !p.hidden).map((place) => {
-                    const actualIndex = places.indexOf(place);
-                    return (
-                      <SortablePlaceItem
-                        key={place.id}
-                        place={place}
-                        onUpdateDays={(change) => updateDays(actualIndex, change)}
-                        onToggleHidden={() => toggleHidden(actualIndex)}
-                      />
-                    );
-                  })}
+                <div className="relative">
+                  {(() => {
+                    const visiblePlaces = places.filter(p => !p.hidden);
+                    const [startYear, startMonth, startDay] = tripData.startDate.split('-').map(Number);
+                    let cumulativeDays = 0;
+
+                    return visiblePlaces.map((place, index) => {
+                      const actualIndex = places.indexOf(place);
+
+                      // Calculate date range for this place
+                      const placeStartDate = new Date(startYear, startMonth - 1, startDay + cumulativeDays);
+                      const placeEndDate = new Date(startYear, startMonth - 1, startDay + cumulativeDays + place.days - 1);
+                      const dateRange = `${placeStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${placeEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+                      cumulativeDays += place.days;
+
+                      return (
+                        <div key={place.id} className="relative">
+                          <SortablePlaceItem
+                            place={place}
+                            onUpdateDays={(change) => updateDays(actualIndex, change)}
+                            onToggleHidden={() => toggleHidden(actualIndex)}
+                            dateRange={dateRange}
+                          />
+                          {/* Route connector line */}
+                          {index < visiblePlaces.length - 1 && (
+                            <div className="flex items-center justify-center py-2">
+                              <div className="flex flex-col items-center">
+                                <div
+                                  className="w-1 h-8 rounded-full"
+                                  style={{
+                                    background: `linear-gradient(180deg, ${place.color} 0%, ${visiblePlaces[index + 1].color} 100%)`
+                                  }}
+                                />
+                                <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm">
+                                  ✈️ Next
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </SortableContext>
             </DndContext>
