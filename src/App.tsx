@@ -18,7 +18,7 @@ import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
 const TRIP_ID_KEY = 'bali-trip-id';
-const DATA_VERSION = 'v7'; // Increment this to force reload fresh data
+const DATA_VERSION = 'v8'; // Increment this to force reload fresh data - v8: Added Bangkok + expenses
 
 // Helper function to get place name from day
 function getPlaceName(day: any): string {
@@ -735,7 +735,7 @@ function App() {
                 {/* Trip Timeline */}
                 <div className="max-w-2xl overflow-visible">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span className="font-semibold text-gray-700">May 6</span>
+                    <span className="font-semibold text-gray-700">May 4</span>
                     {selectedPlace && (
                       <div className="flex items-center gap-2 px-2 py-0.5 bg-travel-teal/10 rounded-full">
                         <span className="text-travel-teal font-bold text-xs">
@@ -743,7 +743,7 @@ function App() {
                         </span>
                       </div>
                     )}
-                    <span className="font-semibold text-gray-700">May 30</span>
+                    <span className="font-semibold text-gray-700">June 2</span>
                   </div>
                   <div className="relative pt-6 overflow-visible">
                     <div className="flex items-center h-3 rounded-full shadow-sm relative overflow-visible">
@@ -788,9 +788,9 @@ function App() {
                           'Uluwatu': '#F97316',
                         };
 
-                        // Original trip was May 6 to May 30 = 25 days
+                        // Trip is May 4 to June 2 = 30 days
                         // Use this as the reference for 100% width
-                        const originalTripDays = 25;
+                        const originalTripDays = 30;
 
                         // Calculate total planned days
                         const totalPlannedDays = segments.reduce((sum, seg) => sum + seg.days, 0);
