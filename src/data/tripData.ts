@@ -54,6 +54,16 @@ export const baliTripData: TripData = {
           time: "14:55",
           description: "Arrival at Ngurah Rai International Airport (Denpasar) from Bangkok",
         },
+        {
+          id: "taxi-airport-to-canggu",
+          day: 3,
+          type: "activity",
+          name: "Taxi to Canggu",
+          location: { lat: -8.7467, lng: 115.1667 },
+          time: "16:00",
+          description: "Transfer from Denpasar Airport to Canggu (~1 hour)",
+          duration: "1h",
+        },
       ],
     },
     {
@@ -73,8 +83,19 @@ export const baliTripData: TripData = {
     {
       day: 6,
       date: "2026-05-09",
-      title: "Ubud",
-      activities: [],
+      title: "Canggu to Ubud",
+      activities: [
+        {
+          id: "taxi-canggu-to-ubud",
+          day: 6,
+          type: "activity",
+          name: "Taxi to Ubud",
+          location: { lat: -8.5069, lng: 115.2625 },
+          time: "10:00",
+          description: "Transfer from Canggu to Ubud (~1.5 hours)",
+          duration: "1.5h",
+        },
+      ],
     },
     {
       day: 7,
@@ -93,8 +114,19 @@ export const baliTripData: TripData = {
     {
       day: 9,
       date: "2026-05-12",
-      title: "Munduk",
-      activities: [],
+      title: "Ubud to Munduk",
+      activities: [
+        {
+          id: "taxi-ubud-to-munduk",
+          day: 9,
+          type: "activity",
+          name: "Taxi to Munduk",
+          location: { lat: -8.2667, lng: 115.0833 },
+          time: "10:00",
+          description: "Transfer from Ubud to Munduk (~2 hours)",
+          duration: "2h",
+        },
+      ],
     },
     {
       day: 10,
@@ -113,8 +145,19 @@ export const baliTripData: TripData = {
     {
       day: 12,
       date: "2026-05-15",
-      title: "Sidemen",
-      activities: [],
+      title: "Munduk to Sidemen",
+      activities: [
+        {
+          id: "taxi-munduk-to-sidemen",
+          day: 12,
+          type: "activity",
+          name: "Taxi to Sidemen",
+          location: { lat: -8.4833, lng: 115.4167 },
+          time: "10:00",
+          description: "Transfer from Munduk to Sidemen (~2.5 hours)",
+          duration: "2.5h",
+        },
+      ],
     },
     {
       day: 13,
@@ -127,8 +170,29 @@ export const baliTripData: TripData = {
     {
       day: 14,
       date: "2026-05-17",
-      title: "Gili Trawangan",
-      activities: [],
+      title: "Sidemen to Gili Trawangan",
+      activities: [
+        {
+          id: "taxi-sidemen-to-port",
+          day: 14,
+          type: "activity",
+          name: "Taxi to Padang Bai Port",
+          location: { lat: -8.5333, lng: 115.5167 },
+          time: "09:00",
+          description: "Transfer from Sidemen to Padang Bai Port (~1 hour)",
+          duration: "1h",
+        },
+        {
+          id: "boat-to-gili-t",
+          day: 14,
+          type: "activity",
+          name: "Fast Boat to Gili Trawangan",
+          location: { lat: -8.3489, lng: 116.0422 },
+          time: "11:00",
+          description: "Boat from Padang Bai to Gili Trawangan (~2 hours)",
+          duration: "2h",
+        },
+      ],
     },
     {
       day: 15,
@@ -141,8 +205,19 @@ export const baliTripData: TripData = {
     {
       day: 16,
       date: "2026-05-19",
-      title: "Gili Air",
-      activities: [],
+      title: "Gili Trawangan to Gili Air",
+      activities: [
+        {
+          id: "boat-gili-t-to-air",
+          day: 16,
+          type: "activity",
+          name: "Boat to Gili Air",
+          location: { lat: -8.3558, lng: 116.0869 },
+          time: "11:00",
+          description: "Short boat ride between Gili islands (~15 minutes)",
+          duration: "15min",
+        },
+      ],
     },
     {
       day: 17,
@@ -155,16 +230,48 @@ export const baliTripData: TripData = {
     {
       day: 18,
       date: "2026-05-21",
-      title: "Nusa Penida",
-      activities: [],
+      title: "Gili Air to Nusa Penida",
+      activities: [
+        {
+          id: "boat-gili-to-nusa",
+          day: 18,
+          type: "activity",
+          name: "Boat to Nusa Penida",
+          location: { lat: -8.7294, lng: 115.5444 },
+          time: "09:00",
+          description: "Fast boat from Gili Air to Nusa Penida (~2 hours)",
+          duration: "2h",
+        },
+      ],
     },
 
     // ULUWATU - Days 19-26 (May 22-29)
     {
       day: 19,
       date: "2026-05-22",
-      title: "Uluwatu",
-      activities: [],
+      title: "Nusa Penida to Uluwatu",
+      activities: [
+        {
+          id: "boat-nusa-to-sanur",
+          day: 19,
+          type: "activity",
+          name: "Boat to Sanur",
+          location: { lat: -8.7089, lng: 115.2625 },
+          time: "09:00",
+          description: "Fast boat from Nusa Penida to Sanur (~45 minutes)",
+          duration: "45min",
+        },
+        {
+          id: "taxi-sanur-to-uluwatu",
+          day: 19,
+          type: "activity",
+          name: "Taxi to Uluwatu",
+          location: { lat: -8.8290, lng: 115.0847 },
+          time: "11:00",
+          description: "Transfer from Sanur to Uluwatu (~1.5 hours)",
+          duration: "1.5h",
+        },
+      ],
     },
     {
       day: 20,
@@ -211,8 +318,18 @@ export const baliTripData: TripData = {
     {
       day: 27,
       date: "2026-05-30",
-      title: "Bali to Bangkok",
+      title: "Uluwatu to Bangkok",
       activities: [
+        {
+          id: "taxi-uluwatu-to-airport",
+          day: 27,
+          type: "activity",
+          name: "Taxi to Airport",
+          location: { lat: -8.7467, lng: 115.1667 },
+          time: "14:00",
+          description: "Transfer from Uluwatu to Denpasar Airport (~1 hour)",
+          duration: "1h",
+        },
         {
           id: "flight-departure",
           day: 27,
