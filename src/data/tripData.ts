@@ -35,21 +35,21 @@ export const baliTripData: TripData = {
           name: "Arrival in Bangkok",
           location: { lat: 13.6900, lng: 100.7501 },
           time: "TBD",
-          description: "Arrival at Suvarnabhumi Airport (BKK) - 1 night in Bangkok",
+          description: "Arrival at Suvarnabhumi Airport (BKK)",
         },
       ],
     },
-    // BALI START - Day 3 (May 6) - Arrival in Canggu
+    // BALI START - Day 3 (May 6) - Flight to Bali and Arrival in Canggu
     {
       day: 3,
       date: "2026-05-06",
-      title: "Arrival - Canggu",
+      title: "Bangkok to Bali - Canggu",
       activities: [
         {
           id: "flight-arrival",
           day: 3,
           type: "flight",
-          name: "TG431 Flight Arrival from Bangkok",
+          name: "TG431 Flight from Bangkok to Bali",
           location: { lat: -8.7467, lng: 115.1667 },
           time: "14:55",
           description: "Arrival at Ngurah Rai International Airport (Denpasar) from Bangkok",
