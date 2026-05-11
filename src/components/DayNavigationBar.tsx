@@ -154,6 +154,7 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
           if (!prevPlaceName) return null;
 
           const routes: Record<string, { icon: string; time: string }> = {
+            'Bangkok→Canggu': { icon: '✈️', time: '4h' },
             'Canggu→Ubud': { icon: '🚗', time: '1.5h' },
             'Ubud→Munduk': { icon: '🚗', time: '2.5h' },
             'Munduk→Sidemen': { icon: '🚗', time: '2h' },
@@ -161,6 +162,7 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
             'Gili Trawangan→Gili Air': { icon: '⛴️', time: '15m' },
             'Gili Air→Nusa Penida': { icon: '⛴️', time: '2h' },
             'Nusa Penida→Uluwatu': { icon: '⛴️', time: '2.5h' },
+            'Uluwatu→Bangkok': { icon: '✈️', time: '4h' },
           };
 
           const routeKey = `${prevPlaceName}→${placeName}`;
