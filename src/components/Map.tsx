@@ -42,6 +42,7 @@ const defaultCenter = {
 function getPlaceNameFromDay(day: DayItinerary): string {
   if (day.hotel) {
     const name = day.hotel.name;
+    if (name.includes('Bangkok')) return 'Bangkok';
     if (name.includes('Canggu')) return 'Canggu';
     if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
     if (name.includes('Munduk')) return 'Munduk';
@@ -51,6 +52,7 @@ function getPlaceNameFromDay(day: DayItinerary): string {
     if (name.includes('Nusa Penida') || name.includes('Warnakali')) return 'Nusa Penida';
     if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
   }
+  if (day.title.includes('Bangkok')) return 'Bangkok';
   if (day.title.includes('Canggu')) return 'Canggu';
   if (day.title.includes('Ubud')) return 'Ubud';
   if (day.title.includes('Munduk')) return 'Munduk';
@@ -115,6 +117,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
   // Location data for zooming
   // VERIFIED COORDINATES for Bali destinations:
   // - Canggu: Beach town in southwest Bali
+  // - Bangkok: Thailand capital
   // - Ubud: Cultural center in central Bali
   // - Munduk: Mountain village in north Bali
   // - Sidemen: Valley in east Bali
@@ -123,6 +126,7 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
   // - Nusa Penida: Island southeast of Bali
   // - Uluwatu: Peninsula in south Bali
   const allLocations = useMemo(() => [
+    { lat: 13.7563, lng: 100.5018, name: 'Bangkok', emoji: '🇹🇭', color: '#E11D48', days: 2 },
     { lat: -8.6489, lng: 115.1328, name: 'Canggu', emoji: '🏖️', color: '#06B6D4', days: 3 },
     { lat: -8.5069, lng: 115.2625, name: 'Ubud', emoji: '🌿', color: '#10B981', days: 3 },
     { lat: -8.2661, lng: 115.0717, name: 'Munduk', emoji: '🏔️', color: '#8B4513', days: 3 },

@@ -46,6 +46,7 @@ interface PlaceConfig {
 
 // Get place name from day title
 function getPlaceName(title: string): string {
+  if (title.includes('Bangkok')) return 'Bangkok';
   if (title.includes('Canggu')) return 'Canggu';
   if (title.includes('Ubud')) return 'Ubud';
   if (title.includes('Munduk')) return 'Munduk';
@@ -313,6 +314,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
   const getPlaceEmoji = (name: string) => {
     const emojiMap: Record<string, string> = {
+      'Bangkok': '🇹🇭',
       'Canggu': '🏖️',
       'Ubud': '🌿',
       'Munduk': '🏔️',
@@ -327,6 +329,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
   const getPlaceColor = (name: string) => {
     const colors: Record<string, string> = {
+      'Bangkok': '#E11D48',
       'Canggu': '#06B6D4',
       'Ubud': '#10B981',
       'Munduk': '#8B4513',
