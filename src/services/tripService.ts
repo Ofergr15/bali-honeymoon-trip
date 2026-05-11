@@ -1,5 +1,5 @@
 import { supabase, type Place } from '../lib/supabase';
-import type { TripData, Activity, Hotel } from '../types/trip';
+import type { TripData, Activity, Hotel, DayExpense } from '../types/trip';
 
 // Convert database format to app format
 function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], dbHotels: any[]): TripData & { unassignedActivities: Activity[] } {
@@ -756,6 +756,100 @@ export async function updateTrip(tripId: string, tripData: TripData): Promise<bo
     return true;
   } catch (error) {
     console.error('❌ Error updating trip:', error);
+    return false;
+  }
+}
+
+// ===== EXPENSE MANAGEMENT =====
+
+// Load expenses for a specific day
+export async function loadDayExpenses(dayId: string): Promise<DayExpense[]> {
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('day_id', dayId)
+      .order('created_at');
+
+    if (error) throw error;
+
+    return (data || []).map(e => ({
+      id: e.id,
+      category: e.category,
+      description: e.description,
+      amount: parseFloat(e.amount),
+      currency: e.currency,
+    }));
+  } catch (error) {
+    console.error('Error loading expenses:', error);
+    return [];
+  }
+}
+
+// Add expense
+export async function addExpense(dayId: string, expense: Omit<DayExpense, 'id'>): Promise<DayExpense | null> {
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert({
+        day_id: dayId,
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        currency: expense.currency,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      category: data.category,
+      description: data.description,
+      amount: parseFloat(data.amount),
+      currency: data.currency,
+    };
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    return null;
+  }
+}
+
+// Update expense
+export async function updateExpense(expenseId: string, expense: Partial<Omit<DayExpense, 'id'>>): Promise<boolean> {
+  try {
+    const updateData: any = {};
+    if (expense.category) updateData.category = expense.category;
+    if (expense.description) updateData.description = expense.description;
+    if (expense.amount !== undefined) updateData.amount = expense.amount;
+    if (expense.currency) updateData.currency = expense.currency;
+
+    const { error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', expenseId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    return false;
+  }
+}
+
+// Delete expense
+export async function deleteExpense(expenseId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting expense:', error);
     return false;
   }
 }

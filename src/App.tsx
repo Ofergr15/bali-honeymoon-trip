@@ -24,6 +24,7 @@ const DATA_VERSION = 'v7'; // Increment this to force reload fresh data
 function getPlaceName(day: any): string {
   if (day.hotel) {
     const name = day.hotel.name;
+    if (name.includes('Bangkok')) return 'Bangkok';
     if (name.includes('Canggu')) return 'Canggu';
     if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
     if (name.includes('Munduk')) return 'Munduk';
@@ -33,6 +34,7 @@ function getPlaceName(day: any): string {
     if (name.includes('Nusa Penida') || name.includes('Warnakali')) return 'Nusa Penida';
     if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
   }
+  if (day.title.includes('Bangkok')) return 'Bangkok';
   if (day.title.includes('Canggu')) return 'Canggu';
   if (day.title.includes('Ubud')) return 'Ubud';
   if (day.title.includes('Munduk')) return 'Munduk';
@@ -48,6 +50,7 @@ function getPlaceName(day: any): string {
 // Get emoji for each place
 function getPlaceEmoji(placeName: string): string {
   const emojiMap: Record<string, string> = {
+    'Bangkok': '🇹🇭',
     'Canggu': '🏖️',
     'Ubud': '🌿',
     'Munduk': '🏔️',
@@ -774,6 +777,7 @@ function App() {
                         });
 
                         const placeColors: Record<string, string> = {
+                          'Bangkok': '#E11D48', // Thai red/pink
                           'Canggu': '#06B6D4',
                           'Ubud': '#10B981',
                           'Munduk': '#8B4513',
