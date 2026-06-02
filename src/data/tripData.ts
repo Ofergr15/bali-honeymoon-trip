@@ -391,7 +391,7 @@ export const baliTripData: TripData = {
     {
       day: 29,
       date: "2026-06-01",
-      title: "Bangkok - Departure Day",
+      title: "Departure to Israel",
       activities: [
         {
           id: "bangkok-final-departure",
