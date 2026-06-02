@@ -432,7 +432,15 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+
+    // Only set to false if leaving the drop zone itself, not child elements
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+      setIsDragging(false);
+    }
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -451,6 +459,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         await processFile(file);
       } else {
         alert('⚠️ Unsupported file type. Please upload .csv, .txt, .xls, or .xlsx files.');
+        setUploadedFile(null);
       }
     }
   };
