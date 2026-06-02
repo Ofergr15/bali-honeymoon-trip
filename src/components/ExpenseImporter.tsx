@@ -243,14 +243,29 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       confidence = 'low';
     }
 
-    // Detect place
+    // Detect place (including common abbreviations and airport codes)
     let place: string | undefined;
-    for (const p of PLACES) {
-      if (lowerLine.includes(p.value.toLowerCase())) {
-        place = p.value;
-        confidence = 'high';
-        break;
+    const placeKeywords: Record<string, string[]> = {
+      'Bangkok': ['bangkok', 'bkk', ' bkg '],
+      'Ubud': ['ubud'],
+      'Uluwatu': ['uluwatu'],
+      'Nusa Penida': ['nusa penida', 'nusa', 'penida'],
+      'Gili Islands': ['gili', 'gili islands'],
+      'Sanur': ['sanur'],
+      'Seminyak': ['seminyak'],
+      'Canggu': ['canggu'],
+      'Other': [],
+    };
+
+    for (const [placeName, keywords] of Object.entries(placeKeywords)) {
+      for (const keyword of keywords) {
+        if (lowerLine.includes(keyword)) {
+          place = placeName;
+          confidence = 'high';
+          break;
+        }
       }
+      if (place) break;
     }
 
     // Try to match day based on date
