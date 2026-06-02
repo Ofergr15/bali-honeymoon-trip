@@ -137,7 +137,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         const expenseDate = parseDate(expense.date);
         if (!expenseDate) return true; // Keep if date couldn't be parsed
 
-        return expenseDate >= tripStartDate && expenseDate <= tripEndDate;
+        const isInRange = expenseDate >= tripStartDate && expenseDate <= tripEndDate;
+
+        // Debug first 3 expenses
+        if (allParsed.indexOf(expense) < 3) {
+          console.log(`🔍 Expense #${allParsed.indexOf(expense)}: date="${expense.date}" → parsed=${expenseDate?.toISOString().split('T')[0]} → inRange=${isInRange}`);
+        }
+
+        return isInRange;
       });
 
       console.log(`📅 Filtered expenses: ${allParsed.length} total → ${filtered.length} within trip dates (${tripData.startDate} to ${tripData.endDate})`);
