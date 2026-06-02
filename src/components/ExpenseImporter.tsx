@@ -569,6 +569,27 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
 
   return (
     <div className="space-y-6">
+      {/* Loading Overlay */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-md">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+              <Sparkles className="w-8 h-8 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">✨ Analyzing Expenses</h3>
+              <p className="text-sm text-gray-600">
+                AI is categorizing your expenses by type, location, and date...
+              </p>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-600 to-pink-600 animate-pulse" style={{ width: '70%' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-2 border-purple-200 rounded-xl p-5 shadow-sm">
         <div className="flex items-start gap-3">
