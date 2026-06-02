@@ -254,13 +254,51 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
         }
       }
 
-    // Fallback: reconstruct from trip data
+    // Fallback: reconstruct from trip data by grouping CONSECUTIVE days (like navigation bar)
     console.log('📝 Reconstructing places from trip data');
-    const placeMap = new Map<string, number>();
 
-    tripData.days.forEach(day => {
-      const placeName = getPlaceName(day.title);
-      placeMap.set(placeName, (placeMap.get(placeName) || 0) + 1);
+    // Group consecutive days by place (same logic as DayNavigationBar)
+    const placeConfigs: PlaceConfig[] = [];
+    let currentPlace = '';
+    let dayCount = 0;
+    let groupIndex = 0;
+
+    tripData.days.forEach((day, index) => {
+      const place = getPlaceName(day.title);
+
+      // Skip "Other" transit days
+      if (place === 'Other') {
+        return;
+      }
+
+      if (place !== currentPlace && dayCount > 0) {
+        // Save previous group
+        placeConfigs.push({
+          id: `${currentPlace}-${groupIndex}-${Date.now()}`,
+          name: currentPlace,
+          emoji: getPlaceEmoji(currentPlace),
+          days: dayCount,
+          color: getPlaceColor(currentPlace),
+          hidden: false,
+        });
+        groupIndex++;
+        dayCount = 0;
+      }
+
+      currentPlace = place;
+      dayCount++;
+
+      // Save last group
+      if (index === tripData.days.length - 1 && dayCount > 0) {
+        placeConfigs.push({
+          id: `${currentPlace}-${groupIndex}-${Date.now()}`,
+          name: currentPlace,
+          emoji: getPlaceEmoji(currentPlace),
+          days: dayCount,
+          color: getPlaceColor(currentPlace),
+          hidden: false,
+        });
+      }
     });
 
     // Load hidden places from localStorage
@@ -269,26 +307,9 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
       ? JSON.parse(savedHiddenPlaces)
       : {};
 
-    const placeConfigs: PlaceConfig[] = [];
-    const order = ['Bangkok', 'Canggu', 'Sidemen', 'Ubud', 'Uluwatu', 'Gili Trawangan', 'Gili Air', 'Nusa Lembongan', 'Kuta', 'Komodo'];
-
-    // Add visible places
-    order.forEach((placeName, idx) => {
-      if (placeMap.has(placeName)) {
-        placeConfigs.push({
-          id: `${placeName}-${idx}-${Date.now()}`,
-          name: placeName,
-          emoji: getPlaceEmoji(placeName),
-          days: placeMap.get(placeName)!,
-          color: getPlaceColor(placeName),
-          hidden: false,
-        });
-      }
-    });
-
-    // Add hidden places from localStorage
+    // Add hidden places from localStorage (if they don't exist in current trip)
     Object.entries(hiddenPlacesData).forEach(([placeName, data], idx) => {
-      if (!placeMap.has(placeName)) {
+      if (!placeConfigs.some(p => p.name === placeName)) {
         placeConfigs.push({
           id: `${placeName}-hidden-${idx}-${Date.now()}`,
           name: placeName,
@@ -298,15 +319,6 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
           hidden: true,
         });
       }
-    });
-
-    // Sort to maintain order
-    placeConfigs.sort((a, b) => {
-      const aIndex = order.indexOf(a.name);
-      const bIndex = order.indexOf(b.name);
-      const aOrder = a.hidden ? (hiddenPlacesData[a.name]?.order ?? 999) : aIndex;
-      const bOrder = b.hidden ? (hiddenPlacesData[b.name]?.order ?? 999) : bIndex;
-      return aOrder - bOrder;
     });
 
       setPlaces(placeConfigs);
