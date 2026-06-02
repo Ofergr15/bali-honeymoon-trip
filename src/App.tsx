@@ -18,7 +18,7 @@ import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
 const TRIP_ID_KEY = 'bali-trip-id';
-const DATA_VERSION = 'v11-rebuild'; // Increment this to force reload fresh data - v11: Complete rebuild from scratch
+const DATA_VERSION = 'v12-final-reset'; // Increment this to force reload fresh data - v12: Final aggressive reset
 
 // Helper function to get place name from day
 function getPlaceName(day: any): string {
@@ -163,6 +163,36 @@ function App() {
   useEffect(() => {
     async function initializeTrip() {
       setLoading(true);
+
+      // CHECK VERSION FIRST - force reset if mismatch
+      const savedVersion = localStorage.getItem(STORAGE_KEY + '-version');
+      if (savedVersion !== DATA_VERSION) {
+        console.log('🔄 VERSION MISMATCH! Clearing all caches...');
+        console.log('   Saved version:', savedVersion);
+        console.log('   Current version:', DATA_VERSION);
+
+        // Clear everything
+        localStorage.removeItem(TRIP_ID_KEY);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY + '-version');
+        localStorage.removeItem('bali-trip-hidden-places');
+        localStorage.removeItem('bali-trip-places-config');
+
+        // Delete from database if exists
+        const oldTripId = localStorage.getItem(TRIP_ID_KEY);
+        if (oldTripId && isSupabaseConfigured) {
+          try {
+            await supabase.from('trips').delete().eq('id', oldTripId);
+            console.log('✅ Deleted old trip from database');
+          } catch (e) {
+            console.error('Error deleting old trip:', e);
+          }
+        }
+
+        // Set new version
+        localStorage.setItem(STORAGE_KEY + '-version', DATA_VERSION);
+        console.log('✅ Version updated to', DATA_VERSION);
+      }
 
       if (isSupabaseConfigured) {
         console.log('🚀 Supabase configured - loading from database');

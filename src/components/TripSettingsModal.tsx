@@ -1159,10 +1159,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                         }
 
                         // Force version update
-                        localStorage.setItem('bali-trip-data-version', 'v10-force-reset');
+                        localStorage.setItem('bali-trip-data-version', 'v12-final-reset');
 
-                        alert('✅ Database and cache cleared!\n\nThe page will now refresh and recreate your trip with the correct order.');
-                        window.location.reload();
+                        alert('✅ Database and cache cleared!\n\nThe page will now refresh and recreate your trip with the correct order.\n\nIf the order is still wrong after refresh, try a hard refresh (Cmd+Shift+R).');
+
+                        // Force a hard reload
+                        window.location.href = window.location.href.split('#')[0] + '?t=' + Date.now();
                       } catch (error) {
                         console.error('Error during reset:', error);
                         alert('❌ Error during reset. Try manually clearing your browser data.');
