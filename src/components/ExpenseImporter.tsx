@@ -168,8 +168,8 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '')) : 0;
     const currency = amountMatch ? detectCurrency(amountMatch[2]) : 'ILS'; // Default to ILS
 
-    // Extract date if present
-    const dateMatch = line.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.](?:\d{2}|\d{4}))/);
+    // Extract date if present (handles both DD/MM/YYYY and YYYY-MM-DD)
+    const dateMatch = line.match(/((?:\d{4}|\d{1,2})[\/\-\.](?:\d{1,2})[\/\-\.](?:\d{2,4}))/);
     const date = dateMatch ? dateMatch[1] : undefined;
 
     // Detect category
