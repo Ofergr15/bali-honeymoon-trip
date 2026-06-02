@@ -18,7 +18,7 @@ import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
 const TRIP_ID_KEY = 'bali-trip-id';
-const DATA_VERSION = 'v8'; // Increment this to force reload fresh data - v8: Added Bangkok + expenses
+const DATA_VERSION = 'v9'; // Increment this to force reload fresh data - v9: Fixed location order (Sidemen before Ubud)
 
 // Helper function to get place name from day
 function getPlaceName(day: any): string {
@@ -780,15 +780,16 @@ function App() {
                         });
 
                         const placeColors: Record<string, string> = {
-                          'Bangkok': '#E11D48', // Thai red/pink
+                          'Bangkok': '#DC2626',
                           'Canggu': '#06B6D4',
-                          'Ubud': '#10B981',
-                          'Munduk': '#8B4513',
                           'Sidemen': '#84CC16',
+                          'Ubud': '#10B981',
+                          'Uluwatu': '#F97316',
                           'Gili Trawangan': '#3B82F6',
                           'Gili Air': '#60A5FA',
-                          'Nusa Penida': '#1D4ED8',
-                          'Uluwatu': '#F97316',
+                          'Nusa Lembongan': '#1D4ED8',
+                          'Kuta': '#D946EF',
+                          'Komodo': '#14B8A6',
                         };
 
                         // Trip is May 4 to June 2 = 30 days

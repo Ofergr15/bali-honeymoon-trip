@@ -269,7 +269,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
       : {};
 
     const placeConfigs: PlaceConfig[] = [];
-    const order = ['Canggu', 'Ubud', 'Munduk', 'Sidemen', 'Gili Trawangan', 'Gili Air', 'Nusa Penida', 'Uluwatu'];
+    const order = ['Bangkok', 'Canggu', 'Sidemen', 'Ubud', 'Uluwatu', 'Gili Trawangan', 'Gili Air', 'Nusa Lembongan', 'Kuta', 'Komodo'];
 
     // Add visible places
     order.forEach((placeName, idx) => {
@@ -318,28 +318,30 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     const emojiMap: Record<string, string> = {
       'Bangkok': '🇹🇭',
       'Canggu': '🏖️',
-      'Ubud': '🌿',
-      'Munduk': '🏔️',
       'Sidemen': '🌾',
+      'Ubud': '🌿',
+      'Uluwatu': '🌅',
       'Gili Trawangan': '🏝️',
       'Gili Air': '🌊',
-      'Nusa Penida': '⛰️',
-      'Uluwatu': '🌅',
+      'Nusa Lembongan': '⛰️',
+      'Kuta': '🏄',
+      'Komodo': '🐉',
     };
     return emojiMap[name] || '📍';
   };
 
   const getPlaceColor = (name: string) => {
     const colors: Record<string, string> = {
-      'Bangkok': '#E11D48',
+      'Bangkok': '#DC2626',
       'Canggu': '#06B6D4',
-      'Ubud': '#10B981',
-      'Munduk': '#8B4513',
       'Sidemen': '#84CC16',
+      'Ubud': '#10B981',
+      'Uluwatu': '#F97316',
       'Gili Trawangan': '#3B82F6',
       'Gili Air': '#60A5FA',
-      'Nusa Penida': '#1D4ED8',
-      'Uluwatu': '#F97316',
+      'Nusa Lembongan': '#1D4ED8',
+      'Kuta': '#D946EF',
+      'Komodo': '#14B8A6',
     };
     return colors[name] || '#6B7280';
   };
