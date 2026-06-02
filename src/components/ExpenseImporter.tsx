@@ -62,6 +62,8 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'errors' | 'unconfirmed' | 'confirmed'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [groupByMerchant, setGroupByMerchant] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Manual form state
   const [manualExpense, setManualExpense] = useState({
@@ -1073,6 +1075,16 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                   </option>
                 ))}
               </select>
+
+              <label className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={groupByMerchant}
+                  onChange={(e) => setGroupByMerchant(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">Group Similar</span>
+              </label>
             </div>
           </div>
 
@@ -1103,6 +1115,427 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                 );
               }
 
+              // Group by merchant if enabled
+              if (groupByMerchant) {
+                // Normalize merchant name for grouping
+                const normalizeKey = (desc: string) => {
+                  return desc.toLowerCase().trim().replace(/\s+/g, ' ').substring(0, 30);
+                };
+
+                const groups = new Map<string, ParsedExpense[]>();
+                filtered.forEach(expense => {
+                  const key = normalizeKey(expense.description);
+                  if (!groups.has(key)) {
+                    groups.set(key, []);
+                  }
+                  groups.get(key)!.push(expense);
+                });
+
+                // Render groups
+                return Array.from(groups.entries()).map(([key, expenses]) => {
+                  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+                  const currency = expenses[0].currency;
+                  const categoryInfo = CATEGORIES.find(c => c.value === expenses[0].category);
+                  const allConfirmed = expenses.every(e => e.status === 'confirmed' || e.status === 'edited');
+                  const hasErrors = expenses.some(e => e.validationError);
+                  const isGroupExpanded = expandedGroups.has(key);
+
+                  if (expenses.length === 1) {
+                    // Single item - render normally
+                    const expense = expenses[0];
+                    const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+                    const isExpanded = expandedId === expense.id;
+
+                    return (
+                      <div
+                        key={expense.id}
+                        className={`border-2 rounded-xl transition-all ${
+                          expense.status === 'confirmed'
+                            ? 'bg-green-50 border-green-300'
+                            : expense.validationError
+                            ? 'bg-red-50 border-red-400'
+                            : 'bg-white border-gray-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <div
+                          className="p-4 cursor-pointer hover:bg-gray-50"
+                          onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                              style={{ backgroundColor: `${categoryInfo?.color}20` }}
+                            >
+                              {categoryInfo?.label.split(' ')[0] || '💰'}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-lg font-bold" style={{ color: categoryInfo?.color }}>
+                                  {currency === 'ILS' && '₪'}
+                                  {currency === 'USD' && '$'}
+                                  {currency === 'EUR' && '€'}
+                                  {expense.amount}
+                                </span>
+                                <span className="text-sm text-gray-500">• {expense.date || 'No date'}</span>
+                                {isGeneral && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold">General</span>}
+                                {expense.validationError && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded font-bold">Error</span>}
+                              </div>
+                              <p className="text-sm text-gray-700 truncate">{expense.description || 'No description'}</p>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {expense.status !== 'confirmed' && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmExpense(expense.id);
+                                  }}
+                                  className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                  ✓ Confirm
+                                </button>
+                              )}
+                              {expense.status === 'confirmed' && (
+                                <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
+                                  ✓ Done
+                                </span>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteExpense(expense.id);
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <span className="text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-gray-200 bg-gray-50">
+                            <div className="pt-4 space-y-3">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Description</label>
+                                <input
+                                  type="text"
+                                  value={expense.description}
+                                  onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
+                                  placeholder="What was this expense for?"
+                                  className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                />
+                                {expense.validationError && (
+                                  <p className="text-xs text-red-600 font-semibold mt-1">{expense.validationError}</p>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-4 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Category</label>
+                                  <select
+                                    value={expense.category}
+                                    onChange={(e) => updateExpense(expense.id, { category: e.target.value as any })}
+                                    className="w-full px-2 py-2 text-xs font-semibold border-2 border-gray-300 rounded-lg"
+                                    style={{ color: categoryInfo?.color }}
+                                  >
+                                    {CATEGORIES.map(cat => (
+                                      <option key={cat.value} value={cat.value}>{cat.label.split(' ').slice(1).join(' ')}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Date</label>
+                                  <input
+                                    type="text"
+                                    value={expense.date || ''}
+                                    onChange={(e) => updateExpense(expense.id, { date: e.target.value })}
+                                    placeholder="DD/MM/YYYY"
+                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Amount</label>
+                                  <input
+                                    type="number"
+                                    value={expense.amount}
+                                    onChange={(e) => updateExpense(expense.id, { amount: parseFloat(e.target.value) || 0 })}
+                                    step="0.01"
+                                    className="w-full px-2 py-2 text-xs font-bold border-2 border-gray-300 rounded-lg"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Currency</label>
+                                  <select
+                                    value={expense.currency}
+                                    onChange={(e) => updateExpense(expense.id, { currency: e.target.value })}
+                                    className="w-full px-2 py-2 text-xs font-bold border-2 border-gray-300 rounded-lg"
+                                  >
+                                    <option value="ILS">₪ ILS</option>
+                                    <option value="USD">$ USD</option>
+                                    <option value="IDR">IDR</option>
+                                    <option value="THB">฿ THB</option>
+                                    <option value="EUR">€ EUR</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
+                                  <select
+                                    value={expense.place || ''}
+                                    onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
+                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                  >
+                                    <option value="">Select...</option>
+                                    {PLACES.map(p => (
+                                      <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
+                                  <input
+                                    type="number"
+                                    value={expense.day || ''}
+                                    onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                                    placeholder="General"
+                                    min="1"
+                                    max={tripData.days.length}
+                                    disabled={expense.category === 'flight' || expense.category === 'visa'}
+                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg disabled:bg-gray-100"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Group with multiple items
+                  return (
+                    <div
+                      key={key}
+                      className={`border-2 rounded-xl transition-all ${
+                        allConfirmed
+                          ? 'bg-green-50 border-green-300'
+                          : hasErrors
+                          ? 'bg-red-50 border-red-400'
+                          : 'bg-blue-50 border-blue-300'
+                      }`}
+                    >
+                      {/* Group Header */}
+                      <div
+                        className="p-4 cursor-pointer hover:bg-gray-50"
+                        onClick={() => {
+                          const newSet = new Set(expandedGroups);
+                          if (isGroupExpanded) {
+                            newSet.delete(key);
+                          } else {
+                            newSet.add(key);
+                          }
+                          setExpandedGroups(newSet);
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{ backgroundColor: `${categoryInfo?.color}20` }}
+                          >
+                            {categoryInfo?.label.split(' ')[0] || '💰'}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xl font-bold" style={{ color: categoryInfo?.color }}>
+                                {currency === 'ILS' && '₪'}
+                                {currency === 'USD' && '$'}
+                                {currency === 'EUR' && '€'}
+                                {total.toFixed(2)}
+                              </span>
+                              <span className="px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded">
+                                {expenses.length}× items
+                              </span>
+                              {hasErrors && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded font-bold">Has Errors</span>}
+                            </div>
+                            <p className="text-sm text-gray-700 truncate">{expenses[0].description}</p>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {!allConfirmed && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  expenses.forEach(exp => {
+                                    if (exp.status !== 'confirmed' && !exp.validationError) {
+                                      confirmExpense(exp.id);
+                                    }
+                                  });
+                                }}
+                                className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                ✓ Confirm All
+                              </button>
+                            )}
+                            {allConfirmed && (
+                              <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
+                                ✓ All Done
+                              </span>
+                            )}
+                            <span className="text-gray-400">{isGroupExpanded ? '▲' : '▼'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Group Items */}
+                      {isGroupExpanded && (
+                        <div className="border-t border-gray-300 bg-white">
+                          {expenses.map((expense, idx) => {
+                            const isExpanded = expandedId === expense.id;
+                            const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+
+                            return (
+                              <div key={expense.id} className={`${idx > 0 ? 'border-t border-gray-200' : ''}`}>
+                                <div
+                                  className="p-3 cursor-pointer hover:bg-gray-50"
+                                  onClick={() => setExpandedId(isExpanded ? null : expense.id)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold text-gray-400 w-6">#{idx + 1}</span>
+
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-base font-bold" style={{ color: categoryInfo?.color }}>
+                                          {currency === 'ILS' && '₪'}
+                                          {currency === 'USD' && '$'}
+                                          {currency === 'EUR' && '€'}
+                                          {expense.amount}
+                                        </span>
+                                        <span className="text-xs text-gray-500">• {expense.date || 'No date'}</span>
+                                        {isGeneral && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">General</span>}
+                                        {expense.validationError && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">Error</span>}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      {expense.status !== 'confirmed' && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            confirmExpense(expense.id);
+                                          }}
+                                          className="px-2 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700"
+                                        >
+                                          ✓
+                                        </button>
+                                      )}
+                                      {expense.status === 'confirmed' && (
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">
+                                          ✓
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteExpense(expense.id);
+                                        }}
+                                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                      <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {isExpanded && (
+                                  <div className="px-4 pb-3 bg-gray-50">
+                                    <div className="space-y-2">
+                                      <div>
+                                        <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Description</label>
+                                        <input
+                                          type="text"
+                                          value={expense.description}
+                                          onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
+                                          className="w-full px-2 py-1.5 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                        />
+                                        {expense.validationError && (
+                                          <p className="text-xs text-red-600 font-semibold mt-1">{expense.validationError}</p>
+                                        )}
+                                      </div>
+
+                                      <div className="grid grid-cols-4 gap-2">
+                                        <div>
+                                          <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Category</label>
+                                          <select
+                                            value={expense.category}
+                                            onChange={(e) => updateExpense(expense.id, { category: e.target.value as any })}
+                                            className="w-full px-1 py-1.5 text-xs font-semibold border-2 border-gray-300 rounded-lg"
+                                          >
+                                            {CATEGORIES.map(cat => (
+                                              <option key={cat.value} value={cat.value}>{cat.label.split(' ').slice(1).join(' ')}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+
+                                        <div>
+                                          <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Date</label>
+                                          <input
+                                            type="text"
+                                            value={expense.date || ''}
+                                            onChange={(e) => updateExpense(expense.id, { date: e.target.value })}
+                                            placeholder="DD/MM/YY"
+                                            className="w-full px-1 py-1.5 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                          />
+                                        </div>
+
+                                        <div>
+                                          <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Amount</label>
+                                          <input
+                                            type="number"
+                                            value={expense.amount}
+                                            onChange={(e) => updateExpense(expense.id, { amount: parseFloat(e.target.value) || 0 })}
+                                            step="0.01"
+                                            className="w-full px-1 py-1.5 text-xs font-bold border-2 border-gray-300 rounded-lg"
+                                          />
+                                        </div>
+
+                                        <div>
+                                          <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Day</label>
+                                          <input
+                                            type="number"
+                                            value={expense.day || ''}
+                                            onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                                            placeholder="Gen"
+                                            min="1"
+                                            max={tripData.days.length}
+                                            className="w-full px-1 py-1.5 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              }
+
+              // No grouping - render individual items
               return filtered.map((expense) => {
                 const categoryInfo = CATEGORIES.find(c => c.value === expense.category);
                 const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;

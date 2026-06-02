@@ -1027,6 +1027,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
                       if (dayPlace !== currentPlaceName && currentDayCount > 0) {
                         // Save previous group (place changed)
+                        console.log(`✅ Saved group (place changed): ${currentPlaceName} (${currentStartDate} to ${currentEndDate})`);
                         placeGroups.push({
                           placeName: currentPlaceName,
                           startDate: currentStartDate,
@@ -1040,12 +1041,14 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                       if (dayPlace !== currentPlaceName) {
                         currentPlaceName = dayPlace;
                         currentStartDate = day.date;
+                        console.log(`🆕 Starting new group: ${dayPlace} from ${day.date} (Day ${day.day})`);
                       }
                       currentEndDate = day.date;
                       currentDayCount++;
 
                       // Save last group
                       if (idx === tripData.days.length - 1 && currentDayCount > 0) {
+                        console.log(`✅ Saved last group: ${currentPlaceName} (${currentStartDate} to ${currentEndDate})`);
                         placeGroups.push({
                           placeName: currentPlaceName,
                           startDate: currentStartDate,
@@ -1054,6 +1057,8 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                         });
                       }
                     });
+
+                    console.log('📊 All place groups:', placeGroups);
 
                     // Match each visible place to its corresponding consecutive group in order
                     const groupIndex: Record<string, number> = {}; // Track which occurrence we're at for each place name
