@@ -13,22 +13,25 @@ export interface ParsedExpense {
   date?: string;
   day?: number;
   place?: string;
-  category: 'hotel' | 'food' | 'activity' | 'transport' | 'flight' | 'shopping' | 'other';
+  category: 'hotel' | 'food' | 'activity' | 'transport' | 'flight' | 'visa' | 'shopping' | 'food-misc' | 'unidentified';
   description: string;
   amount: number;
   currency: string;
   confidence: 'high' | 'medium' | 'low';
   status: 'pending' | 'confirmed' | 'edited' | 'rejected';
+  validationError?: string;
 }
 
 const CATEGORIES = [
-  { value: 'hotel', label: '🏨 Hotel', color: '#3B82F6' },
-  { value: 'food', label: '🍽️ Food & Dining', color: '#EF4444' },
-  { value: 'activity', label: '🎯 Activity', color: '#10B981' },
-  { value: 'transport', label: '🚗 Transport', color: '#F59E0B' },
   { value: 'flight', label: '✈️ Flight', color: '#6366F1' },
+  { value: 'visa', label: '🛂 Visa', color: '#8B5CF6' },
+  { value: 'hotel', label: '🏨 Hotel / Accommodation', color: '#3B82F6' },
+  { value: 'transport', label: '🚗 Transportation', color: '#F59E0B' },
+  { value: 'food', label: '🍽️ Food', color: '#EF4444' },
+  { value: 'activity', label: '🎯 Attractions / Activities', color: '#10B981' },
   { value: 'shopping', label: '🛍️ Shopping', color: '#EC4899' },
-  { value: 'other', label: '📍 Other', color: '#6B7280' },
+  { value: 'food-misc', label: '🍴 Food + Attractions + Misc', color: '#F97316' },
+  { value: 'unidentified', label: '❓ Unidentified (requires description)', color: '#6B7280' },
 ] as const;
 
 const PLACES = [
@@ -72,37 +75,58 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const parseExpenseLine = (line: string, index: number): ParsedExpense => {
     const lowerLine = line.toLowerCase();
 
-    // Extract amount and currency
+    // Extract amount and currency (including ILS symbol)
     const amountMatch = line.match(/(\d+[,.]?\d*)\s*(usd|idr|thb|eur|ils|₪|\$|฿)/i);
-    const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 0;
-    const currency = amountMatch ? detectCurrency(amountMatch[2]) : 'USD';
+    const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '')) : 0;
+    const currency = amountMatch ? detectCurrency(amountMatch[2]) : 'ILS'; // Default to ILS
 
     // Extract date if present
     const dateMatch = line.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.](?:\d{2}|\d{4}))/);
     const date = dateMatch ? dateMatch[1] : undefined;
 
     // Detect category
-    let category: ParsedExpense['category'] = 'other';
+    let category: ParsedExpense['category'] = 'unidentified';
     let confidence: 'high' | 'medium' | 'low' = 'low';
 
-    if (lowerLine.includes('hotel') || lowerLine.includes('resort') || lowerLine.includes('villa') || lowerLine.includes('accommodation')) {
-      category = 'hotel';
+    // Check for visa first
+    if (lowerLine.includes('visa') || lowerLine.includes('ויזה')) {
+      category = 'visa';
       confidence = 'high';
-    } else if (lowerLine.includes('restaurant') || lowerLine.includes('cafe') || lowerLine.includes('food') || lowerLine.includes('warung') || lowerLine.includes('dinner') || lowerLine.includes('lunch') || lowerLine.includes('breakfast')) {
-      category = 'food';
-      confidence = 'high';
-    } else if (lowerLine.includes('taxi') || lowerLine.includes('grab') || lowerLine.includes('uber') || lowerLine.includes('driver') || lowerLine.includes('scooter') || lowerLine.includes('rental') || lowerLine.includes('boat')) {
-      category = 'transport';
-      confidence = 'high';
-    } else if (lowerLine.includes('flight') || lowerLine.includes('airline') || lowerLine.includes('airasia') || lowerLine.includes('garuda')) {
+    }
+    // Check for flights
+    else if (lowerLine.includes('flight') || lowerLine.includes('airline') || lowerLine.includes('airasia') || lowerLine.includes('garuda') || lowerLine.includes('thai air') || lowerLine.includes('טיסה')) {
       category = 'flight';
       confidence = 'high';
-    } else if (lowerLine.includes('tour') || lowerLine.includes('ticket') || lowerLine.includes('entrance') || lowerLine.includes('temple') || lowerLine.includes('spa') || lowerLine.includes('massage') || lowerLine.includes('snorkel') || lowerLine.includes('dive')) {
+    }
+    // Check for hotel
+    else if (lowerLine.includes('hotel') || lowerLine.includes('resort') || lowerLine.includes('villa') || lowerLine.includes('accommodation') || lowerLine.includes('מלון')) {
+      category = 'hotel';
+      confidence = 'high';
+    }
+    // Check for transportation
+    else if (lowerLine.includes('taxi') || lowerLine.includes('grab') || lowerLine.includes('uber') || lowerLine.includes('driver') || lowerLine.includes('scooter') || lowerLine.includes('rental') || lowerLine.includes('boat') || lowerLine.includes('transfer') || lowerLine.includes('תחבורה')) {
+      category = 'transport';
+      confidence = 'high';
+    }
+    // Check for food
+    else if (lowerLine.includes('restaurant') || lowerLine.includes('cafe') || lowerLine.includes('food') || lowerLine.includes('warung') || lowerLine.includes('dinner') || lowerLine.includes('lunch') || lowerLine.includes('breakfast') || lowerLine.includes('אוכל') || lowerLine.includes('מסעדה')) {
+      category = 'food';
+      confidence = 'high';
+    }
+    // Check for activities
+    else if (lowerLine.includes('tour') || lowerLine.includes('ticket') || lowerLine.includes('entrance') || lowerLine.includes('temple') || lowerLine.includes('spa') || lowerLine.includes('massage') || lowerLine.includes('snorkel') || lowerLine.includes('dive') || lowerLine.includes('attraction') || lowerLine.includes('אטרקציה')) {
       category = 'activity';
       confidence = 'high';
-    } else if (lowerLine.includes('shop') || lowerLine.includes('market') || lowerLine.includes('souvenir') || lowerLine.includes('mall')) {
+    }
+    // Check for shopping
+    else if (lowerLine.includes('shop') || lowerLine.includes('market') || lowerLine.includes('souvenir') || lowerLine.includes('mall') || lowerLine.includes('קניות')) {
       category = 'shopping';
       confidence = 'medium';
+    }
+    // Default to food-misc for unidentifiable small expenses
+    else if (amount > 0 && amount < 100) {
+      category = 'food-misc';
+      confidence = 'low';
     }
 
     // Detect place
@@ -129,7 +153,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       }
     }
 
-    return {
+    const expense: ParsedExpense = {
       id: `expense-${index}-${Date.now()}`,
       rawText: line,
       date,
@@ -142,16 +166,21 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       confidence,
       status: 'pending',
     };
+
+    // Validate the expense
+    expense.validationError = validateExpense(expense);
+
+    return expense;
   };
 
   const detectCurrency = (text: string): string => {
     const lower = text.toLowerCase();
+    if (lower.includes('ils') || lower.includes('₪')) return 'ILS';
     if (lower.includes('usd') || lower.includes('$')) return 'USD';
     if (lower.includes('idr') || lower.includes('rp')) return 'IDR';
     if (lower.includes('thb') || lower.includes('฿')) return 'THB';
     if (lower.includes('eur') || lower.includes('€')) return 'EUR';
-    if (lower.includes('ils') || lower.includes('₪')) return 'ILS';
-    return 'USD';
+    return 'ILS'; // Default to ILS
   };
 
   const cleanDescription = (text: string): string => {
@@ -178,17 +207,51 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     return null;
   };
 
+  // Validate expense based on rules
+  const validateExpense = (expense: ParsedExpense): string | undefined => {
+    // Convert to ILS if needed for validation (approximate)
+    const amountInILS = expense.currency === 'ILS' || expense.currency === '₪'
+      ? expense.amount
+      : expense.currency === 'USD'
+        ? expense.amount * 3.5 // Rough conversion
+        : expense.currency === 'IDR'
+          ? expense.amount * 0.00023 // Rough conversion
+          : expense.currency === 'THB'
+            ? expense.amount * 0.1 // Rough conversion
+            : expense.amount;
+
+    // Rule: Expenses over ₪100 cannot be unidentified without description
+    if (amountInILS > 100) {
+      if (expense.category === 'unidentified' || expense.category === 'food-misc') {
+        if (!expense.description || expense.description.trim().length < 3) {
+          return `⚠️ Expenses over ₪100 require a clear description`;
+        }
+      }
+    }
+
+    return undefined;
+  };
+
   const updateExpense = (id: string, updates: Partial<ParsedExpense>) => {
     setParsedExpenses(prev =>
-      prev.map(exp =>
-        exp.id === id
-          ? { ...exp, ...updates, status: 'edited' as const }
-          : exp
-      )
+      prev.map(exp => {
+        if (exp.id === id) {
+          const updated = { ...exp, ...updates, status: 'edited' as const };
+          // Validate after update
+          updated.validationError = validateExpense(updated);
+          return updated;
+        }
+        return exp;
+      })
     );
   };
 
   const confirmExpense = (id: string) => {
+    const expense = parsedExpenses.find(e => e.id === id);
+    if (expense?.validationError) {
+      alert(expense.validationError);
+      return;
+    }
     updateExpense(id, { status: 'confirmed' });
   };
 
@@ -201,6 +264,13 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   };
 
   const confirmAll = () => {
+    // Check if any expenses have validation errors
+    const invalidExpenses = parsedExpenses.filter(e => e.validationError);
+    if (invalidExpenses.length > 0) {
+      alert(`⚠️ Cannot confirm all expenses\n\n${invalidExpenses.length} expense(s) have validation errors:\n\n${invalidExpenses.map(e => `• ${e.description}: ${e.validationError}`).join('\n')}`);
+      return;
+    }
+
     setParsedExpenses(prev =>
       prev.map(exp => ({ ...exp, status: 'confirmed' as const }))
     );
@@ -234,6 +304,15 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             <p className="text-sm text-gray-600 mb-3">
               Paste your expense report below. Our AI will automatically categorize each expense by type, location, and day. Review and edit suggestions before importing.
             </p>
+            <div className="bg-white/80 rounded-lg p-3 mb-3 border border-purple-200">
+              <p className="text-xs font-semibold text-gray-700 mb-1">📋 Expense Rules:</p>
+              <ul className="text-xs text-gray-600 space-y-0.5">
+                <li>• <strong>Couple budget:</strong> All expenses tracked together (not split)</li>
+                <li>• <strong>Expenses over ₪100:</strong> Must have clear description (cannot be unidentified)</li>
+                <li>• <strong>Categories:</strong> Flight, Visa, Hotel, Transport, Food, Activities, Shopping</li>
+                <li>• <strong>Small unidentifiable:</strong> Can use "Food + Attractions + Misc"</li>
+              </ul>
+            </div>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(cat => (
                 <span
@@ -261,12 +340,15 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
               value={rawInput}
               onChange={(e) => setRawInput(e.target.value)}
               placeholder="Examples:
+Flight Tel Aviv → Bangkok ₪4,370
+Visa for both ₪7,239
 15/05/2026 Hotel Ubud Resort - 150 USD
-16/05/2026 Warung Makan lunch 12.50 USD
-17/05/2026 Grab taxi to temple 5 USD
-18/05/2026 Snorkeling tour Gili T 45 USD
+16/05/2026 Warung lunch 12.50 USD
+17/05/2026 Grab taxi 5 USD
+18/05/2026 Snorkeling Gili T 45 USD
 
-Any format works - include dates, amounts, merchant names"
+Any format works - paste from bank statement, spreadsheet, or type manually
+Supports: ₪ (ILS), USD, IDR, THB, EUR"
               className="w-full h-64 p-3 border border-gray-300 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -338,22 +420,25 @@ Any format works - include dates, amounts, merchant names"
                         ${expense.status === 'rejected' ? 'opacity-40 bg-red-50' : ''}
                         ${expense.status === 'confirmed' ? 'bg-green-50' : ''}
                         ${expense.status === 'edited' ? 'bg-yellow-50' : ''}
+                        ${expense.validationError ? 'border-l-4 border-red-500 bg-red-50/50' : ''}
                         hover:bg-gray-50 transition-colors
                       `}
                     >
                       <td className="px-4 py-3">
-                        {expense.confidence === 'high' && (
+                        {expense.validationError ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700" title={expense.validationError}>
+                            ❌ Error
+                          </span>
+                        ) : expense.confidence === 'high' ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
                             <Check className="w-3 h-3" /> High
                           </span>
-                        )}
-                        {expense.confidence === 'medium' && (
+                        ) : expense.confidence === 'medium' ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-700">
                             ⚠️ Medium
                           </span>
-                        )}
-                        {expense.confidence === 'low' && (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-700">
                             ⚠️ Low
                           </span>
                         )}
@@ -407,12 +492,22 @@ Any format works - include dates, amounts, merchant names"
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={expense.description}
-                          onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={expense.description}
+                            onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
+                            placeholder={expense.validationError ? "Required!" : "Description..."}
+                            className={`w-full px-2 py-1 text-sm border rounded focus:ring-2 focus:ring-purple-500 ${
+                              expense.validationError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                          {expense.validationError && (
+                            <div className="absolute top-full left-0 mt-1 text-xs text-red-600 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm z-10">
+                              {expense.validationError}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -428,11 +523,11 @@ Any format works - include dates, amounts, merchant names"
                             onChange={(e) => updateExpense(expense.id, { currency: e.target.value })}
                             className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                           >
-                            <option value="USD">USD</option>
+                            <option value="ILS">₪</option>
+                            <option value="USD">$</option>
                             <option value="IDR">IDR</option>
-                            <option value="THB">THB</option>
-                            <option value="EUR">EUR</option>
-                            <option value="ILS">ILS</option>
+                            <option value="THB">฿</option>
+                            <option value="EUR">€</option>
                           </select>
                         </div>
                       </td>
