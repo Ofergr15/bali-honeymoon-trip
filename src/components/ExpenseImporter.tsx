@@ -25,6 +25,8 @@ export interface ParsedExpense {
   hotelName?: string;
   hotelLink?: string;
   hotelRating?: number;
+  hotelNights?: number;
+  hotelType?: 'hotel' | 'resort' | 'villa' | 'hostel' | 'guesthouse' | 'apartment';
 }
 
 const CATEGORIES = [
@@ -1754,39 +1756,81 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
 
                           {/* Hotel-specific fields */}
                           {expense.category === 'hotel' && (
-                            <div className="grid grid-cols-3 gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <div>
-                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🏨 Hotel Name</label>
-                                <input
-                                  type="text"
-                                  value={expense.hotelName || ''}
-                                  onChange={(e) => updateExpense(expense.id, { hotelName: e.target.value })}
-                                  placeholder="e.g., Moxy Ubud"
-                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
+                            <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg space-y-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-lg">
+                                  🏨
+                                </div>
+                                <h4 className="font-bold text-blue-900">Hotel Details</h4>
                               </div>
-                              <div>
-                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🔗 Booking Link</label>
-                                <input
-                                  type="url"
-                                  value={expense.hotelLink || ''}
-                                  onChange={(e) => updateExpense(expense.id, { hotelLink: e.target.value })}
-                                  placeholder="https://booking.com/..."
-                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
+
+                              {/* Row 1: Name and Link */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Hotel Name</label>
+                                  <input
+                                    type="text"
+                                    value={expense.hotelName || ''}
+                                    onChange={(e) => updateExpense(expense.id, { hotelName: e.target.value })}
+                                    placeholder="e.g., Moxy Ubud"
+                                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🔗 Booking Link</label>
+                                  <input
+                                    type="url"
+                                    value={expense.hotelLink || ''}
+                                    onChange={(e) => updateExpense(expense.id, { hotelLink: e.target.value })}
+                                    placeholder="https://booking.com/..."
+                                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
-                                <input
-                                  type="number"
-                                  value={expense.hotelRating || ''}
-                                  onChange={(e) => updateExpense(expense.id, { hotelRating: parseFloat(e.target.value) || undefined })}
-                                  placeholder="8.5"
-                                  step="0.1"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-2 py-2 text-xs font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
+
+                              {/* Row 2: Type, Nights, Rating */}
+                              <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Type</label>
+                                  <select
+                                    value={expense.hotelType || ''}
+                                    onChange={(e) => updateExpense(expense.id, { hotelType: e.target.value as any })}
+                                    className="w-full px-3 py-2 text-sm font-semibold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  >
+                                    <option value="">Select type...</option>
+                                    <option value="hotel">🏨 Hotel</option>
+                                    <option value="resort">🏝️ Resort</option>
+                                    <option value="villa">🏡 Villa</option>
+                                    <option value="hostel">🛏️ Hostel</option>
+                                    <option value="guesthouse">🏠 Guesthouse</option>
+                                    <option value="apartment">🏢 Apartment</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🌙 Nights</label>
+                                  <input
+                                    type="number"
+                                    value={expense.hotelNights || ''}
+                                    onChange={(e) => updateExpense(expense.id, { hotelNights: parseInt(e.target.value) || undefined })}
+                                    placeholder="1"
+                                    min="1"
+                                    max="30"
+                                    className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
+                                  <input
+                                    type="number"
+                                    value={expense.hotelRating || ''}
+                                    onChange={(e) => updateExpense(expense.id, { hotelRating: parseFloat(e.target.value) || undefined })}
+                                    placeholder="8.5"
+                                    step="0.1"
+                                    min="0"
+                                    max="10"
+                                    className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
