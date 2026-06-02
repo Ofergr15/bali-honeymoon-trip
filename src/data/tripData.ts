@@ -10,7 +10,7 @@ export const baliTripData: TripData = {
     {
       day: 1,
       date: "2026-05-04",
-      title: "Flight from Israel",
+      title: "Departure",
       activities: [
         {
           id: "israel-departure",
@@ -361,7 +361,7 @@ export const baliTripData: TripData = {
     {
       day: 29,
       date: "2026-06-01",
-      title: "Flight to Israel",
+      title: "Departure Flight",
       activities: [
         {
           id: "final-departure",
@@ -379,7 +379,7 @@ export const baliTripData: TripData = {
     {
       day: 30,
       date: "2026-06-02",
-      title: "Arrival in Israel",
+      title: "Arrival Home",
       activities: [
         {
           id: "israel-arrival",
