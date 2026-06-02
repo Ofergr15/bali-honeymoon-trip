@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Upload, FileText, Sparkles, Check, X, Edit2, Trash2, Download, Plus } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import type { TripData } from '../types/trip';
 
 interface ExpenseImporterProps {
@@ -318,18 +319,58 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
 
     setIsAnalyzing(true);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      setRawInput(text);
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
-      // Auto-analyze after loading
-      setTimeout(() => {
-        analyzeExpenses();
-      }, 100);
-    };
+    if (isExcel) {
+      // Handle Excel files
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
 
-    reader.readAsText(file);
+          // Get first sheet
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+
+          // Convert to text format (each row as a line)
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+          // Convert to text format: join cells with spaces, rows with newlines
+          const text = jsonData
+            .filter(row => row.some(cell => cell)) // Skip empty rows
+            .map(row => row.join(' '))
+            .join('\n');
+
+          setRawInput(text);
+
+          // Auto-analyze after loading
+          setTimeout(() => {
+            analyzeExpenses();
+          }, 100);
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          alert('❌ Error parsing Excel file. Please make sure it\'s a valid .xlsx or .xls file.');
+          setIsAnalyzing(false);
+        }
+      };
+
+      reader.readAsBinaryString(file);
+    } else {
+      // Handle text/CSV files
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setRawInput(text);
+
+        // Auto-analyze after loading
+        setTimeout(() => {
+          analyzeExpenses();
+        }, 100);
+      };
+
+      reader.readAsText(file);
+    }
   };
 
   const handleAddManualExpense = () => {
@@ -637,13 +678,13 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       {/* File Upload Section */}
       {parsedExpenses.length === 0 && importMode === 'file' && (
         <div className="space-y-4">
-          <div className="bg-white border-2 border-dashed border-blue-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
             <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Upload Expense File
+              📊 Upload Expense Report
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Upload a CSV, Excel, or text file with your expenses
+              Upload your bank statement, credit card report, or expense spreadsheet
             </p>
             <label className="inline-block">
               <input
@@ -657,8 +698,23 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                 Choose File
               </span>
             </label>
-            <p className="text-xs text-gray-500 mt-4">
-              Supports: .csv, .txt, .xls, .xlsx
+
+            <div className="mt-6 grid grid-cols-2 gap-3 max-w-md mx-auto">
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <div className="text-2xl mb-1">📊</div>
+                <div className="text-xs font-bold text-gray-700">Excel</div>
+                <div className="text-xs text-gray-500">.xlsx, .xls</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <div className="text-2xl mb-1">📄</div>
+                <div className="text-xs font-bold text-gray-700">CSV / Text</div>
+                <div className="text-xs text-gray-500">.csv, .txt</div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 mt-4">
+              💡 <strong>Tip:</strong> Export from your bank or credit card as Excel/CSV,
+              then upload here. AI will automatically categorize each expense!
             </p>
           </div>
         </div>
