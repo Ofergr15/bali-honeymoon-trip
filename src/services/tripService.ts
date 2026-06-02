@@ -2,7 +2,7 @@ import { supabase, type Place } from '../lib/supabase';
 import type { TripData, Activity, Hotel, DayExpense } from '../types/trip';
 
 // Convert database format to app format
-function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], dbHotels: any[]): TripData & { unassignedActivities: Activity[] } {
+function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], dbHotels: any[], dbExpenses: any[] = []): TripData & { unassignedActivities: Activity[] } {
   const days = dbDays.map(day => {
     const dayActivities = dbActivities
       .filter(a => a.day_id === day.id)
@@ -35,12 +35,24 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
       imageUrl: dayHotel.image_url,
     } : undefined;
 
+    // Load expenses for this day
+    const dayExpenses = dbExpenses
+      .filter(e => e.day_id === day.id)
+      .map(e => ({
+        id: e.id,
+        category: e.category,
+        description: e.description,
+        amount: parseFloat(e.amount),
+        currency: e.currency,
+      }));
+
     return {
       day: day.day_number,
       date: day.date,
       title: day.title,
       activities: dayActivities,
       hotel,
+      expenses: dayExpenses.length > 0 ? dayExpenses : undefined,
     };
   });
 
@@ -61,6 +73,17 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
       googleMapsUrl: a.google_maps_url,
     }));
 
+  // Get general expenses (not tied to specific day)
+  const generalExpenses = dbExpenses
+    .filter(e => e.day_id === null)
+    .map(e => ({
+      id: e.id,
+      category: e.category,
+      description: e.description,
+      amount: parseFloat(e.amount),
+      currency: e.currency,
+    }));
+
   return {
     title: dbTrip.title,
     destination: dbTrip.destination,
@@ -68,6 +91,7 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
     endDate: dbTrip.end_date,
     days,
     unassignedActivities,
+    generalExpenses: generalExpenses.length > 0 ? generalExpenses : undefined,
   };
 }
 
@@ -126,7 +150,17 @@ export async function loadTrip(tripId: string): Promise<TripData | null> {
 
     if (hotelsError) throw hotelsError;
 
-    return convertDbToTripData(trip, days || [], activities || [], hotels || []);
+    // Load expenses (both day-specific and general)
+    const { data: expenses, error: expensesError } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('trip_id', tripId);
+
+    if (expensesError) {
+      console.warn('⚠️ Could not load expenses:', expensesError);
+    }
+
+    return convertDbToTripData(trip, days || [], activities || [], hotels || [], expenses || []);
   } catch (error) {
     console.error('Error loading trip:', error);
     return null;

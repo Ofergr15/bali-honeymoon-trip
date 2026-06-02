@@ -436,7 +436,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     setLocalTripData({ ...localTripData, days: updatedDays });
   };
 
-  const handleImportExpenses = (parsedExpenses: ParsedExpense[]) => {
+  const handleImportExpenses = async (parsedExpenses: ParsedExpense[]) => {
     // Convert ParsedExpense[] to DayExpense[] and split between day-specific and general expenses
     const updatedDays = [...localTripData.days];
     const generalExpenses = [...(localTripData.generalExpenses || [])];
@@ -444,37 +444,100 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     let dayExpensesCount = 0;
     let generalExpensesCount = 0;
 
-    parsedExpenses.forEach(expense => {
-      // Convert to DayExpense format
-      const dayExpense: DayExpense = {
-        id: expense.id,
-        category: expense.category,
-        description: expense.description,
-        amount: expense.amount,
-        currency: expense.currency,
-      };
+    // Save to database if Supabase is configured
+    if (tripId) {
+      try {
+        const { getDayId, addExpense } = await import('../services/tripService');
 
-      // Determine if this is a general expense (flights, visas) or day-specific
-      const isGeneralExpense = expense.category === 'flight' ||
-                               expense.category === 'visa' ||
-                               !expense.day;
+        for (const expense of parsedExpenses) {
+          // Convert to DayExpense format
+          const dayExpense: Omit<DayExpense, 'id'> = {
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+            currency: expense.currency,
+          };
 
-      if (isGeneralExpense) {
-        // Add to general expenses (trip-level)
-        generalExpenses.push(dayExpense);
-        generalExpensesCount++;
-      } else {
-        // Add to the appropriate day
-        if (expense.day >= 1 && expense.day <= updatedDays.length) {
-          const dayIndex = expense.day - 1;
-          if (!updatedDays[dayIndex].expenses) {
-            updatedDays[dayIndex].expenses = [];
+          // Determine if this is a general expense (flights, visas) or day-specific
+          const isGeneralExpense = expense.category === 'flight' ||
+                                   expense.category === 'visa' ||
+                                   !expense.day;
+
+          if (isGeneralExpense) {
+            // Save as general expense (use trip_id directly, no day_id)
+            const { supabase } = await import('../lib/supabase');
+            const { data, error } = await supabase
+              .from('expenses')
+              .insert({
+                trip_id: tripId,
+                day_id: null,  // null = general expense
+                category: dayExpense.category,
+                description: dayExpense.description,
+                amount: dayExpense.amount,
+                currency: dayExpense.currency,
+              })
+              .select()
+              .single();
+
+            if (!error && data) {
+              generalExpenses.push({
+                id: data.id,
+                ...dayExpense,
+              });
+              generalExpensesCount++;
+            }
+          } else {
+            // Save to specific day
+            const dayId = await getDayId(tripId, expense.day!);
+            if (dayId) {
+              const savedExpense = await addExpense(dayId, dayExpense);
+              if (savedExpense) {
+                const dayIndex = expense.day! - 1;
+                if (!updatedDays[dayIndex].expenses) {
+                  updatedDays[dayIndex].expenses = [];
+                }
+                updatedDays[dayIndex].expenses!.push(savedExpense);
+                dayExpensesCount++;
+              }
+            }
           }
-          updatedDays[dayIndex].expenses!.push(dayExpense);
-          dayExpensesCount++;
         }
+
+        console.log('✅ All expenses saved to database');
+      } catch (error) {
+        console.error('❌ Error saving expenses:', error);
+        alert('⚠️ Some expenses may not have been saved to the database. Check console for details.');
       }
-    });
+    } else {
+      // No database - just add to local state
+      parsedExpenses.forEach(expense => {
+        const dayExpense: DayExpense = {
+          id: expense.id,
+          category: expense.category,
+          description: expense.description,
+          amount: expense.amount,
+          currency: expense.currency,
+        };
+
+        const isGeneralExpense = expense.category === 'flight' ||
+                                 expense.category === 'visa' ||
+                                 !expense.day;
+
+        if (isGeneralExpense) {
+          generalExpenses.push(dayExpense);
+          generalExpensesCount++;
+        } else {
+          if (expense.day >= 1 && expense.day <= updatedDays.length) {
+            const dayIndex = expense.day - 1;
+            if (!updatedDays[dayIndex].expenses) {
+              updatedDays[dayIndex].expenses = [];
+            }
+            updatedDays[dayIndex].expenses!.push(dayExpense);
+            dayExpensesCount++;
+          }
+        }
+      });
+    }
 
     setLocalTripData({
       ...localTripData,
@@ -486,7 +549,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     const message = `✅ Successfully imported ${parsedExpenses.length} expenses!\n\n` +
                    `• ${generalExpensesCount} general expenses (flights, visas)\n` +
                    `• ${dayExpensesCount} day-specific expenses\n\n` +
-                   `View them in the Daily Expenses tab.`;
+                   `Saved to database and visible in Daily Expenses tab.`;
     alert(message);
 
     // Switch to expenses tab to show the results
