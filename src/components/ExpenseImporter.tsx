@@ -550,8 +550,8 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
 
       {/* Manual Form */}
       {parsedExpenses.length === 0 && showManualForm && (
-        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-6 space-y-4">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-6 space-y-5">
+          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Plus className="w-5 h-5 text-teal-600" />
             Add Single Expense
           </h3>
@@ -575,9 +575,9 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
               }}
               min={tripData.startDate}
               max={tripData.endDate}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 mt-2">
               {manualExpense.date && manualExpense.day
                 ? `✅ Automatically assigned to Day ${manualExpense.day}: ${tripData.days[manualExpense.day - 1]?.title}`
                 : manualExpense.date && !manualExpense.day
@@ -590,43 +590,64 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Place */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Location
-              </label>
-              <select
-                value={manualExpense.place}
-                onChange={(e) => setManualExpense({ ...manualExpense, place: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="">Select location...</option>
-                {PLACES.map(p => (
-                  <option key={p.value} value={p.value}>
-                    {p.emoji} {p.value}
-                  </option>
-                ))}
-              </select>
+          {/* Category - Visual Grid (like DailyExpensesTracker) */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {CATEGORIES.slice(0, 6).map(cat => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setManualExpense({ ...manualExpense, category: cat.value as any })}
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                    manualExpense.category === cat.value
+                      ? 'scale-105 shadow-lg'
+                      : 'hover:scale-102 hover:shadow-md'
+                  }`}
+                  style={manualExpense.category === cat.value ? {
+                    borderColor: cat.color,
+                    backgroundColor: `${cat.color}20`
+                  } : {
+                    borderColor: '#E5E7EB',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <span className={`text-3xl block mb-1 ${manualExpense.category === cat.value ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s', animationIterationCount: '1' }}>
+                    {cat.label.split(' ')[0]}
+                  </span>
+                  <span className={`text-xs block font-semibold ${manualExpense.category === cat.value ? 'text-gray-900' : 'text-gray-600'}`}>
+                    {cat.label.split(' ').slice(1).join(' ')}
+                  </span>
+                </button>
+              ))}
             </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={manualExpense.category}
-                onChange={(e) => setManualExpense({ ...manualExpense, category: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                style={{ color: getCategoryColor(manualExpense.category) }}
-              >
-                {CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+            {/* Additional categories */}
+            <div className="mt-2 flex gap-2">
+              {CATEGORIES.slice(6).map(cat => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setManualExpense({ ...manualExpense, category: cat.value as any })}
+                  className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                    manualExpense.category === cat.value
+                      ? 'scale-105 shadow-md'
+                      : 'hover:scale-102'
+                  }`}
+                  style={manualExpense.category === cat.value ? {
+                    borderColor: cat.color,
+                    backgroundColor: `${cat.color}20`,
+                    color: cat.color
+                  } : {
+                    borderColor: '#E5E7EB',
+                    backgroundColor: 'white',
+                    color: '#4B5563'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -639,8 +660,8 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
               type="text"
               value={manualExpense.description}
               onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-              placeholder="What was this expense for?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              placeholder="e.g., Lunch at Locavore"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium placeholder:text-gray-400"
             />
           </div>
 
@@ -657,7 +678,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium text-lg"
               />
             </div>
 
@@ -668,7 +689,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
               <select
                 value={manualExpense.currency}
                 onChange={(e) => setManualExpense({ ...manualExpense, currency: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium text-lg"
               >
                 <option value="ILS">₪ ILS</option>
                 <option value="USD">$ USD</option>
@@ -679,9 +700,29 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             </div>
           </div>
 
+          {/* Location (Optional) */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Location <span className="text-gray-400 text-xs">(optional)</span>
+            </label>
+            <select
+              value={manualExpense.place}
+              onChange={(e) => setManualExpense({ ...manualExpense, place: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium"
+            >
+              <option value="">Select location...</option>
+              {PLACES.map(p => (
+                <option key={p.value} value={p.value}>
+                  {p.emoji} {p.value}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-3">
             <button
+              type="button"
               onClick={() => {
                 setShowManualForm(false);
                 setManualExpense({
@@ -694,16 +735,17 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                   currency: 'ILS',
                 });
               }}
-              className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleAddManualExpense}
               disabled={!manualExpense.description || manualExpense.amount <= 0}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <Plus className="w-4 h-4 inline mr-1" />
+              <Plus className="w-5 h-5" />
               Add Expense
             </button>
           </div>

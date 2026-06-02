@@ -978,51 +978,88 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                   {(() => {
                     const visiblePlaces = places.filter(p => !p.hidden);
 
-                    // Find the actual days in tripData that match each place
-                    let dayIndex = 0;
+                    // Build consecutive place groups from tripData (same as DayNavigationBar)
+                    interface PlaceGroup {
+                      placeName: string;
+                      startDate: string;
+                      endDate: string;
+                      dayCount: number;
+                    }
+
+                    const placeGroups: PlaceGroup[] = [];
+                    let currentPlaceName = '';
+                    let currentStartDate = '';
+                    let currentEndDate = '';
+                    let currentDayCount = 0;
+
+                    tripData.days.forEach((day, idx) => {
+                      const dayPlace = getPlaceName(day.title);
+
+                      // Skip "Other" transit days
+                      if (dayPlace === 'Other') {
+                        return;
+                      }
+
+                      if (dayPlace !== currentPlaceName && currentDayCount > 0) {
+                        // Save previous group
+                        placeGroups.push({
+                          placeName: currentPlaceName,
+                          startDate: currentStartDate,
+                          endDate: currentEndDate,
+                          dayCount: currentDayCount,
+                        });
+                        currentDayCount = 0;
+                      }
+
+                      // Start or continue current group
+                      if (dayPlace !== currentPlaceName) {
+                        currentPlaceName = dayPlace;
+                        currentStartDate = day.date;
+                      }
+                      currentEndDate = day.date;
+                      currentDayCount++;
+
+                      // Save last group
+                      if (idx === tripData.days.length - 1 && currentDayCount > 0) {
+                        placeGroups.push({
+                          placeName: currentPlaceName,
+                          startDate: currentStartDate,
+                          endDate: currentEndDate,
+                          dayCount: currentDayCount,
+                        });
+                      }
+                    });
+
+                    // Match each visible place to its corresponding consecutive group in order
+                    const groupIndex: Record<string, number> = {}; // Track which occurrence we're at for each place name
 
                     return visiblePlaces.map((place, index) => {
                       const actualIndex = places.indexOf(place);
 
-                      // Find the actual date range from tripData.days
-                      let startDate: string | null = null;
-                      let endDate: string | null = null;
-                      let daysFound = 0;
+                      // Track which occurrence of this place name we're looking for
+                      if (!groupIndex[place.name]) {
+                        groupIndex[place.name] = 0;
+                      }
 
-                      // Search through tripData.days to find consecutive days matching this place
-                      // IMPORTANT: Only match CONSECUTIVE days, stop when we hit a different place
-                      for (let i = dayIndex; i < tripData.days.length; i++) {
-                        const day = tripData.days[i];
-                        const dayPlace = getPlaceName(day.title);
+                      // Find the Nth occurrence of this place in placeGroups
+                      let occurrenceCount = 0;
+                      let matchedGroup: PlaceGroup | null = null;
 
-                        // Skip "Other" transit days
-                        if (dayPlace === 'Other') {
-                          if (daysFound > 0) {
-                            // We already found some days for this place, so transit day ends the group
-                            dayIndex = i + 1;
+                      for (const group of placeGroups) {
+                        if (group.placeName === place.name) {
+                          if (occurrenceCount === groupIndex[place.name]) {
+                            matchedGroup = group;
                             break;
                           }
-                          // Haven't found this place yet, keep looking
-                          dayIndex = i + 1;
-                          continue;
-                        }
-
-                        if (dayPlace === place.name) {
-                          if (!startDate) startDate = day.date;
-                          endDate = day.date;
-                          daysFound++;
-                          dayIndex = i + 1;
-                        } else if (daysFound > 0) {
-                          // We found some days but now hit a different place, stop here
-                          break;
-                        } else {
-                          // Haven't found this place yet, keep looking
-                          dayIndex = i + 1;
+                          occurrenceCount++;
                         }
                       }
 
-                      const dateRange = startDate && endDate
-                        ? `${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                      // Increment for next occurrence of this place name
+                      groupIndex[place.name]++;
+
+                      const dateRange = matchedGroup
+                        ? `${new Date(matchedGroup.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(matchedGroup.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                         : 'Dates not set';
 
                       return (
