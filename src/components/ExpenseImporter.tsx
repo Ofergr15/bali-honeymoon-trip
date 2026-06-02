@@ -989,33 +989,256 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
         </div>
       )}
 
-      {/* Preview Table */}
+      {/* Preview Cards */}
       {parsedExpenses.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">
-              Review & Edit ({parsedExpenses.length} expenses)
-            </h3>
+          {/* Header */}
+          <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Review & Edit
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {parsedExpenses.filter(e => e.status === 'confirmed' || e.status === 'edited').length} of {parsedExpenses.length} confirmed
+                {parsedExpenses.filter(e => e.validationError).length > 0 && (
+                  <span className="text-red-600 font-semibold ml-2">
+                    • {parsedExpenses.filter(e => e.validationError).length} errors
+                  </span>
+                )}
+              </p>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={confirmAll}
-                className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-5 h-5" />
                 Confirm All
               </button>
               <button
                 onClick={() => setParsedExpenses([])}
-                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-5 py-2.5 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300 transition-colors"
               >
                 Clear All
               </button>
             </div>
           </div>
 
-          <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto pr-2">
+            {parsedExpenses.map((expense) => {
+              const categoryInfo = CATEGORIES.find(c => c.value === expense.category);
+              const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+
+              return (
+                <div
+                  key={expense.id}
+                  className={`relative border-2 rounded-xl p-5 transition-all ${
+                    expense.status === 'rejected'
+                      ? 'opacity-40 bg-gray-50 border-gray-300'
+                      : expense.status === 'confirmed'
+                      ? 'bg-green-50 border-green-300 shadow-sm'
+                      : expense.status === 'edited'
+                      ? 'bg-yellow-50 border-yellow-300 shadow-sm'
+                      : expense.validationError
+                      ? 'bg-red-50 border-red-400 shadow-md'
+                      : 'bg-white border-gray-200 hover:shadow-md'
+                  }`}
+                >
+                  {/* Status Badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                    {expense.validationError ? (
+                      <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        ❌ Error
+                      </span>
+                    ) : expense.confidence === 'high' ? (
+                      <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3" /> High Confidence
+                      </span>
+                    ) : expense.confidence === 'medium' ? (
+                      <span className="px-3 py-1 bg-yellow-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        ⚠️ Medium
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        ⚠️ Low Confidence
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Category Icon & Amount */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div
+                      className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
+                      style={{ backgroundColor: `${categoryInfo?.color}20` }}
+                    >
+                      {categoryInfo?.label.split(' ')[0] || '💰'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-3xl font-bold" style={{ color: categoryInfo?.color }}>
+                          {expense.currency === 'ILS' && '₪'}
+                          {expense.currency === 'USD' && '$'}
+                          {expense.currency === 'EUR' && '€'}
+                          {expense.amount.toLocaleString()}
+                        </span>
+                        <span className="text-lg font-semibold text-gray-500">{expense.currency}</span>
+                      </div>
+                      {isGeneral && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">
+                          ✈️ General Expense
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={expense.description}
+                      onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
+                      placeholder={expense.validationError ? "Required for amounts over ₪100!" : "What was this expense for?"}
+                      className={`w-full px-4 py-2.5 text-base font-medium border-2 rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                        expense.validationError
+                          ? 'border-red-500 bg-red-50 placeholder:text-red-400'
+                          : 'border-gray-300 bg-white'
+                      }`}
+                    />
+                    {expense.validationError && (
+                      <p className="text-xs text-red-600 font-semibold mt-1">
+                        {expense.validationError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Grid: Category, Date, Day */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                      <select
+                        value={expense.category}
+                        onChange={(e) => updateExpense(expense.id, { category: e.target.value as any })}
+                        className="w-full px-3 py-2 text-sm font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        style={{ color: categoryInfo?.color }}
+                      >
+                        {CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                      <input
+                        type="text"
+                        value={expense.date || ''}
+                        onChange={(e) => updateExpense(expense.id, { date: e.target.value })}
+                        placeholder="DD/MM/YYYY"
+                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                        Trip Day {isGeneral && <span className="text-blue-600">(General)</span>}
+                      </label>
+                      <input
+                        type="number"
+                        value={expense.day || ''}
+                        onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                        placeholder="General"
+                        min="1"
+                        max={tripData.days.length}
+                        disabled={expense.category === 'flight' || expense.category === 'visa'}
+                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Place & Amount Row */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="col-span-1">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Place</label>
+                      <select
+                        value={expense.place || ''}
+                        onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
+                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Select...</option>
+                        {PLACES.map(p => (
+                          <option key={p.value} value={p.value}>
+                            {p.emoji} {p.value}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
+                      <input
+                        type="number"
+                        value={expense.amount}
+                        onChange={(e) => updateExpense(expense.id, { amount: parseFloat(e.target.value) || 0 })}
+                        step="0.01"
+                        className="w-full px-3 py-2 text-sm font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Currency</label>
+                      <select
+                        value={expense.currency}
+                        onChange={(e) => updateExpense(expense.id, { currency: e.target.value })}
+                        className="w-full px-3 py-2 text-sm font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="ILS">₪ ILS</option>
+                        <option value="USD">$ USD</option>
+                        <option value="IDR">IDR</option>
+                        <option value="THB">฿ THB</option>
+                        <option value="EUR">€ EUR</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-3 border-t-2 border-gray-200">
+                    {expense.status !== 'confirmed' && (
+                      <button
+                        onClick={() => confirmExpense(expense.id)}
+                        className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        Confirm
+                      </button>
+                    )}
+                    {expense.status === 'confirmed' && (
+                      <div className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2">
+                        <Check className="w-4 h-4" />
+                        Confirmed ✓
+                      </div>
+                    )}
+                    <button
+                      onClick={() => deleteExpense(expense.id)}
+                      className="px-4 py-2.5 bg-red-100 text-red-700 text-sm font-bold rounded-lg hover:bg-red-200 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Summary - kept as table for backward compatibility */}
+          <div className="hidden">
+            <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                 <thead className="bg-gray-50 border-b-2 border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Status</th>
@@ -1179,6 +1402,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           </div>
 
