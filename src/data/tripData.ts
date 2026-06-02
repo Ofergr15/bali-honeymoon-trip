@@ -23,7 +23,7 @@ export const baliTripData: TripData = {
         },
       ],
     },
-    // Day 2 (May 5) - Bangkok Arrival
+    // BANGKOK - Day 2 (May 5) - 1 night
     {
       day: 2,
       date: "2026-05-05",
@@ -351,7 +351,7 @@ export const baliTripData: TripData = {
       activities: [],
     },
 
-    // BANGKOK - Days 27-28 (May 30-31) - 2 nights
+    // BANGKOK - Days 27-29 (May 30 - June 1) - 2 nights
     {
       day: 27,
       date: "2026-05-30",
@@ -384,8 +384,6 @@ export const baliTripData: TripData = {
       title: "Bangkok",
       activities: [],
     },
-
-    // RETURN HOME - Day 29-30 (June 1-2)
     {
       day: 29,
       date: "2026-06-01",
@@ -402,6 +400,8 @@ export const baliTripData: TripData = {
         },
       ],
     },
+
+    // RETURN HOME - Day 30 (June 2)
     {
       day: 30,
       date: "2026-06-02",
