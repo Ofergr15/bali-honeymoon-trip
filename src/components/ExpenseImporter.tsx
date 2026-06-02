@@ -21,6 +21,10 @@ export interface ParsedExpense {
   confidence: 'high' | 'medium' | 'low';
   status: 'pending' | 'confirmed' | 'edited' | 'rejected';
   validationError?: string;
+  // Hotel-specific fields
+  hotelName?: string;
+  hotelLink?: string;
+  hotelRating?: number;
 }
 
 const CATEGORIES = [
@@ -1726,6 +1730,45 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                               </select>
                             </div>
                           </div>
+
+                          {/* Hotel-specific fields */}
+                          {expense.category === 'hotel' && (
+                            <div className="grid grid-cols-3 gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div>
+                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🏨 Hotel Name</label>
+                                <input
+                                  type="text"
+                                  value={expense.hotelName || ''}
+                                  onChange={(e) => updateExpense(expense.id, { hotelName: e.target.value })}
+                                  placeholder="e.g., Moxy Ubud"
+                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🔗 Booking Link</label>
+                                <input
+                                  type="url"
+                                  value={expense.hotelLink || ''}
+                                  onChange={(e) => updateExpense(expense.id, { hotelLink: e.target.value })}
+                                  placeholder="https://booking.com/..."
+                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
+                                <input
+                                  type="number"
+                                  value={expense.hotelRating || ''}
+                                  onChange={(e) => updateExpense(expense.id, { hotelRating: parseFloat(e.target.value) || undefined })}
+                                  placeholder="8.5"
+                                  step="0.1"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-2 py-2 text-xs font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                            </div>
+                          )}
 
                           {/* Place & Trip Day */}
                           <div className="grid grid-cols-2 gap-3">
