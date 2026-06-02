@@ -84,6 +84,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     description: '',
     amount: 0,
     currency: 'ILS',
+    hotelName: '',
+    hotelLink: '',
+    hotelRating: undefined as number | undefined,
+    hotelNights: undefined as number | undefined,
+    hotelType: undefined as 'hotel' | 'resort' | 'villa' | 'hostel' | 'guesthouse' | 'apartment' | undefined,
+    hotelCheckIn: '',
+    hotelCheckOut: '',
+    receiptLink: '',
   });
 
   // Map Israeli credit card categories to our categories
@@ -557,6 +565,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       description: manualExpense.description,
       amount: manualExpense.amount,
       currency: manualExpense.currency,
+      hotelName: manualExpense.hotelName || undefined,
+      hotelLink: manualExpense.hotelLink || undefined,
+      hotelRating: manualExpense.hotelRating || undefined,
+      hotelNights: manualExpense.hotelNights || undefined,
+      hotelType: manualExpense.hotelType || undefined,
+      hotelCheckIn: manualExpense.hotelCheckIn || undefined,
+      hotelCheckOut: manualExpense.hotelCheckOut || undefined,
+      receiptLink: manualExpense.receiptLink || undefined,
       confidence: 'high',
       status: 'pending',
     };
@@ -576,6 +592,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       description: '',
       amount: 0,
       currency: 'ILS',
+      hotelName: '',
+      hotelLink: '',
+      hotelRating: undefined,
+      hotelNights: undefined,
+      hotelType: undefined,
+      hotelCheckIn: '',
+      hotelCheckOut: '',
+      receiptLink: '',
     });
 
     // Close form
@@ -867,6 +891,149 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             </select>
           </div>
 
+          {/* Receipt/Booking Link (All categories) */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              🔗 Receipt/Booking Link <span className="text-gray-400 text-xs">(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={manualExpense.receiptLink}
+              onChange={(e) => setManualExpense({ ...manualExpense, receiptLink: e.target.value })}
+              placeholder="https://..."
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-medium"
+            />
+          </div>
+
+          {/* Hotel-specific fields */}
+          {manualExpense.category === 'hotel' && (
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-lg">
+                  🏨
+                </div>
+                <h4 className="font-bold text-blue-900">Hotel Details</h4>
+              </div>
+
+              {/* Row 1: Name and Booking Link */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Hotel Name</label>
+                  <input
+                    type="text"
+                    value={manualExpense.hotelName}
+                    onChange={(e) => setManualExpense({ ...manualExpense, hotelName: e.target.value })}
+                    placeholder="e.g., Moxy Ubud"
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🔗 Booking Link</label>
+                  <input
+                    type="url"
+                    value={manualExpense.hotelLink}
+                    onChange={(e) => setManualExpense({ ...manualExpense, hotelLink: e.target.value })}
+                    placeholder="https://booking.com/..."
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Check-in, Check-out, Auto-calculated Nights */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-in</label>
+                  <input
+                    type="date"
+                    value={manualExpense.hotelCheckIn}
+                    onChange={(e) => {
+                      const checkIn = e.target.value;
+                      const updates: any = { hotelCheckIn: checkIn };
+
+                      // Auto-calculate nights if both dates exist
+                      if (checkIn && manualExpense.hotelCheckOut) {
+                        const d1 = new Date(checkIn);
+                        const d2 = new Date(manualExpense.hotelCheckOut);
+                        const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                        if (nights > 0) {
+                          updates.hotelNights = nights;
+                        }
+                      }
+
+                      setManualExpense({ ...manualExpense, ...updates });
+                    }}
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-out</label>
+                  <input
+                    type="date"
+                    value={manualExpense.hotelCheckOut}
+                    onChange={(e) => {
+                      const checkOut = e.target.value;
+                      const updates: any = { hotelCheckOut: checkOut };
+
+                      // Auto-calculate nights if both dates exist
+                      if (manualExpense.hotelCheckIn && checkOut) {
+                        const d1 = new Date(manualExpense.hotelCheckIn);
+                        const d2 = new Date(checkOut);
+                        const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                        if (nights > 0) {
+                          updates.hotelNights = nights;
+                        }
+                      }
+
+                      setManualExpense({ ...manualExpense, ...updates });
+                    }}
+                    min={manualExpense.hotelCheckIn || undefined}
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🌙 Nights</label>
+                  <div className="w-full px-3 py-2 text-lg font-bold border-2 border-blue-300 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center">
+                    {manualExpense.hotelNights || '-'}
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1 text-center">Auto-calculated</p>
+                </div>
+              </div>
+
+              {/* Row 3: Type & Rating */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🏨 Type</label>
+                  <select
+                    value={manualExpense.hotelType || ''}
+                    onChange={(e) => setManualExpense({ ...manualExpense, hotelType: e.target.value as any })}
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">Select type...</option>
+                    <option value="hotel">🏨 Hotel</option>
+                    <option value="resort">🌴 Resort</option>
+                    <option value="villa">🏡 Villa</option>
+                    <option value="hostel">🛏️ Hostel</option>
+                    <option value="guesthouse">🏠 Guesthouse</option>
+                    <option value="apartment">🏢 Apartment</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    value={manualExpense.hotelRating || ''}
+                    onChange={(e) => setManualExpense({ ...manualExpense, hotelRating: parseFloat(e.target.value) || undefined })}
+                    placeholder="e.g., 4.5"
+                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-3">
             <button
@@ -881,6 +1048,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                   description: '',
                   amount: 0,
                   currency: 'ILS',
+                  hotelName: '',
+                  hotelLink: '',
+                  hotelRating: undefined,
+                  hotelNights: undefined,
+                  hotelType: undefined,
+                  hotelCheckIn: '',
+                  hotelCheckOut: '',
+                  receiptLink: '',
                 });
               }}
               className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all"
