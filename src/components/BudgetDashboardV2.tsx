@@ -10,11 +10,11 @@ interface BudgetDashboardV2Props {
 const PLACES = [
   { name: 'Canggu', emoji: '🏖️', color: '#06B6D4', image: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
   { name: 'Ubud', emoji: '🌿', color: '#10B981', image: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { name: 'Munduk', emoji: '🏔️', color: '#8B4513', image: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+  { name: 'Komodo', emoji: '🏔️', color: '#8B4513', image: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
   { name: 'Sidemen', emoji: '🌾', color: '#84CC16', image: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
   { name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', image: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
   { name: 'Gili Air', emoji: '🌊', color: '#60A5FA', image: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)' },
-  { name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', image: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)' },
+  { name: 'Nusa Lembongan', emoji: '⛰️', color: '#1D4ED8', image: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)' },
   { name: 'Uluwatu', emoji: '🌅', color: '#F97316', image: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%, #feada6 100%)' },
 ];
 

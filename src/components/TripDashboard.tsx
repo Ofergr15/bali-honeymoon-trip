@@ -8,14 +8,16 @@ interface TripDashboardProps {
 }
 
 const PLACES = [
+  { name: 'Bangkok', emoji: '🇹🇭', color: '#DC2626', gradient: 'from-red-600 to-pink-600' },
   { name: 'Canggu', emoji: '🏖️', color: '#06B6D4', gradient: 'from-cyan-500 to-blue-500' },
-  { name: 'Ubud', emoji: '🌿', color: '#10B981', gradient: 'from-emerald-500 to-green-600' },
-  { name: 'Munduk', emoji: '🏔️', color: '#8B4513', gradient: 'from-amber-700 to-orange-800' },
   { name: 'Sidemen', emoji: '🌾', color: '#84CC16', gradient: 'from-lime-500 to-green-500' },
+  { name: 'Ubud', emoji: '🌿', color: '#10B981', gradient: 'from-emerald-500 to-green-600' },
+  { name: 'Uluwatu', emoji: '🌅', color: '#F97316', gradient: 'from-orange-500 to-red-500' },
   { name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', gradient: 'from-blue-500 to-indigo-500' },
   { name: 'Gili Air', emoji: '🌊', color: '#60A5FA', gradient: 'from-blue-400 to-cyan-400' },
-  { name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', gradient: 'from-blue-700 to-indigo-800' },
-  { name: 'Uluwatu', emoji: '🌅', color: '#F97316', gradient: 'from-orange-500 to-red-500' },
+  { name: 'Nusa Lembongan', emoji: '⛰️', color: '#1D4ED8', gradient: 'from-blue-700 to-indigo-800' },
+  { name: 'Kuta', emoji: '🏄', color: '#D946EF', gradient: 'from-fuchsia-500 to-purple-600' },
+  { name: 'Komodo', emoji: '🐉', color: '#14B8A6', gradient: 'from-teal-500 to-cyan-600' },
 ];
 
 export default function TripDashboard({ tripData, onClose }: TripDashboardProps) {

@@ -20,11 +20,11 @@ const EXPENSE_CATEGORIES = [
 const PLACES = [
   { name: 'Canggu', emoji: '🏖️', color: '#06B6D4', dayStart: 1, dayEnd: 3 },
   { name: 'Ubud', emoji: '🌿', color: '#10B981', dayStart: 4, dayEnd: 6 },
-  { name: 'Munduk', emoji: '🏔️', color: '#8B4513', dayStart: 7, dayEnd: 9 },
+  { name: 'Komodo', emoji: '🏔️', color: '#8B4513', dayStart: 7, dayEnd: 9 },
   { name: 'Sidemen', emoji: '🌾', color: '#84CC16', dayStart: 10, dayEnd: 11 },
   { name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', dayStart: 12, dayEnd: 13 },
   { name: 'Gili Air', emoji: '🌊', color: '#60A5FA', dayStart: 14, dayEnd: 15 },
-  { name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', dayStart: 16, dayEnd: 16 },
+  { name: 'Nusa Lembongan', emoji: '⛰️', color: '#1D4ED8', dayStart: 16, dayEnd: 16 },
   { name: 'Uluwatu', emoji: '🌅', color: '#F97316', dayStart: 17, dayEnd: 25 },
 ];
 

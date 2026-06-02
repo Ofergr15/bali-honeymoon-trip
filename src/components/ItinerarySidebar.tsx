@@ -176,12 +176,12 @@ export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onD
                 // Determine transportation and time
                 const routes: Record<string, { icon: string; time: string }> = {
                   'Canggu→Ubud': { icon: '🚗', time: '1.5h' },
-                  'Ubud→Munduk': { icon: '🚗', time: '2.5h' },
-                  'Munduk→Sidemen': { icon: '🚗', time: '2h' },
+                  'Ubud→Komodo': { icon: '🚗', time: '2.5h' },
+                  'Komodo→Sidemen': { icon: '🚗', time: '2h' },
                   'Sidemen→Gili Trawangan': { icon: '⛴️', time: '3.5h' },
                   'Gili Trawangan→Gili Air': { icon: '⛴️', time: '15m' },
-                  'Gili Air→Nusa Penida': { icon: '⛴️', time: '2h' },
-                  'Nusa Penida→Uluwatu': { icon: '⛴️', time: '2.5h' },
+                  'Gili Air→Nusa Lembongan': { icon: '⛴️', time: '2h' },
+                  'Nusa Lembongan→Uluwatu': { icon: '⛴️', time: '2.5h' },
                 };
 
                 const routeKey = `${previousPlace}→${currentPlace}`;
