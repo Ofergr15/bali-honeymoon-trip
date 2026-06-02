@@ -1592,6 +1592,158 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                                   />
                                 </div>
                               </div>
+
+                              {/* Hotel-specific fields */}
+                              {expense.category === 'hotel' && (
+                                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg space-y-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-lg">
+                                      🏨
+                                    </div>
+                                    <h4 className="font-bold text-blue-900">Hotel Details</h4>
+                                  </div>
+
+                                  {/* Row 1: Name and Link */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Hotel Name</label>
+                                      <input
+                                        type="text"
+                                        value={expense.hotelName || ''}
+                                        onChange={(e) => updateExpense(expense.id, { hotelName: e.target.value })}
+                                        placeholder="e.g., Moxy Ubud"
+                                        className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🔗 Booking Link</label>
+                                      <input
+                                        type="url"
+                                        value={expense.hotelLink || ''}
+                                        onChange={(e) => updateExpense(expense.id, { hotelLink: e.target.value })}
+                                        placeholder="https://booking.com/..."
+                                        className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Row 2: Check-in, Check-out, Auto-calculated Nights */}
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-in</label>
+                                      <input
+                                        type="date"
+                                        value={expense.hotelCheckIn || ''}
+                                        onChange={(e) => {
+                                          const checkIn = e.target.value;
+                                          updateExpense(expense.id, { hotelCheckIn: checkIn });
+
+                                          // Auto-calculate nights if both dates exist
+                                          if (checkIn && expense.hotelCheckOut) {
+                                            const d1 = new Date(checkIn);
+                                            const d2 = new Date(expense.hotelCheckOut);
+                                            const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                                            if (nights > 0) {
+                                              updateExpense(expense.id, { hotelNights: nights });
+                                            }
+                                          }
+                                        }}
+                                        className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-out</label>
+                                      <input
+                                        type="date"
+                                        value={expense.hotelCheckOut || ''}
+                                        onChange={(e) => {
+                                          const checkOut = e.target.value;
+                                          updateExpense(expense.id, { hotelCheckOut: checkOut });
+
+                                          // Auto-calculate nights if both dates exist
+                                          if (expense.hotelCheckIn && checkOut) {
+                                            const d1 = new Date(expense.hotelCheckIn);
+                                            const d2 = new Date(checkOut);
+                                            const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                                            if (nights > 0) {
+                                              updateExpense(expense.id, { hotelNights: nights });
+                                            }
+                                          }
+                                        }}
+                                        min={expense.hotelCheckIn || undefined}
+                                        className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🌙 Nights</label>
+                                      <div className="w-full px-3 py-2 text-lg font-bold border-2 border-blue-300 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center">
+                                        {expense.hotelNights || '-'}
+                                      </div>
+                                      <p className="text-xs text-blue-600 mt-1 text-center">Auto-calculated</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Row 3: Type & Rating */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🏨 Type</label>
+                                      <select
+                                        value={expense.hotelType || ''}
+                                        onChange={(e) => updateExpense(expense.id, { hotelType: e.target.value as any })}
+                                        className="w-full px-3 py-2 text-sm font-semibold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      >
+                                        <option value="">Select type...</option>
+                                        <option value="hotel">🏨 Hotel</option>
+                                        <option value="resort">🏝️ Resort</option>
+                                        <option value="villa">🏡 Villa</option>
+                                        <option value="hostel">🛏️ Hostel</option>
+                                        <option value="guesthouse">🏠 Guesthouse</option>
+                                        <option value="apartment">🏢 Apartment</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
+                                      <input
+                                        type="number"
+                                        value={expense.hotelRating || ''}
+                                        onChange={(e) => updateExpense(expense.id, { hotelRating: parseFloat(e.target.value) || undefined })}
+                                        placeholder="8.5"
+                                        step="0.1"
+                                        min="0"
+                                        max="10"
+                                        className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Receipt/Booking Link (for all expense types) */}
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1">
+                                  🔗 Receipt / Booking Link
+                                  <span className="text-gray-400 font-normal lowercase text-xs">(optional)</span>
+                                </label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="url"
+                                    value={expense.receiptLink || ''}
+                                    onChange={(e) => updateExpense(expense.id, { receiptLink: e.target.value })}
+                                    placeholder="https://booking.com/... or receipt URL"
+                                    className="flex-1 px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                  />
+                                  {expense.receiptLink && (
+                                    <a
+                                      href={expense.receiptLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1 text-sm font-semibold"
+                                    >
+                                      <span>🔗</span> Open
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
