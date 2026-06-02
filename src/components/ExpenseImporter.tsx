@@ -123,11 +123,31 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     // Simulate AI processing (in real app, call an API or use local model)
     setTimeout(() => {
       const lines = rawInput.split('\n').filter(line => line.trim());
-      const parsed: ParsedExpense[] = lines.map((line, index) => {
+      const allParsed: ParsedExpense[] = lines.map((line, index) => {
         return parseExpenseLine(line, index);
       });
 
-      setParsedExpenses(parsed);
+      // Filter to only include expenses within trip dates
+      const tripStartDate = new Date(tripData.startDate);
+      const tripEndDate = new Date(tripData.endDate);
+
+      const filtered = allParsed.filter(expense => {
+        if (!expense.date) return true; // Keep expenses without dates
+
+        const expenseDate = parseDate(expense.date);
+        if (!expenseDate) return true; // Keep if date couldn't be parsed
+
+        return expenseDate >= tripStartDate && expenseDate <= tripEndDate;
+      });
+
+      console.log(`📅 Filtered expenses: ${allParsed.length} total → ${filtered.length} within trip dates (${tripData.startDate} to ${tripData.endDate})`);
+
+      if (filtered.length < allParsed.length) {
+        const excluded = allParsed.length - filtered.length;
+        alert(`ℹ️ Auto-filtered ${excluded} expense(s) outside trip dates.\n\nTrip dates: ${tripData.startDate} to ${tripData.endDate}\nShowing only expenses within this range.`);
+      }
+
+      setParsedExpenses(filtered);
       setIsAnalyzing(false);
     }, 1500);
   };
@@ -1015,6 +1035,9 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                 <h3 className="text-2xl font-bold text-gray-900">Review & Edit</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {parsedExpenses.filter(e => e.status === 'confirmed' || e.status === 'edited').length} of {parsedExpenses.length} confirmed
+                </p>
+                <p className="text-xs text-teal-700 mt-0.5 font-semibold">
+                  📅 Filtered to trip dates: {new Date(tripData.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tripData.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               </div>
               <div className="flex gap-2">
