@@ -55,6 +55,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
   const [importMode, setImportMode] = useState<'paste' | 'file' | 'manual'>('paste');
+  const [isDragging, setIsDragging] = useState(false);
 
   // Manual form state
   const [manualExpense, setManualExpense] = useState({
@@ -313,8 +314,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     setParsedExpenses([]);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const processFile = async (file: File) => {
     if (!file) return;
 
     setIsAnalyzing(true);
@@ -370,6 +370,45 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       };
 
       reader.readAsText(file);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if it's a supported file type
+      const supportedTypes = ['.csv', '.txt', '.xls', '.xlsx'];
+      const isSupported = supportedTypes.some(type => file.name.toLowerCase().endsWith(type));
+
+      if (isSupported) {
+        await processFile(file);
+      } else {
+        alert('⚠️ Unsupported file type. Please upload .csv, .txt, .xls, or .xlsx files.');
+      }
     }
   };
 
@@ -678,13 +717,31 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       {/* File Upload Section */}
       {parsedExpenses.length === 0 && importMode === 'file' && (
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
-            <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              📊 Upload Expense Report
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+              isDragging
+                ? 'border-blue-600 bg-blue-100 scale-105 shadow-xl'
+                : 'border-blue-300 hover:border-blue-500'
+            }`}
+          >
+            <Upload className={`w-12 h-12 mx-auto mb-4 transition-transform ${
+              isDragging ? 'text-blue-600 scale-125' : 'text-blue-500'
+            }`} />
+            <h3 className={`text-lg font-bold mb-2 transition-colors ${
+              isDragging ? 'text-blue-700' : 'text-gray-900'
+            }`}>
+              {isDragging ? '📥 Drop file here!' : '📊 Upload Expense Report'}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Upload your bank statement, credit card report, or expense spreadsheet
+            <p className={`text-sm mb-4 transition-colors ${
+              isDragging ? 'text-blue-700 font-semibold' : 'text-gray-600'
+            }`}>
+              {isDragging
+                ? 'Release to upload your file'
+                : 'Drag & drop or click to upload bank statement, credit card report, or expense spreadsheet'
+              }
             </p>
             <label className="inline-block">
               <input
