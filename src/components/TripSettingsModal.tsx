@@ -437,11 +437,15 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
   };
 
   const handleImportExpenses = (parsedExpenses: ParsedExpense[]) => {
-    // Convert ParsedExpense[] to DayExpense[] and add to appropriate days
+    // Convert ParsedExpense[] to DayExpense[] and split between day-specific and general expenses
     const updatedDays = [...localTripData.days];
+    const generalExpenses = [...(localTripData.generalExpenses || [])];
+
+    let dayExpensesCount = 0;
+    let generalExpensesCount = 0;
 
     parsedExpenses.forEach(expense => {
-      // Convert to DayExpense format (without notes field - it doesn't exist on DayExpense)
+      // Convert to DayExpense format
       const dayExpense: DayExpense = {
         id: expense.id,
         category: expense.category,
@@ -450,20 +454,40 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
         currency: expense.currency,
       };
 
-      // Add to the appropriate day
-      if (expense.day && expense.day >= 1 && expense.day <= updatedDays.length) {
-        const dayIndex = expense.day - 1;
-        if (!updatedDays[dayIndex].expenses) {
-          updatedDays[dayIndex].expenses = [];
+      // Determine if this is a general expense (flights, visas) or day-specific
+      const isGeneralExpense = expense.category === 'flight' ||
+                               expense.category === 'visa' ||
+                               !expense.day;
+
+      if (isGeneralExpense) {
+        // Add to general expenses (trip-level)
+        generalExpenses.push(dayExpense);
+        generalExpensesCount++;
+      } else {
+        // Add to the appropriate day
+        if (expense.day >= 1 && expense.day <= updatedDays.length) {
+          const dayIndex = expense.day - 1;
+          if (!updatedDays[dayIndex].expenses) {
+            updatedDays[dayIndex].expenses = [];
+          }
+          updatedDays[dayIndex].expenses!.push(dayExpense);
+          dayExpensesCount++;
         }
-        updatedDays[dayIndex].expenses!.push(dayExpense);
       }
     });
 
-    setLocalTripData({ ...localTripData, days: updatedDays });
+    setLocalTripData({
+      ...localTripData,
+      days: updatedDays,
+      generalExpenses: generalExpenses
+    });
 
     // Show success message
-    alert(`✅ Successfully imported ${parsedExpenses.length} expenses!\n\nYou can review them in the Daily Expenses tab.`);
+    const message = `✅ Successfully imported ${parsedExpenses.length} expenses!\n\n` +
+                   `• ${generalExpensesCount} general expenses (flights, visas)\n` +
+                   `• ${dayExpensesCount} day-specific expenses\n\n` +
+                   `View them in the Daily Expenses tab.`;
+    alert(message);
 
     // Switch to expenses tab to show the results
     setActiveTab('expenses');

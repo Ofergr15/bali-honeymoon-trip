@@ -77,4 +77,5 @@ export interface TripData {
   endDate: string;
   days: DayItinerary[];
   unassignedActivities?: Activity[]; // Bookmarks not assigned to a specific day
+  generalExpenses?: DayExpense[]; // Trip-level expenses (flights, visas, etc.) not tied to specific days
 }

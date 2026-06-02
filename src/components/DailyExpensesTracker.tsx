@@ -40,8 +40,11 @@ export default function DailyExpensesTracker({ tripData, onUpdateExpenses }: Dai
     return acc;
   }, {} as Record<string, number>);
 
-  // Calculate total for all days
-  const allExpenses = tripData.days.flatMap(d => d.expenses || []);
+  // Calculate total for all days (including general expenses)
+  const allExpenses = [
+    ...(tripData.generalExpenses || []),
+    ...tripData.days.flatMap(d => d.expenses || [])
+  ];
   const grandTotalByCurrency = allExpenses.reduce((acc, exp) => {
     if (!acc[exp.currency]) {
       acc[exp.currency] = 0;
@@ -108,6 +111,47 @@ export default function DailyExpensesTracker({ tripData, onUpdateExpenses }: Dai
         </button>
       </div>
 
+      {/* General Expenses (Flights, Visas) */}
+      {tripData.generalExpenses && tripData.generalExpenses.length > 0 && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">✈️</span>
+            <h4 className="text-sm font-bold text-gray-900">General Trip Expenses</h4>
+            <span className="text-xs text-gray-500">(Flights, Visas, etc.)</span>
+          </div>
+          <div className="space-y-2">
+            {tripData.generalExpenses.map((expense) => (
+              <div key={expense.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-blue-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="text-xl">
+                    {expense.category === 'flight' && '✈️'}
+                    {expense.category === 'visa' && '🛂'}
+                    {expense.category === 'hotel' && '🏨'}
+                    {expense.category === 'transport' && '🚗'}
+                    {expense.category === 'food' && '🍽️'}
+                    {expense.category === 'activity' && '🎯'}
+                    {expense.category === 'shopping' && '🛍️'}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{expense.description}</p>
+                    <p className="text-xs text-gray-500 capitalize">{expense.category}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900">
+                    {expense.currency === 'ILS' && '₪'}
+                    {expense.currency === 'USD' && '$'}
+                    {expense.currency === 'EUR' && '€'}
+                    {expense.amount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">{expense.currency}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Grand Total */}
       <div className="mb-4 p-3 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg">
         <p className="text-xs font-medium text-gray-600 mb-1">Total Trip Expenses</p>
@@ -115,6 +159,7 @@ export default function DailyExpensesTracker({ tripData, onUpdateExpenses }: Dai
           {Object.entries(grandTotalByCurrency).map(([currency, total]) => (
             <div key={currency} className="flex items-center gap-1">
               <span className="text-xl font-bold text-travel-teal">
+                {currency === 'ILS' && '₪'}
                 {currency === 'USD' && '$'}
                 {currency === 'EUR' && '€'}
                 {currency === 'GBP' && '£'}

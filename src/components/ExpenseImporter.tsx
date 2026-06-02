@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, FileText, Sparkles, Check, X, Edit2, Trash2, Download } from 'lucide-react';
+import { Upload, FileText, Sparkles, Check, X, Edit2, Trash2, Download, Plus } from 'lucide-react';
 import type { TripData } from '../types/trip';
 
 interface ExpenseImporterProps {
@@ -487,11 +487,17 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                 type="number"
                 value={manualExpense.day || ''}
                 onChange={(e) => setManualExpense({ ...manualExpense, day: parseInt(e.target.value) || undefined })}
-                placeholder="1-30"
+                placeholder="Leave empty for general"
                 min="1"
                 max={tripData.days.length}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {(manualExpense.category === 'flight' || manualExpense.category === 'visa' || !manualExpense.day)
+                  ? '✈️ Will be added as general expense'
+                  : `📅 Will be added to Day ${manualExpense.day}`
+                }
+              </p>
             </div>
           </div>
 
@@ -774,11 +780,16 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                           type="number"
                           value={expense.day || ''}
                           onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
-                          placeholder="Day"
+                          placeholder="General"
                           min="1"
                           max={tripData.days.length}
                           className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                         />
+                        {(expense.category === 'flight' || expense.category === 'visa' || !expense.day) && (
+                          <div className="text-xs text-blue-600 font-semibold mt-0.5">
+                            ✈️ General
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <select
