@@ -171,23 +171,28 @@ function App() {
         console.log('   Saved version:', savedVersion);
         console.log('   Current version:', DATA_VERSION);
 
-        // Clear everything
+        // GET TRIP ID BEFORE CLEARING (important!)
+        const oldTripId = localStorage.getItem(TRIP_ID_KEY);
+
+        // Delete from database FIRST
+        if (oldTripId && isSupabaseConfigured) {
+          try {
+            console.log('🗑️ Deleting old trip from database:', oldTripId);
+            const { error: deleteError } = await supabase.from('trips').delete().eq('id', oldTripId);
+            if (deleteError) throw deleteError;
+            console.log('✅ Deleted old trip from database');
+          } catch (e) {
+            console.error('❌ Error deleting old trip:', e);
+          }
+        }
+
+        // NOW clear localStorage
         localStorage.removeItem(TRIP_ID_KEY);
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(STORAGE_KEY + '-version');
         localStorage.removeItem('bali-trip-hidden-places');
         localStorage.removeItem('bali-trip-places-config');
-
-        // Delete from database if exists
-        const oldTripId = localStorage.getItem(TRIP_ID_KEY);
-        if (oldTripId && isSupabaseConfigured) {
-          try {
-            await supabase.from('trips').delete().eq('id', oldTripId);
-            console.log('✅ Deleted old trip from database');
-          } catch (e) {
-            console.error('Error deleting old trip:', e);
-          }
-        }
+        console.log('✅ Cleared all localStorage');
 
         // Set new version
         localStorage.setItem(STORAGE_KEY + '-version', DATA_VERSION);
