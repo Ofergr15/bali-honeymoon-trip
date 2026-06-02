@@ -8,6 +8,7 @@ import TripDashboard from './TripDashboard';
 import UserManagement from './UserManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { refreshAllImages } from '../utils/refreshAllImages';
+import ExpenseImporter, { type ParsedExpense } from './ExpenseImporter';
 import {
   DndContext,
   closestCenter,
@@ -167,7 +168,7 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden, dateRange }: S
 export default function TripSettingsModal({ tripData, onSave, onClose, tripId }: TripSettingsModalProps) {
   const { canManageUsers, isSuperUser } = useAuth();
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
-  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools' | 'calendar'>('places');
+  const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools' | 'calendar' | 'import'>('places');
   const [localTripData, setLocalTripData] = useState<TripData>(tripData);
   const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
   const [showTripDashboard, setShowTripDashboard] = useState(false);
@@ -435,6 +436,40 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     setLocalTripData({ ...localTripData, days: updatedDays });
   };
 
+  const handleImportExpenses = (parsedExpenses: ParsedExpense[]) => {
+    // Convert ParsedExpense[] to DayExpense[] and add to appropriate days
+    const updatedDays = [...localTripData.days];
+
+    parsedExpenses.forEach(expense => {
+      // Convert to DayExpense format
+      const dayExpense: DayExpense = {
+        id: expense.id,
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        currency: expense.currency,
+        notes: expense.rawText,
+      };
+
+      // Add to the appropriate day
+      if (expense.day && expense.day >= 1 && expense.day <= updatedDays.length) {
+        const dayIndex = expense.day - 1;
+        if (!updatedDays[dayIndex].expenses) {
+          updatedDays[dayIndex].expenses = [];
+        }
+        updatedDays[dayIndex].expenses!.push(dayExpense);
+      }
+    });
+
+    setLocalTripData({ ...localTripData, days: updatedDays });
+
+    // Show success message
+    alert(`✅ Successfully imported ${parsedExpenses.length} expenses!\n\nYou can review them in the Daily Expenses tab.`);
+
+    // Switch to expenses tab to show the results
+    setActiveTab('expenses');
+  };
+
   const handleRefreshAllImages = async () => {
     if (!confirm('⚠️ REFRESH ALL IMAGES\n\nThis will:\n• Fetch fresh images from Google Places API\n• Update ALL activities and hotels in the database\n• Take several minutes to complete\n\nMake sure you have a stable internet connection.\n\nContinue?')) {
       return;
@@ -588,6 +623,16 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               }`}
             >
               📅 Calendar View
+            </button>
+            <button
+              onClick={() => setActiveTab('import')}
+              className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
+                activeTab === 'import'
+                  ? 'border-travel-teal text-travel-teal bg-white shadow-md'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
+              }`}
+            >
+              📥 Import Expenses
             </button>
             <button
               onClick={() => setShowBudgetDashboard(true)}
@@ -1121,6 +1166,14 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                 );
               })()}
             </div>
+          )}
+
+          {/* Import Expenses Tab */}
+          {activeTab === 'import' && (
+            <ExpenseImporter
+              tripData={localTripData}
+              onImport={handleImportExpenses}
+            />
           )}
 
           {/* User Management Tab */}
