@@ -1131,6 +1131,28 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
           {/* Tools Tab */}
           {activeTab === 'tools' && isSuperUser && (
             <div className="space-y-6">
+              {/* Debug Info */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">🔍 Debug Information</h3>
+                <button
+                  onClick={() => {
+                    const debugInfo = {
+                      'Trip ID': tripId,
+                      'Data Version': localStorage.getItem('bali-trip-data-version'),
+                      'Hidden Places': localStorage.getItem('bali-trip-hidden-places'),
+                      'Places Config': localStorage.getItem('bali-trip-places-config'),
+                      'Days in tripData': tripData.days.length,
+                      'First 5 day titles': tripData.days.slice(0, 5).map(d => `Day ${d.day}: ${d.title}`),
+                    };
+                    console.log('🔍 DEBUG INFO:', debugInfo);
+                    alert('Debug info logged to console (F12):\n\n' + JSON.stringify(debugInfo, null, 2));
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+                >
+                  Show Debug Info
+                </button>
+              </div>
+
               {/* Force Reset Trip Data */}
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
                 <h3 className="text-lg font-semibold text-red-900 mb-2">🔄 Force Reset Trip Data</h3>
