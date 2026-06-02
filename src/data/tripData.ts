@@ -46,7 +46,7 @@ export const baliTripData: TripData = {
     {
       day: 3,
       date: "2026-05-06",
-      title: "Bangkok to Bali - Canggu",
+      title: "Canggu - Arrival",
       activities: [
         {
           id: "flight-to-bali",
