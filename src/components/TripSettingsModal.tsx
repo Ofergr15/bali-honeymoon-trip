@@ -1012,6 +1012,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                       // Skip "Other" transit days but save previous group first
                       if (dayPlace === 'Other') {
                         if (currentDayCount > 0) {
+                          console.log(`✅ Saved group before transit: ${currentPlaceName} (${currentStartDate} to ${currentEndDate})`);
                           placeGroups.push({
                             placeName: currentPlaceName,
                             startDate: currentStartDate,
