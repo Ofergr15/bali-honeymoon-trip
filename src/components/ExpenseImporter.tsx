@@ -27,6 +27,8 @@ export interface ParsedExpense {
   hotelRating?: number;
   hotelNights?: number;
   hotelType?: 'hotel' | 'resort' | 'villa' | 'hostel' | 'guesthouse' | 'apartment';
+  // General fields
+  receiptLink?: string; // For receipts, bookings, confirmations
 }
 
 const CATEGORIES = [
@@ -1851,6 +1853,33 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                               </div>
                             </div>
                           )}
+
+                          {/* Receipt/Booking Link (for all expense types) */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1">
+                              🔗 Receipt / Booking Link
+                              <span className="text-gray-400 font-normal lowercase text-xs">(optional)</span>
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="url"
+                                value={expense.receiptLink || ''}
+                                onChange={(e) => updateExpense(expense.id, { receiptLink: e.target.value })}
+                                placeholder="https://booking.com/... or receipt URL"
+                                className="flex-1 px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                              />
+                              {expense.receiptLink && (
+                                <a
+                                  href={expense.receiptLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1 text-sm font-semibold"
+                                >
+                                  <span>🔗</span> Open
+                                </a>
+                              )}
+                            </div>
+                          </div>
 
                           {/* Place & Trip Day */}
                           <div className="grid grid-cols-2 gap-3">
