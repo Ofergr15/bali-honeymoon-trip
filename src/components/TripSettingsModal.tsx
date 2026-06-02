@@ -1137,7 +1137,44 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
           {/* Tools Tab */}
           {activeTab === 'tools' && isSuperUser && (
             <div className="space-y-6">
-              <div>
+              {/* Force Reset Trip Data */}
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+                <h3 className="text-lg font-semibold text-red-900 mb-2">🔄 Force Reset Trip Data</h3>
+                <p className="text-sm text-red-700 mb-4">
+                  ⚠️ <strong>CRITICAL FIX:</strong> Use this if the location order is wrong (showing Ubud before Sidemen). This will clear all caches and reload fresh data from code.
+                </p>
+                <button
+                  onClick={() => {
+                    if (confirm('⚠️ FORCE RESET\n\nThis will:\n• Clear localStorage cache\n• Clear places configuration\n• Reload trip data from code\n\nYour trip data will reset to the correct order. Continue?')) {
+                      // Clear all caches
+                      localStorage.removeItem('bali-trip-data');
+                      localStorage.removeItem('bali-trip-data-version');
+                      localStorage.removeItem('bali-trip-hidden-places');
+                      localStorage.removeItem('bali-trip-places-config');
+
+                      // Force version update
+                      localStorage.setItem('bali-trip-data-version', 'v9-force-reset');
+
+                      alert('✅ Cache cleared!\n\nThe page will now refresh with the correct location order.');
+                      window.location.reload();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors shadow-lg"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                  Force Reset Trip Order
+                </button>
+                <div className="mt-4 text-xs text-red-600">
+                  <p><strong>Use this if you see:</strong></p>
+                  <ul className="list-disc ml-4 mt-1">
+                    <li>Wrong order: Bangkok → Canggu → <strong>Ubud</strong> → Sidemen ❌</li>
+                    <li>Should be: Bangkok → Canggu → <strong>Sidemen</strong> → Ubud ✅</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Refresh Images */}
+              <div className="pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">🖼️ Refresh All Images</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Fetch fresh images from Google Places API for all activities and hotels. This will update image URLs to fix any broken images.
