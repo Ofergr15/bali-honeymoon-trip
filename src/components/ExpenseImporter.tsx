@@ -332,7 +332,16 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             ? expense.amount * 0.1 // Rough conversion
             : expense.amount;
 
-    // Rule: Expenses over ₪100 cannot be unidentified without description
+    // Check if it's a PASSPORTCARD expense
+    const isPassportCard = expense.description.toLowerCase().includes('passportcard') ||
+                          expense.rawText.toLowerCase().includes('passportcard');
+
+    // Rule 1: Expenses over ₪100 (except PASSPORTCARD) require manual review
+    if (amountInILS > 100 && !isPassportCard) {
+      return `⚠️ High-value expense (₪${Math.round(amountInILS)}) - Please verify amount, category, and add hotel details if applicable`;
+    }
+
+    // Rule 2: Expenses over ₪100 cannot be unidentified without description
     if (amountInILS > 100) {
       if (expense.category === 'unidentified' || expense.category === 'food-misc') {
         if (!expense.description || expense.description.trim().length < 3) {
