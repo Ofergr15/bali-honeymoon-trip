@@ -17,18 +17,17 @@ export const baliTripData: TripData = {
           day: 1,
           type: "flight",
           name: "Departure from Israel",
-          location: { lat: 32.0114, lng: 34.8866 },
+          location: { lat: 32.0114, lng: 34.8866 }, // Tel Aviv airport
           time: "TBD",
           description: "Departure from Ben Gurion Airport",
         },
       ],
     },
-
     // BANGKOK - Day 2 (May 5) - 1 night
     {
       day: 2,
       date: "2026-05-05",
-      title: "Bangkok",
+      title: "Bangkok - Arrival",
       activities: [
         {
           id: "bangkok-arrival",
@@ -37,11 +36,10 @@ export const baliTripData: TripData = {
           name: "Arrival in Bangkok",
           location: { lat: 13.6900, lng: 100.7501 },
           time: "TBD",
-          description: "Arrival at Suvarnabhumi Airport (BKK), 1 night stay",
+          description: "Arrival at Suvarnabhumi Airport (BKK)",
         },
       ],
     },
-
     // CANGGU - Days 3-6 (May 6-9) - 4 nights
     {
       day: 3,
@@ -100,8 +98,8 @@ export const baliTripData: TripData = {
           type: "activity",
           name: "Taxi to Sidemen",
           location: { lat: -8.4833, lng: 115.4167 },
-          time: "10:00",
-          description: "Transfer from Canggu to Sidemen (morning checkout, noon arrival)",
+          time: "12:00",
+          description: "Transfer from Canggu to Sidemen (morning departure, noon arrival)",
           duration: "2.5h",
         },
       ],
@@ -126,7 +124,7 @@ export const baliTripData: TripData = {
           name: "Taxi to Ubud",
           location: { lat: -8.5069, lng: 115.2625 },
           time: "12:00",
-          description: "Transfer from Sidemen to Ubud (noon checkout/arrival)",
+          description: "Transfer from Sidemen to Ubud (noon departure)",
           duration: "1.5h",
         },
       ],
@@ -157,7 +155,7 @@ export const baliTripData: TripData = {
           name: "Taxi to Uluwatu",
           location: { lat: -8.8290, lng: 115.0847 },
           time: "15:00",
-          description: "Transfer from Ubud to Uluwatu (3pm checkout)",
+          description: "Transfer from Ubud to Uluwatu (3pm departure)",
           duration: "2h",
         },
       ],
@@ -181,8 +179,8 @@ export const baliTripData: TripData = {
           type: "activity",
           name: "Transfer to Port",
           location: { lat: -8.7089, lng: 115.2625 },
-          time: "09:00",
-          description: "Transfer from Uluwatu to port",
+          time: "12:00",
+          description: "Transfer from Uluwatu to port (noon departure)",
           duration: "1.5h",
         },
         {
@@ -191,8 +189,8 @@ export const baliTripData: TripData = {
           type: "activity",
           name: "Fast Boat to Gili Trawangan",
           location: { lat: -8.3489, lng: 116.0422 },
-          time: "12:00",
-          description: "Boat to Gili Trawangan (noon arrival)",
+          time: "14:00",
+          description: "Boat to Gili Trawangan",
           duration: "2h",
         },
       ],
@@ -273,7 +271,7 @@ export const baliTripData: TripData = {
           name: "Boat to Sanur",
           location: { lat: -8.7089, lng: 115.2625 },
           time: "09:00",
-          description: "Fast boat from Nusa Lembongan to Sanur (9am checkout)",
+          description: "Fast boat from Nusa Lembongan to Sanur",
           duration: "30min",
         },
         {
@@ -302,7 +300,7 @@ export const baliTripData: TripData = {
           name: "Flight to Labuan Bajo",
           location: { lat: -8.4867, lng: 119.8889 },
           time: "09:00",
-          description: "Flight from Bali to Labuan Bajo (Komodo Islands), 9am checkout from Kuta",
+          description: "Flight from Bali to Labuan Bajo (Komodo Islands)",
         },
       ],
     },
@@ -326,7 +324,7 @@ export const baliTripData: TripData = {
           name: "Flight back to Bali",
           location: { lat: -8.7467, lng: 115.1667 },
           time: "09:00",
-          description: "Flight from Labuan Bajo to Denpasar (9am checkout)",
+          description: "Flight from Labuan Bajo to Denpasar",
         },
         {
           id: "taxi-airport-to-uluwatu-2",
@@ -353,7 +351,7 @@ export const baliTripData: TripData = {
       activities: [],
     },
 
-    // BANGKOK - Days 27-28 (May 30-31) - 2 nights
+    // BANGKOK - Days 27-29 (May 30 - June 1) - 2 nights
     {
       day: 27,
       date: "2026-05-30",
@@ -366,7 +364,7 @@ export const baliTripData: TripData = {
           name: "Taxi to Airport",
           location: { lat: -8.7467, lng: 115.1667 },
           time: "15:00",
-          description: "Transfer from Uluwatu to Denpasar Airport (5pm checkout)",
+          description: "Transfer from Uluwatu to Denpasar Airport",
           duration: "1h",
         },
         {
@@ -376,7 +374,7 @@ export const baliTripData: TripData = {
           name: "Flight to Bangkok",
           location: { lat: 13.6900, lng: 100.7501 },
           time: "17:00",
-          description: "Departure from Bali to Bangkok (5pm flight)",
+          description: "Departure from Bali to Bangkok",
         },
       ],
     },
@@ -386,8 +384,6 @@ export const baliTripData: TripData = {
       title: "Bangkok",
       activities: [],
     },
-
-    // DEPARTURE - Day 29 (June 1)
     {
       day: 29,
       date: "2026-06-01",
@@ -400,12 +396,12 @@ export const baliTripData: TripData = {
           name: "Departure from Bangkok to Israel",
           location: { lat: 13.6900, lng: 100.7501 },
           time: "23:55",
-          description: "Late night flight from Suvarnabhumi Airport to Israel (11:55pm)",
+          description: "Late night flight from Suvarnabhumi Airport to Israel",
         },
       ],
     },
 
-    // ARRIVAL - Day 30 (June 2)
+    // RETURN HOME - Day 30 (June 2)
     {
       day: 30,
       date: "2026-06-02",
