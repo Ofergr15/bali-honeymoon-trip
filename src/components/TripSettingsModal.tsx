@@ -167,6 +167,7 @@ function SortablePlaceItem({ place, onUpdateDays, onToggleHidden, dateRange }: S
 
 export default function TripSettingsModal({ tripData, onSave, onClose, tripId }: TripSettingsModalProps) {
   const { canManageUsers, isSuperUser } = useAuth();
+  const canViewMoney = canManageUsers; // Admin and super users can see money/expenses
   const [places, setPlaces] = useState<PlaceConfig[]>([]);
   const [activeTab, setActiveTab] = useState<'places' | 'bookings' | 'expenses' | 'analytics' | 'users' | 'tools' | 'calendar' | 'import'>('places');
   const [localTripData, setLocalTripData] = useState<TripData>(tripData);
@@ -693,9 +694,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               📍 Places & Days
             </button>
             <button
-              onClick={() => setActiveTab('bookings')}
+              onClick={() => canViewMoney && setActiveTab('bookings')}
+              disabled={!canViewMoney}
               className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
-                activeTab === 'bookings'
+                !canViewMoney
+                  ? 'border-transparent text-gray-300 cursor-not-allowed opacity-50'
+                  : activeTab === 'bookings'
                   ? 'border-travel-teal text-travel-teal bg-white shadow-md'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
               }`}
@@ -703,9 +707,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               🏨 Hotel Bookings
             </button>
             <button
-              onClick={() => setActiveTab('expenses')}
+              onClick={() => canViewMoney && setActiveTab('expenses')}
+              disabled={!canViewMoney}
               className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
-                activeTab === 'expenses'
+                !canViewMoney
+                  ? 'border-transparent text-gray-300 cursor-not-allowed opacity-50'
+                  : activeTab === 'expenses'
                   ? 'border-travel-teal text-travel-teal bg-white shadow-md'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
               }`}
@@ -723,9 +730,12 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               📅 Calendar View
             </button>
             <button
-              onClick={() => setActiveTab('import')}
+              onClick={() => canViewMoney && setActiveTab('import')}
+              disabled={!canViewMoney}
               className={`py-3 px-5 font-semibold text-sm border-b-4 transition-all rounded-t-lg relative ${
-                activeTab === 'import'
+                !canViewMoney
+                  ? 'border-transparent text-gray-300 cursor-not-allowed opacity-50'
+                  : activeTab === 'import'
                   ? 'border-travel-teal text-travel-teal bg-white shadow-md'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
               }`}
@@ -733,8 +743,13 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               📥 Import Expenses
             </button>
             <button
-              onClick={() => setShowBudgetDashboard(true)}
-              className="py-3 px-5 font-semibold text-sm border-b-4 border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50 transition-all rounded-t-lg"
+              onClick={() => canViewMoney && setShowBudgetDashboard(true)}
+              disabled={!canViewMoney}
+              className={`py-3 px-5 font-semibold text-sm border-b-4 border-transparent transition-all rounded-t-lg ${
+                !canViewMoney
+                  ? 'text-gray-300 cursor-not-allowed opacity-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+              }`}
             >
               📊 Budget & Analytics
             </button>
@@ -975,18 +990,34 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                       let daysFound = 0;
 
                       // Search through tripData.days to find consecutive days matching this place
-                      for (let i = dayIndex; i < tripData.days.length && daysFound < place.days; i++) {
+                      // IMPORTANT: Only match CONSECUTIVE days, stop when we hit a different place
+                      for (let i = dayIndex; i < tripData.days.length; i++) {
                         const day = tripData.days[i];
                         const dayPlace = getPlaceName(day.title);
 
-                        if (dayPlace === place.name && dayPlace !== 'Other') {
+                        // Skip "Other" transit days
+                        if (dayPlace === 'Other') {
+                          if (daysFound > 0) {
+                            // We already found some days for this place, so transit day ends the group
+                            dayIndex = i + 1;
+                            break;
+                          }
+                          // Haven't found this place yet, keep looking
+                          dayIndex = i + 1;
+                          continue;
+                        }
+
+                        if (dayPlace === place.name) {
                           if (!startDate) startDate = day.date;
                           endDate = day.date;
                           daysFound++;
                           dayIndex = i + 1;
                         } else if (daysFound > 0) {
-                          // We found some days but now hit a different place, stop
+                          // We found some days but now hit a different place, stop here
                           break;
+                        } else {
+                          // Haven't found this place yet, keep looking
+                          dayIndex = i + 1;
                         }
                       }
 

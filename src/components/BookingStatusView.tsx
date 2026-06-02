@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import type { TripData } from '../types/trip';
 import { Hotel as HotelIcon, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface BookingStatusViewProps {
   tripData: TripData;
 }
 
 export default function BookingStatusView({ tripData }: BookingStatusViewProps) {
+  const { canManageUsers } = useAuth();
   const [showOnlyUnbooked, setShowOnlyUnbooked] = useState(false);
 
   // Identify transit days (flights) - no hotel needed
@@ -117,7 +119,7 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
                   <div className="font-medium text-gray-900">
                     {day.hotelName}
                   </div>
-                  {day.hotelPrice && (
+                  {canManageUsers && day.hotelPrice && (
                     <div className="flex items-center gap-1 text-gray-600 mt-1">
                       <DollarSign className="w-3 h-3" />
                       <span>{day.hotelPrice}</span>
