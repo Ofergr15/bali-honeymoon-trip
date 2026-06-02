@@ -385,12 +385,12 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
               Paste your expense report below. Our AI will automatically categorize each expense by type, location, and day. Review and edit suggestions before importing.
             </p>
             <div className="bg-white/80 rounded-lg p-3 mb-3 border border-purple-200">
-              <p className="text-xs font-semibold text-gray-700 mb-1">📋 Expense Rules:</p>
+              <p className="text-xs font-semibold text-gray-700 mb-1">📋 How It Works:</p>
               <ul className="text-xs text-gray-600 space-y-0.5">
-                <li>• <strong>Couple budget:</strong> All expenses tracked together (not split)</li>
-                <li>• <strong>Expenses over ₪100:</strong> Must have clear description (cannot be unidentified)</li>
-                <li>• <strong>Categories:</strong> Flight, Visa, Hotel, Transport, Food, Activities, Shopping</li>
-                <li>• <strong>Small unidentifiable:</strong> Can use "Food + Attractions + Misc"</li>
+                <li>• <strong>Trip Day:</strong> Which day of your 30-day trip (Day 1 = May 4, Day 30 = June 2)</li>
+                <li>• <strong>General expenses:</strong> Flights, visas (not tied to specific day)</li>
+                <li>• <strong>Day expenses:</strong> Hotels, food, activities (tied to specific day)</li>
+                <li>• <strong>Rule:</strong> Expenses over ₪100 must have clear description</li>
               </ul>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -481,21 +481,24 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             {/* Day */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Trip Day
+                Trip Day (Optional)
               </label>
-              <input
-                type="number"
+              <select
                 value={manualExpense.day || ''}
-                onChange={(e) => setManualExpense({ ...manualExpense, day: parseInt(e.target.value) || undefined })}
-                placeholder="Leave empty for general"
-                min="1"
-                max={tripData.days.length}
+                onChange={(e) => setManualExpense({ ...manualExpense, day: e.target.value ? parseInt(e.target.value) : undefined })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-              />
+              >
+                <option value="">General Expense (not tied to specific day)</option>
+                {tripData.days.map(day => (
+                  <option key={day.day} value={day.day}>
+                    Day {day.day} - {day.title} ({new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-gray-500 mt-1">
                 {(manualExpense.category === 'flight' || manualExpense.category === 'visa' || !manualExpense.day)
-                  ? '✈️ Will be added as general expense'
-                  : `📅 Will be added to Day ${manualExpense.day}`
+                  ? '✈️ General expense (flights, visas, overall trip costs)'
+                  : `📅 Assigned to Day ${manualExpense.day}: ${tripData.days[manualExpense.day - 1]?.title}`
                 }
               </p>
             </div>
@@ -727,7 +730,10 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Day</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">
+                      Trip Day
+                      <div className="text-xs font-normal text-gray-500 normal-case">Empty = General</div>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Place</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Category</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Description</th>
