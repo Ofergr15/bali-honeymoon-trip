@@ -134,9 +134,13 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       });
 
       // Filter to only include expenses within trip dates (including 3 days before for pre-bookings)
-      const tripStartDate = new Date(tripData.startDate);
-      tripStartDate.setDate(tripStartDate.getDate() - 3); // Include 3 days before trip start
-      const tripEndDate = new Date(tripData.endDate);
+      // Use UTC to avoid timezone issues
+      const tripStartParts = tripData.startDate.split('-');
+      const tripStartDate = new Date(Date.UTC(parseInt(tripStartParts[0]), parseInt(tripStartParts[1]) - 1, parseInt(tripStartParts[2])));
+      tripStartDate.setUTCDate(tripStartDate.getUTCDate() - 3); // Include 3 days before trip start
+
+      const tripEndParts = tripData.endDate.split('-');
+      const tripEndDate = new Date(Date.UTC(parseInt(tripEndParts[0]), parseInt(tripEndParts[1]) - 1, parseInt(tripEndParts[2])));
 
       const filtered = allParsed.filter(expense => {
         if (!expense.date) return true; // Keep expenses without dates
@@ -290,7 +294,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   };
 
   const parseDate = (dateStr: string): Date | null => {
-    // Handle both DD/MM/YYYY and YYYY-MM-DD formats
+    // Handle both DD/MM/YYYY and YYYY-MM-DD formats (using UTC to avoid timezone issues)
     try {
       const parts = dateStr.split(/[\/\-\.]/);
       if (parts.length === 3) {
@@ -299,14 +303,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
           const year = parseInt(parts[0]);
           const month = parseInt(parts[1]) - 1;
           const day = parseInt(parts[2]);
-          return new Date(year, month, day);
+          return new Date(Date.UTC(year, month, day));
         }
         // Otherwise assume DD/MM/YYYY format
         else {
           const day = parseInt(parts[0]);
           const month = parseInt(parts[1]) - 1;
           const year = parseInt(parts[2]);
-          return new Date(year < 100 ? 2000 + year : year, month, day);
+          return new Date(Date.UTC(year < 100 ? 2000 + year : year, month, day));
         }
       }
     } catch {
