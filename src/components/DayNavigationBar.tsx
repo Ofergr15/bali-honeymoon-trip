@@ -24,23 +24,25 @@ function getPlaceName(day: DayItinerary): string {
     const name = day.hotel.name;
     if (name.includes('Bangkok')) return 'Bangkok';
     if (name.includes('Canggu')) return 'Canggu';
-    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
-    if (name.includes('Munduk')) return 'Munduk';
     if (name.includes('Sidemen') || name.includes('Samanvaya')) return 'Sidemen';
+    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
+    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
     if (name.includes('Gili Trawangan') || name.includes('Almarik')) return 'Gili Trawangan';
     if (name.includes('Gili Air')) return 'Gili Air';
-    if (name.includes('Nusa Penida') || name.includes('Warnakali')) return 'Nusa Penida';
-    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
+    if (name.includes('Nusa Lembongan') || name.includes('Lembongan')) return 'Nusa Lembongan';
+    if (name.includes('Kuta')) return 'Kuta';
+    if (name.includes('Komodo') || name.includes('Labuan Bajo')) return 'Komodo';
   }
   if (day.title.includes('Bangkok')) return 'Bangkok';
   if (day.title.includes('Canggu')) return 'Canggu';
-  if (day.title.includes('Ubud')) return 'Ubud';
-  if (day.title.includes('Munduk')) return 'Munduk';
   if (day.title.includes('Sidemen')) return 'Sidemen';
+  if (day.title.includes('Ubud')) return 'Ubud';
+  if (day.title.includes('Uluwatu')) return 'Uluwatu';
   if (day.title.includes('Gili Trawangan')) return 'Gili Trawangan';
   if (day.title.includes('Gili Air')) return 'Gili Air';
-  if (day.title.includes('Nusa Penida')) return 'Nusa Penida';
-  if (day.title.includes('Uluwatu')) return 'Uluwatu';
+  if (day.title.includes('Nusa Lembongan') || day.title.includes('Lembongan')) return 'Nusa Lembongan';
+  if (day.title.includes('Kuta')) return 'Kuta';
+  if (day.title.includes('Komodo') || day.title.includes('Labuan Bajo')) return 'Komodo';
   if (day.title.includes('Denpasar') || day.title.includes('Airport') || day.title.includes('Departure')) return 'Uluwatu';
   return 'Other';
 }
@@ -50,13 +52,14 @@ function getPlaceEmoji(placeName: string): string {
   const emojiMap: Record<string, string> = {
     'Bangkok': '🇹🇭',
     'Canggu': '🏖️',
-    'Ubud': '🌿',
-    'Munduk': '🏔️',
     'Sidemen': '🌾',
+    'Ubud': '🌿',
+    'Uluwatu': '🌅',
     'Gili Trawangan': '🏝️',
     'Gili Air': '🌊',
-    'Nusa Penida': '⛰️',
-    'Uluwatu': '🌅',
+    'Nusa Lembongan': '⛰️',
+    'Kuta': '🏄',
+    'Komodo': '🐉',
   };
   return emojiMap[placeName] || '📍';
 }

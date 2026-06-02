@@ -45,23 +45,25 @@ function getPlaceName(day: DayItinerary): string {
     const name = day.hotel.name;
     if (name.includes('Bangkok')) return 'Bangkok';
     if (name.includes('Canggu')) return 'Canggu';
-    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
-    if (name.includes('Munduk')) return 'Munduk';
     if (name.includes('Sidemen') || name.includes('Samanvaya')) return 'Sidemen';
+    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
+    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
     if (name.includes('Gili Trawangan') || name.includes('Almarik')) return 'Gili Trawangan';
     if (name.includes('Gili Air')) return 'Gili Air';
-    if (name.includes('Nusa Penida') || name.includes('Warnakali')) return 'Nusa Penida';
-    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
+    if (name.includes('Nusa Lembongan') || name.includes('Lembongan')) return 'Nusa Lembongan';
+    if (name.includes('Kuta')) return 'Kuta';
+    if (name.includes('Komodo') || name.includes('Labuan Bajo')) return 'Komodo';
   }
   if (day.title.includes('Bangkok')) return 'Bangkok';
   if (day.title.includes('Canggu')) return 'Canggu';
-  if (day.title.includes('Ubud')) return 'Ubud';
-  if (day.title.includes('Munduk')) return 'Munduk';
   if (day.title.includes('Sidemen')) return 'Sidemen';
+  if (day.title.includes('Ubud')) return 'Ubud';
+  if (day.title.includes('Uluwatu')) return 'Uluwatu';
   if (day.title.includes('Gili Trawangan')) return 'Gili Trawangan';
   if (day.title.includes('Gili Air')) return 'Gili Air';
-  if (day.title.includes('Nusa Penida')) return 'Nusa Penida';
-  if (day.title.includes('Uluwatu')) return 'Uluwatu';
+  if (day.title.includes('Nusa Lembongan') || day.title.includes('Lembongan')) return 'Nusa Lembongan';
+  if (day.title.includes('Kuta')) return 'Kuta';
+  if (day.title.includes('Komodo') || day.title.includes('Labuan Bajo')) return 'Komodo';
   return 'Other';
 }
 
@@ -70,13 +72,14 @@ function getPlaceEmoji(placeName: string): string {
   const emojiMap: Record<string, string> = {
     'Bangkok': '🇹🇭',
     'Canggu': '🏖️',
-    'Ubud': '🌿',
-    'Munduk': '🏔️',
     'Sidemen': '🌾',
+    'Ubud': '🌿',
+    'Uluwatu': '🌅',
     'Gili Trawangan': '🏝️',
     'Gili Air': '🌊',
-    'Nusa Penida': '⛰️',
-    'Uluwatu': '🌅',
+    'Nusa Lembongan': '⛰️',
+    'Kuta': '🏄',
+    'Komodo': '🐉',
   };
   return emojiMap[placeName] || '📍';
 }
@@ -100,15 +103,16 @@ export default function ItinerarySidebar({ days, selectedDay, selectedPlace, onD
   // Get place color
   const getPlaceColor = (placeName: string): string => {
     const colors: Record<string, string> = {
-      'Bangkok': '#E11D48',
+      'Bangkok': '#DC2626',
       'Canggu': '#06B6D4',
-      'Ubud': '#10B981',
-      'Munduk': '#8B4513',
       'Sidemen': '#84CC16',
+      'Ubud': '#10B981',
+      'Uluwatu': '#F97316',
       'Gili Trawangan': '#3B82F6',
       'Gili Air': '#60A5FA',
-      'Nusa Penida': '#1D4ED8',
-      'Uluwatu': '#F97316',
+      'Nusa Lembongan': '#1D4ED8',
+      'Kuta': '#D946EF',
+      'Komodo': '#14B8A6',
     };
     return colors[placeName] || '#6B7280';
   };

@@ -48,13 +48,15 @@ interface PlaceConfig {
 function getPlaceName(title: string): string {
   if (title.includes('Bangkok')) return 'Bangkok';
   if (title.includes('Canggu')) return 'Canggu';
-  if (title.includes('Ubud')) return 'Ubud';
-  if (title.includes('Munduk')) return 'Munduk';
   if (title.includes('Sidemen')) return 'Sidemen';
+  if (title.includes('Ubud')) return 'Ubud';
+  if (title.includes('Uluwatu')) return 'Uluwatu';
   if (title.includes('Gili Trawangan')) return 'Gili Trawangan';
   if (title.includes('Gili Air')) return 'Gili Air';
-  if (title.includes('Nusa Penida')) return 'Nusa Penida';
-  if (title.includes('Uluwatu') || title.includes('Denpasar') || title.includes('Airport')) return 'Uluwatu';
+  if (title.includes('Nusa Lembongan') || title.includes('Lembongan')) return 'Nusa Lembongan';
+  if (title.includes('Kuta')) return 'Kuta';
+  if (title.includes('Komodo') || title.includes('Labuan Bajo')) return 'Komodo';
+  if (title.includes('Denpasar') || title.includes('Airport')) return 'Uluwatu';
   return 'Other';
 }
 
