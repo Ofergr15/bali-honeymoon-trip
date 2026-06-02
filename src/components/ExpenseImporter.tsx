@@ -273,14 +273,24 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   };
 
   const parseDate = (dateStr: string): Date | null => {
-    // Simple date parser (can be improved)
+    // Handle both DD/MM/YYYY and YYYY-MM-DD formats
     try {
       const parts = dateStr.split(/[\/\-\.]/);
       if (parts.length === 3) {
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        const year = parseInt(parts[2]);
-        return new Date(year < 100 ? 2000 + year : year, month, day);
+        // Check if it's YYYY-MM-DD format (year is 4 digits and first)
+        if (parts[0].length === 4 && parseInt(parts[0]) > 1900) {
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const day = parseInt(parts[2]);
+          return new Date(year, month, day);
+        }
+        // Otherwise assume DD/MM/YYYY format
+        else {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const year = parseInt(parts[2]);
+          return new Date(year < 100 ? 2000 + year : year, month, day);
+        }
       }
     } catch {
       return null;
