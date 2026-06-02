@@ -102,7 +102,10 @@ function groupDaysByPlace(days: DayItinerary[]): PlaceGroup[] {
 export default function DayNavigationBar({ days, selectedDay, selectedPlace, onDaySelect, onPlaceSelect, hiddenPlaces = new Set() }: DayNavigationBarProps) {
   const [expandedPlace, setExpandedPlace] = useState<string | null>(null);
 
-  const placeGroups = groupDaysByPlace(days).filter(group => !hiddenPlaces.has(group.placeName));
+  // Filter out "Other" (transit days) and hidden places
+  const placeGroups = groupDaysByPlace(days).filter(group =>
+    group.placeName !== 'Other' && !hiddenPlaces.has(group.placeName)
+  );
 
   const handlePlaceClick = (placeName: string) => {
     console.log('🔘 DayNavigationBar: Place button clicked:', placeName);
