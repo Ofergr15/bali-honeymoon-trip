@@ -133,8 +133,9 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         return parseExpenseLine(line, index);
       });
 
-      // Filter to only include expenses within trip dates
+      // Filter to only include expenses within trip dates (including 3 days before for pre-bookings)
       const tripStartDate = new Date(tripData.startDate);
+      tripStartDate.setDate(tripStartDate.getDate() - 3); // Include 3 days before trip start
       const tripEndDate = new Date(tripData.endDate);
 
       const filtered = allParsed.filter(expense => {
