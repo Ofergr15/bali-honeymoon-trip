@@ -1441,7 +1441,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                         key={expense.id}
                         className={`border-2 rounded-xl transition-all ${
                           expense.status === 'confirmed'
-                            ? 'bg-green-50 border-green-300'
+                            ? 'bg-blue-50 border-blue-300'
                             : expense.validationError
                             ? 'bg-red-50 border-red-400'
                             : 'bg-white border-gray-200 hover:border-purple-300'
@@ -1575,35 +1575,37 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
-                                  <select
-                                    value={expense.place || ''}
-                                    onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
-                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
-                                  >
-                                    <option value="">Select...</option>
-                                    {PLACES.map(p => (
-                                      <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
-                                    ))}
-                                  </select>
-                                </div>
+                              {/* Only show Place/Trip Day if NOT a general expense type */}
+                              {!(expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw') && (
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
+                                    <select
+                                      value={expense.place || ''}
+                                      onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
+                                      className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                    >
+                                      <option value="">Select...</option>
+                                      {PLACES.map(p => (
+                                        <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
+                                      ))}
+                                    </select>
+                                  </div>
 
-                                <div>
-                                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
-                                  <input
-                                    type="number"
-                                    value={expense.day || ''}
-                                    onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
-                                    placeholder="General"
-                                    min="1"
-                                    max={tripData.days.length}
-                                    disabled={expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw'}
-                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg disabled:bg-gray-100"
+                                  <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
+                                    <input
+                                      type="number"
+                                      value={expense.day || ''}
+                                      onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                                      placeholder="General"
+                                      min="1"
+                                      max={tripData.days.length}
+                                    className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
                                   />
                                 </div>
                               </div>
+                              )}
 
                               {/* Hotel-specific fields */}
                               {expense.category === 'hotel' && (
@@ -2281,36 +2283,37 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                             </div>
                           </div>
 
-                          {/* Place & Trip Day */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
-                              <select
-                                value={expense.place || ''}
-                                onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
-                                className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
-                              >
-                                <option value="">Select...</option>
-                                {PLACES.map(p => (
-                                  <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
-                                ))}
-                              </select>
-                            </div>
+                          {/* Place & Trip Day - Only for non-general expenses */}
+                          {!(expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw') && (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
+                                <select
+                                  value={expense.place || ''}
+                                  onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
+                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                >
+                                  <option value="">Select...</option>
+                                  {PLACES.map(p => (
+                                    <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
+                                  ))}
+                                </select>
+                              </div>
 
-                            <div>
-                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
-                              <input
-                                type="number"
-                                value={expense.day || ''}
-                                onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
-                                placeholder="General"
-                                min="1"
-                                max={tripData.days.length}
-                                disabled={expense.category === 'flight' || expense.category === 'visa'}
-                                className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg disabled:bg-gray-100"
-                              />
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
+                                <input
+                                  type="number"
+                                  value={expense.day || ''}
+                                  onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                                  placeholder="General"
+                                  min="1"
+                                  max={tripData.days.length}
+                                  className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                                />
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     )}
