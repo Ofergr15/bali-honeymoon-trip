@@ -52,6 +52,19 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const [parsedExpenses, setParsedExpenses] = useState<ParsedExpense[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [importMode, setImportMode] = useState<'paste' | 'file' | 'manual'>('paste');
+
+  // Manual form state
+  const [manualExpense, setManualExpense] = useState({
+    date: '',
+    day: undefined as number | undefined,
+    place: '',
+    category: 'food' as ParsedExpense['category'],
+    description: '',
+    amount: 0,
+    currency: 'ILS',
+  });
 
   // AI-powered expense parser
   const analyzeExpenses = async () => {
@@ -283,6 +296,73 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     setParsedExpenses([]);
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzing(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setRawInput(text);
+
+      // Auto-analyze after loading
+      setTimeout(() => {
+        analyzeExpenses();
+      }, 100);
+    };
+
+    reader.readAsText(file);
+  };
+
+  const handleAddManualExpense = () => {
+    // Validate
+    if (!manualExpense.description.trim()) {
+      alert('⚠️ Please enter a description');
+      return;
+    }
+    if (manualExpense.amount <= 0) {
+      alert('⚠️ Please enter a valid amount');
+      return;
+    }
+
+    // Create new expense
+    const newExpense: ParsedExpense = {
+      id: `manual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      rawText: `${manualExpense.description} - ${manualExpense.amount} ${manualExpense.currency}`,
+      date: manualExpense.date || undefined,
+      day: manualExpense.day,
+      place: manualExpense.place || undefined,
+      category: manualExpense.category,
+      description: manualExpense.description,
+      amount: manualExpense.amount,
+      currency: manualExpense.currency,
+      confidence: 'high',
+      status: 'pending',
+    };
+
+    // Validate
+    newExpense.validationError = validateExpense(newExpense);
+
+    // Add to list
+    setParsedExpenses(prev => [...prev, newExpense]);
+
+    // Reset form
+    setManualExpense({
+      date: '',
+      day: undefined,
+      place: '',
+      category: 'food',
+      description: '',
+      amount: 0,
+      currency: 'ILS',
+    });
+
+    // Close form
+    setShowManualForm(false);
+  };
+
   const getCategoryColor = (category: string) => {
     return CATEGORIES.find(c => c.value === category)?.color || '#6B7280';
   };
@@ -328,8 +408,245 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         </div>
       </div>
 
-      {/* Input Section */}
+      {/* Mode Selector */}
       {parsedExpenses.length === 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <button
+            onClick={() => {
+              setImportMode('paste');
+              setShowManualForm(false);
+            }}
+            className={`py-3 px-4 rounded-xl font-semibold transition-all ${
+              importMode === 'paste'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <FileText className="w-5 h-5 inline mr-2" />
+            Paste Text
+          </button>
+          <button
+            onClick={() => {
+              setImportMode('file');
+              setShowManualForm(false);
+            }}
+            className={`py-3 px-4 rounded-xl font-semibold transition-all ${
+              importMode === 'file'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Upload className="w-5 h-5 inline mr-2" />
+            Upload File
+          </button>
+          <button
+            onClick={() => {
+              setImportMode('manual');
+              setShowManualForm(true);
+            }}
+            className={`py-3 px-4 rounded-xl font-semibold transition-all ${
+              importMode === 'manual'
+                ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Plus className="w-5 h-5 inline mr-2" />
+            Add Manually
+          </button>
+        </div>
+      )}
+
+      {/* Manual Form */}
+      {parsedExpenses.length === 0 && showManualForm && (
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-6 space-y-4">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Plus className="w-5 h-5 text-teal-600" />
+            Add Single Expense
+          </h3>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Date */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date (Optional)
+              </label>
+              <input
+                type="date"
+                value={manualExpense.date}
+                onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            {/* Day */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Trip Day
+              </label>
+              <input
+                type="number"
+                value={manualExpense.day || ''}
+                onChange={(e) => setManualExpense({ ...manualExpense, day: parseInt(e.target.value) || undefined })}
+                placeholder="1-30"
+                min="1"
+                max={tripData.days.length}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Place */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Location
+              </label>
+              <select
+                value={manualExpense.place}
+                onChange={(e) => setManualExpense({ ...manualExpense, place: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">Select location...</option>
+                {PLACES.map(p => (
+                  <option key={p.value} value={p.value}>
+                    {p.emoji} {p.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={manualExpense.category}
+                onChange={(e) => setManualExpense({ ...manualExpense, category: e.target.value as any })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                style={{ color: getCategoryColor(manualExpense.category) }}
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={manualExpense.description}
+              onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
+              placeholder="What was this expense for?"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          {/* Amount & Currency */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Amount <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={manualExpense.amount || ''}
+                onChange={(e) => setManualExpense({ ...manualExpense, amount: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Currency
+              </label>
+              <select
+                value={manualExpense.currency}
+                onChange={(e) => setManualExpense({ ...manualExpense, currency: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ILS">₪ ILS</option>
+                <option value="USD">$ USD</option>
+                <option value="IDR">IDR</option>
+                <option value="THB">฿ THB</option>
+                <option value="EUR">€ EUR</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setShowManualForm(false);
+                setManualExpense({
+                  date: '',
+                  day: undefined,
+                  place: '',
+                  category: 'food',
+                  description: '',
+                  amount: 0,
+                  currency: 'ILS',
+                });
+              }}
+              className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddManualExpense}
+              disabled={!manualExpense.description || manualExpense.amount <= 0}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4 inline mr-1" />
+              Add Expense
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* File Upload Section */}
+      {parsedExpenses.length === 0 && importMode === 'file' && (
+        <div className="space-y-4">
+          <div className="bg-white border-2 border-dashed border-blue-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
+            <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Upload Expense File
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Upload a CSV, Excel, or text file with your expenses
+            </p>
+            <label className="inline-block">
+              <input
+                type="file"
+                accept=".csv,.txt,.xls,.xlsx"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <span className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all cursor-pointer inline-flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Choose File
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 mt-4">
+              Supports: .csv, .txt, .xls, .xlsx
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Paste Text Section */}
+      {parsedExpenses.length === 0 && importMode === 'paste' && (
         <div className="space-y-4">
           <div className="bg-white border-2 border-gray-200 rounded-xl p-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
