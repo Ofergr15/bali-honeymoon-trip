@@ -441,14 +441,13 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     const updatedDays = [...localTripData.days];
 
     parsedExpenses.forEach(expense => {
-      // Convert to DayExpense format
+      // Convert to DayExpense format (without notes field - it doesn't exist on DayExpense)
       const dayExpense: DayExpense = {
         id: expense.id,
         category: expense.category,
         description: expense.description,
         amount: expense.amount,
         currency: expense.currency,
-        notes: expense.rawText,
       };
 
       // Add to the appropriate day
