@@ -201,7 +201,7 @@ export default function DayNavigationBar({ days, selectedDay, selectedPlace, onD
                 <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
                   isPlaceSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
                 }`}>
-                  {group.days.length}n
+                  {group.days.length - 1}n/{group.days.length}d
                 </span>
                 <span
                   onClick={(e) => handleChevronClick(e, group.placeName)}
