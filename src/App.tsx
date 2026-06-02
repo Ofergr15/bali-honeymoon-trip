@@ -46,7 +46,7 @@ function getPlaceName(day: any): string {
   if (day.title.includes('Nusa Lembongan') || day.title.includes('Lembongan')) return 'Nusa Lembongan';
   if (day.title.includes('Kuta')) return 'Kuta';
   if (day.title.includes('Komodo') || day.title.includes('Labuan Bajo')) return 'Komodo';
-  if (day.title.includes('Denpasar') || day.title.includes('Airport')) return 'Denpasar Airport';
+  // DON'T classify generic "Departure" or "Arrival" as any place
   return 'Other';
 }
 
