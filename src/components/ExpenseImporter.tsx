@@ -56,6 +56,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const [showManualForm, setShowManualForm] = useState(false);
   const [importMode, setImportMode] = useState<'paste' | 'file' | 'manual'>('paste');
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(null);
 
   // Manual form state
   const [manualExpense, setManualExpense] = useState({
@@ -317,7 +318,12 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const processFile = async (file: File) => {
     if (!file) return;
 
-    setIsAnalyzing(true);
+    // Store file info
+    setUploadedFile({
+      name: file.name,
+      size: file.size,
+      type: file.type || file.name.split('.').pop() || 'unknown',
+    });
 
     const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
@@ -343,15 +349,10 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             .join('\n');
 
           setRawInput(text);
-
-          // Auto-analyze after loading
-          setTimeout(() => {
-            analyzeExpenses();
-          }, 100);
         } catch (error) {
           console.error('Error parsing Excel file:', error);
           alert('❌ Error parsing Excel file. Please make sure it\'s a valid .xlsx or .xls file.');
-          setIsAnalyzing(false);
+          setUploadedFile(null);
         }
       };
 
@@ -362,11 +363,6 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       reader.onload = (e) => {
         const text = e.target?.result as string;
         setRawInput(text);
-
-        // Auto-analyze after loading
-        setTimeout(() => {
-          analyzeExpenses();
-        }, 100);
       };
 
       reader.readAsText(file);
@@ -715,7 +711,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       )}
 
       {/* File Upload Section */}
-      {parsedExpenses.length === 0 && importMode === 'file' && (
+      {parsedExpenses.length === 0 && importMode === 'file' && !uploadedFile && (
         <div className="space-y-4">
           <div
             onDragOver={handleDragOver}
@@ -777,6 +773,80 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         </div>
       )}
 
+      {/* File Uploaded - Preview & Confirm */}
+      {parsedExpenses.length === 0 && importMode === 'file' && uploadedFile && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-300 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-16 h-16 bg-green-500 rounded-xl flex items-center justify-center">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-bold text-gray-900">File Uploaded Successfully!</h3>
+                </div>
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm font-semibold text-gray-900">📄 {uploadedFile.name}</p>
+                  <p className="text-xs text-gray-600">
+                    Size: {(uploadedFile.size / 1024).toFixed(1)} KB •
+                    Type: {uploadedFile.type.toUpperCase()}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Found {rawInput.split('\n').filter(l => l.trim()).length} lines of data
+                  </p>
+                </div>
+
+                {/* Preview first few lines */}
+                <div className="bg-white rounded-lg p-3 mb-4 border border-green-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">📋 Preview (first 5 lines):</p>
+                  <pre className="text-xs text-gray-600 font-mono overflow-x-auto">
+                    {rawInput.split('\n').slice(0, 5).join('\n')}
+                    {rawInput.split('\n').length > 5 && '\n...'}
+                  </pre>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setRawInput('');
+                    }}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    ❌ Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAnalyzing(true);
+                      setTimeout(() => {
+                        analyzeExpenses();
+                        setUploadedFile(null);
+                      }, 500);
+                    }}
+                    disabled={isAnalyzing}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        ✨ Analyze with AI
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Paste Text Section */}
       {parsedExpenses.length === 0 && importMode === 'paste' && (
         <div className="space-y-4">
@@ -802,6 +872,14 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
             />
           </div>
 
+          {rawInput.trim() && (
+            <div className="bg-purple-50 rounded-lg p-3 mb-4 border border-purple-200">
+              <p className="text-xs font-semibold text-gray-700 mb-1">
+                ✅ Ready to analyze: {rawInput.split('\n').filter(l => l.trim()).length} lines
+              </p>
+            </div>
+          )}
+
           <button
             onClick={analyzeExpenses}
             disabled={!rawInput.trim() || isAnalyzing}
@@ -815,7 +893,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                Analyze & Categorize Expenses
+                ✨ Analyze & Categorize
               </>
             )}
           </button>
