@@ -27,6 +27,8 @@ export interface ParsedExpense {
   hotelRating?: number;
   hotelNights?: number;
   hotelType?: 'hotel' | 'resort' | 'villa' | 'hostel' | 'guesthouse' | 'apartment';
+  hotelCheckIn?: string; // YYYY-MM-DD
+  hotelCheckOut?: string; // YYYY-MM-DD
   // General fields
   receiptLink?: string; // For receipts, bookings, confirmations
 }
@@ -1807,8 +1809,64 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                                 </div>
                               </div>
 
-                              {/* Row 2: Type, Nights, Rating */}
+                              {/* Row 2: Check-in, Check-out, Auto-calculated Nights */}
                               <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-in</label>
+                                  <input
+                                    type="date"
+                                    value={expense.hotelCheckIn || ''}
+                                    onChange={(e) => {
+                                      const checkIn = e.target.value;
+                                      updateExpense(expense.id, { hotelCheckIn: checkIn });
+
+                                      // Auto-calculate nights if both dates exist
+                                      if (checkIn && expense.hotelCheckOut) {
+                                        const d1 = new Date(checkIn);
+                                        const d2 = new Date(expense.hotelCheckOut);
+                                        const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                                        if (nights > 0) {
+                                          updateExpense(expense.id, { hotelNights: nights });
+                                        }
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">📅 Check-out</label>
+                                  <input
+                                    type="date"
+                                    value={expense.hotelCheckOut || ''}
+                                    onChange={(e) => {
+                                      const checkOut = e.target.value;
+                                      updateExpense(expense.id, { hotelCheckOut: checkOut });
+
+                                      // Auto-calculate nights if both dates exist
+                                      if (expense.hotelCheckIn && checkOut) {
+                                        const d1 = new Date(expense.hotelCheckIn);
+                                        const d2 = new Date(checkOut);
+                                        const nights = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+                                        if (nights > 0) {
+                                          updateExpense(expense.id, { hotelNights: nights });
+                                        }
+                                      }
+                                    }}
+                                    min={expense.hotelCheckIn || undefined}
+                                    className="w-full px-3 py-2 text-sm font-medium border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🌙 Nights</label>
+                                  <div className="w-full px-3 py-2 text-lg font-bold border-2 border-blue-300 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center">
+                                    {expense.hotelNights || '-'}
+                                  </div>
+                                  <p className="text-xs text-blue-600 mt-1 text-center">Auto-calculated</p>
+                                </div>
+                              </div>
+
+                              {/* Row 3: Type & Rating */}
+                              <div className="grid grid-cols-2 gap-3">
                                 <div>
                                   <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Type</label>
                                   <select
@@ -1824,18 +1882,6 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                                     <option value="guesthouse">🏠 Guesthouse</option>
                                     <option value="apartment">🏢 Apartment</option>
                                   </select>
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-bold text-blue-700 uppercase mb-1">🌙 Nights</label>
-                                  <input
-                                    type="number"
-                                    value={expense.hotelNights || ''}
-                                    onChange={(e) => updateExpense(expense.id, { hotelNights: parseInt(e.target.value) || undefined })}
-                                    placeholder="1"
-                                    min="1"
-                                    max="30"
-                                    className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                                  />
                                 </div>
                                 <div>
                                   <label className="block text-xs font-bold text-blue-700 uppercase mb-1">⭐ Rating</label>
