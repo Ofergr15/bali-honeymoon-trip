@@ -18,7 +18,7 @@ import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
 const TRIP_ID_KEY = 'bali-trip-id';
-const DATA_VERSION = 'v9'; // Increment this to force reload fresh data - v9: Fixed location order (Sidemen before Ubud)
+const DATA_VERSION = 'v11-rebuild'; // Increment this to force reload fresh data - v11: Complete rebuild from scratch
 
 // Helper function to get place name from day
 function getPlaceName(day: any): string {
