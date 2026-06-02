@@ -241,19 +241,23 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
         }
       }
 
-      // Try to load places config from localStorage
-      const savedPlacesConfig = localStorage.getItem(PLACES_CONFIG_KEY);
+      // SKIP localStorage for now - it has stale data that doesn't handle multiple visits correctly
+      // Force regeneration from trip data to ensure consecutive grouping works
+      console.log('⚠️ Skipping localStorage, regenerating from trip data to fix consecutive grouping');
 
-      if (savedPlacesConfig) {
-        try {
-          const parsedPlaces: PlaceConfig[] = JSON.parse(savedPlacesConfig);
-          console.log('✅ Loaded places from localStorage:', parsedPlaces);
-          setPlaces(parsedPlaces);
-          return;
-        } catch (error) {
-          console.error('❌ Failed to parse saved places config:', error);
-        }
-      }
+      // // Try to load places config from localStorage
+      // const savedPlacesConfig = localStorage.getItem(PLACES_CONFIG_KEY);
+
+      // if (savedPlacesConfig) {
+      //   try {
+      //     const parsedPlaces: PlaceConfig[] = JSON.parse(savedPlacesConfig);
+      //     console.log('✅ Loaded places from localStorage:', parsedPlaces);
+      //     setPlaces(parsedPlaces);
+      //     return;
+      //   } catch (error) {
+      //     console.error('❌ Failed to parse saved places config:', error);
+      //   }
+      // }
 
     // Fallback: reconstruct from trip data by grouping CONSECUTIVE days (like navigation bar)
     console.log('📝 Reconstructing places from trip data');
@@ -262,7 +266,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
     const placeConfigs: PlaceConfig[] = [];
     let currentPlace = '';
     let dayCount = 0;
-    let groupIndex = 0;
+    const placeOccurrences: Record<string, number> = {}; // Track occurrence count per place name
 
     tripData.days.forEach((day, index) => {
       const place = getPlaceName(day.title);
@@ -271,15 +275,16 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
       if (place === 'Other') {
         if (dayCount > 0) {
           // Save the group we were building before hitting transit day
+          const occurrence = placeOccurrences[currentPlace] || 0;
           placeConfigs.push({
-            id: `${currentPlace}-${groupIndex}-${Date.now()}`,
+            id: `${currentPlace}-${occurrence}-${Date.now()}-${Math.random()}`,
             name: currentPlace,
             emoji: getPlaceEmoji(currentPlace),
             days: dayCount,
             color: getPlaceColor(currentPlace),
             hidden: false,
           });
-          groupIndex++;
+          placeOccurrences[currentPlace] = occurrence + 1;
           dayCount = 0;
           currentPlace = '';
         }
@@ -288,15 +293,16 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
       if (place !== currentPlace && dayCount > 0) {
         // Save previous group (place changed)
+        const occurrence = placeOccurrences[currentPlace] || 0;
         placeConfigs.push({
-          id: `${currentPlace}-${groupIndex}-${Date.now()}`,
+          id: `${currentPlace}-${occurrence}-${Date.now()}-${Math.random()}`,
           name: currentPlace,
           emoji: getPlaceEmoji(currentPlace),
           days: dayCount,
           color: getPlaceColor(currentPlace),
           hidden: false,
         });
-        groupIndex++;
+        placeOccurrences[currentPlace] = occurrence + 1;
         dayCount = 0;
       }
 
@@ -305,8 +311,9 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
       // Save last group
       if (index === tripData.days.length - 1 && dayCount > 0) {
+        const occurrence = placeOccurrences[currentPlace] || 0;
         placeConfigs.push({
-          id: `${currentPlace}-${groupIndex}-${Date.now()}`,
+          id: `${currentPlace}-${occurrence}-${Date.now()}-${Math.random()}`,
           name: currentPlace,
           emoji: getPlaceEmoji(currentPlace),
           days: dayCount,
@@ -336,6 +343,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
       }
     });
 
+      console.log('🏗️ Initializing places array:', placeConfigs);
       setPlaces(placeConfigs);
     }
 
@@ -1345,34 +1353,101 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                             <h4 className="text-sm font-bold text-gray-700">Trip Route</h4>
                           </div>
                           <div className="flex flex-wrap gap-3">
-                            {Array.from(new Set(days.map(d => d.place?.name))).map(placeName => {
-                              const place = days.find(d => d.place?.name === placeName)?.place;
-                              if (!place) return null;
-                              const placeDays = days.filter(d => d.place?.name === placeName);
-                              const startDate = placeDays[0].date;
-                              const endDate = placeDays[placeDays.length - 1].date;
+                            {(() => {
+                              // Build consecutive groups from ALL trip days (not just current month)
+                              interface RouteGroup {
+                                placeName: string;
+                                startDate: string;
+                                endDate: string;
+                                emoji: string;
+                                color: string;
+                              }
 
-                              return (
-                                <div
-                                  key={placeName}
-                                  className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 shadow-sm hover:shadow-md transition-shadow"
-                                  style={{
-                                    borderColor: place.color,
-                                    backgroundColor: `${place.color}15`
-                                  }}
-                                >
-                                  <div className="text-xl">{place.emoji}</div>
-                                  <div>
-                                    <div className="text-sm font-bold text-gray-800">
-                                      {place.name}
-                                    </div>
-                                    <div className="text-xs font-semibold" style={{ color: place.color }}>
-                                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              const routeGroups: RouteGroup[] = [];
+                              let currentPlaceName = '';
+                              let currentStartDate = '';
+                              let currentEndDate = '';
+
+                              tripData.days.forEach((tripDay, idx) => {
+                                const placeName = getPlaceName(tripDay.title);
+
+                                // Skip "Other" transit days but save previous group first
+                                if (placeName === 'Other') {
+                                  if (currentPlaceName) {
+                                    const placeConfig = places.find(p => p.name === currentPlaceName);
+                                    routeGroups.push({
+                                      placeName: currentPlaceName,
+                                      startDate: currentStartDate,
+                                      endDate: currentEndDate,
+                                      emoji: placeConfig?.emoji || '📍',
+                                      color: placeConfig?.color || '#6B7280',
+                                    });
+                                    currentPlaceName = '';
+                                  }
+                                  return;
+                                }
+
+                                if (placeName !== currentPlaceName && currentPlaceName) {
+                                  // Save previous group (place changed)
+                                  const placeConfig = places.find(p => p.name === currentPlaceName);
+                                  routeGroups.push({
+                                    placeName: currentPlaceName,
+                                    startDate: currentStartDate,
+                                    endDate: currentEndDate,
+                                    emoji: placeConfig?.emoji || '📍',
+                                    color: placeConfig?.color || '#6B7280',
+                                  });
+                                }
+
+                                // Start or continue current group
+                                if (placeName !== currentPlaceName) {
+                                  currentPlaceName = placeName;
+                                  currentStartDate = tripDay.date;
+                                }
+                                currentEndDate = tripDay.date;
+
+                                // Save last group
+                                if (idx === tripData.days.length - 1 && currentPlaceName) {
+                                  const placeConfig = places.find(p => p.name === currentPlaceName);
+                                  routeGroups.push({
+                                    placeName: currentPlaceName,
+                                    startDate: currentStartDate,
+                                    endDate: currentEndDate,
+                                    emoji: placeConfig?.emoji || '📍',
+                                    color: placeConfig?.color || '#6B7280',
+                                  });
+                                }
+                              });
+
+                              return routeGroups.map((group, idx) => {
+                                // Parse dates for display
+                                const [startY, startM, startD] = group.startDate.split('-').map(Number);
+                                const [endY, endM, endD] = group.endDate.split('-').map(Number);
+                                const startDate = new Date(startY, startM - 1, startD);
+                                const endDate = new Date(endY, endM - 1, endD);
+
+                                return (
+                                  <div
+                                    key={`${group.placeName}-${idx}`}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 shadow-sm hover:shadow-md transition-shadow"
+                                    style={{
+                                      borderColor: group.color,
+                                      backgroundColor: `${group.color}15`
+                                    }}
+                                  >
+                                    <div className="text-xl">{group.emoji}</div>
+                                    <div>
+                                      <div className="text-sm font-bold text-gray-800">
+                                        {group.placeName}
+                                      </div>
+                                      <div className="text-xs font-semibold" style={{ color: group.color }}>
+                                        {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              });
+                            })()}
                           </div>
                         </div>
                       </div>
