@@ -14,7 +14,7 @@ export interface ParsedExpense {
   date?: string;
   day?: number;
   place?: string;
-  category: 'hotel' | 'food' | 'activity' | 'transport' | 'flight' | 'visa' | 'shopping' | 'food-misc' | 'unidentified';
+  category: 'hotel' | 'food' | 'activity' | 'transport' | 'flight' | 'visa' | 'insurance' | 'withdraw' | 'shopping' | 'food-misc' | 'unidentified';
   description: string;
   amount: number;
   currency: string;
@@ -36,6 +36,8 @@ export interface ParsedExpense {
 const CATEGORIES = [
   { value: 'flight', label: '✈️ Flight', color: '#6366F1' },
   { value: 'visa', label: '🛂 Visa', color: '#8B5CF6' },
+  { value: 'insurance', label: '🛡️ Insurance', color: '#9333EA' },
+  { value: 'withdraw', label: '💵 Cash Withdrawal', color: '#059669' },
   { value: 'hotel', label: '🏨 Hotel / Accommodation', color: '#3B82F6' },
   { value: 'transport', label: '🚗 Transportation', color: '#F59E0B' },
   { value: 'food', label: '🍽️ Food', color: '#EF4444' },
@@ -104,7 +106,7 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
       'מסעדות': 'food',
       'רכב ותחבורה': 'transport',
       'פנאי בילוי': 'activity',
-      'ביטוח ופיננסים': 'other',
+      'ביטוח ופיננסים': 'insurance',
       'תקשורת ומחשבים': 'other',
       'רפואה ובריאות': 'other',
       'עמותות ותרומות': 'other',
@@ -202,8 +204,18 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     let category: ParsedExpense['category'] = 'unidentified';
     let confidence: 'high' | 'medium' | 'low' = 'low';
 
-    // Check for visa first
-    if (lowerLine.includes('visa') || lowerLine.includes('ויזה')) {
+    // Check for cash withdrawal first (משיכת מזומן)
+    if (lowerLine.includes('משיכת מזומן') || lowerLine.includes('cash withdrawal') || lowerLine.includes('atm withdrawal')) {
+      category = 'withdraw';
+      confidence = 'high';
+    }
+    // Check for insurance (ביטוח)
+    else if (lowerLine.includes('ביטוח') || lowerLine.includes('insurance')) {
+      category = 'insurance';
+      confidence = 'high';
+    }
+    // Check for visa
+    else if (lowerLine.includes('visa') || lowerLine.includes('ויזה')) {
       category = 'visa';
       confidence = 'high';
     }
@@ -771,8 +783,8 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
                   ? '⚠️ Date is outside trip dates (May 4 - June 2)'
                   : '💡 Select date to auto-assign trip day'
               }
-              {(manualExpense.category === 'flight' || manualExpense.category === 'visa') && (
-                <span className="block mt-0.5">✈️ Flights/visas are always general expenses</span>
+              {(manualExpense.category === 'flight' || manualExpense.category === 'visa' || manualExpense.category === 'insurance' || manualExpense.category === 'withdraw') && (
+                <span className="block mt-0.5">ℹ️ This expense type applies to the whole trip (no specific day)</span>
               )}
             </p>
           </div>
@@ -1421,7 +1433,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                   if (expenses.length === 1) {
                     // Single item - render normally
                     const expense = expenses[0];
-                    const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+                    const isGeneral = expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw' || !expense.day;
                     const isExpanded = expandedId === expense.id;
 
                     return (
@@ -1587,7 +1599,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                                     placeholder="General"
                                     min="1"
                                     max={tripData.days.length}
-                                    disabled={expense.category === 'flight' || expense.category === 'visa'}
+                                    disabled={expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw'}
                                     className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg disabled:bg-gray-100"
                                   />
                                 </div>
@@ -1831,7 +1843,7 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
                         <div className="border-t border-gray-300 bg-white">
                           {expenses.map((expense, idx) => {
                             const isExpanded = expandedId === expense.id;
-                            const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+                            const isGeneral = expense.category === 'flight' || expense.category === 'visa' || expense.category === 'insurance' || expense.category === 'withdraw' || !expense.day;
 
                             return (
                               <div key={expense.id} className={`${idx > 0 ? 'border-t border-gray-200' : ''}`}>
