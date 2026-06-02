@@ -1009,13 +1009,23 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                     tripData.days.forEach((day, idx) => {
                       const dayPlace = getPlaceName(day.title);
 
-                      // Skip "Other" transit days
+                      // Skip "Other" transit days but save previous group first
                       if (dayPlace === 'Other') {
+                        if (currentDayCount > 0) {
+                          placeGroups.push({
+                            placeName: currentPlaceName,
+                            startDate: currentStartDate,
+                            endDate: currentEndDate,
+                            dayCount: currentDayCount,
+                          });
+                          currentDayCount = 0;
+                          currentPlaceName = '';
+                        }
                         return;
                       }
 
                       if (dayPlace !== currentPlaceName && currentDayCount > 0) {
-                        // Save previous group
+                        // Save previous group (place changed)
                         placeGroups.push({
                           placeName: currentPlaceName,
                           startDate: currentStartDate,
