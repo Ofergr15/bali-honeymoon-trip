@@ -940,26 +940,20 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
               </div>
 
               {(() => {
-                // Generate calendar data from visible places
-                const visiblePlaces = places.filter(p => !p.hidden);
-                const startDate = new Date(tripData.startDate);
+                // Build calendar days DIRECTLY from tripData.days (source of truth!)
+                const calendarDays = tripData.days.map(day => {
+                  const [year, month, dayNum] = day.date.split('-').map(Number);
+                  const date = new Date(year, month - 1, dayNum);
 
-                // Build calendar days
-                const calendarDays: Array<{ date: Date; dayNumber: number; place: PlaceConfig | null }> = [];
-                let currentDayNumber = 1;
+                  // Find which place this day belongs to
+                  const placeName = getPlaceName(day.title);
+                  const placeConfig = places.find(p => p.name === placeName);
 
-                visiblePlaces.forEach((place) => {
-                  for (let i = 0; i < place.days; i++) {
-                    // Parse date string to avoid timezone issues
-                    const [year, month, day] = tripData.startDate.split('-').map(Number);
-                    const date = new Date(year, month - 1, day + currentDayNumber - 1);
-                    calendarDays.push({
-                      date,
-                      dayNumber: currentDayNumber,
-                      place,
-                    });
-                    currentDayNumber++;
-                  }
+                  return {
+                    date,
+                    dayNumber: day.day,
+                    place: placeConfig || null,
+                  };
                 });
 
                 // Group by month
