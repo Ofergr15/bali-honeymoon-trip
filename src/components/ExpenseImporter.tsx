@@ -58,6 +58,11 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(null);
 
+  // Filters for reviewing expenses
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'errors' | 'unconfirmed' | 'confirmed'>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   // Manual form state
   const [manualExpense, setManualExpense] = useState({
     date: '',
@@ -1001,246 +1006,291 @@ Supports: ₪ (ILS), USD, IDR, THB, EUR"
       {/* Preview Cards */}
       {parsedExpenses.length > 0 && (
         <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">
-                Review & Edit
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {parsedExpenses.filter(e => e.status === 'confirmed' || e.status === 'edited').length} of {parsedExpenses.length} confirmed
-                {parsedExpenses.filter(e => e.validationError).length > 0 && (
-                  <span className="text-red-600 font-semibold ml-2">
-                    • {parsedExpenses.filter(e => e.validationError).length} errors
-                  </span>
-                )}
-              </p>
+          {/* Header with Stats */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Review & Edit</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {parsedExpenses.filter(e => e.status === 'confirmed' || e.status === 'edited').length} of {parsedExpenses.length} confirmed
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmAll}
+                  className="px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md"
+                >
+                  <Check className="w-5 h-5" />
+                  Confirm All
+                </button>
+                <button
+                  onClick={() => setParsedExpenses([])}
+                  className="px-5 py-2.5 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={confirmAll}
-                className="px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md"
+
+            {/* Stats Pills */}
+            <div className="flex flex-wrap gap-2">
+              <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-bold">
+                ❌ {parsedExpenses.filter(e => e.validationError).length} Errors
+              </div>
+              <div className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold">
+                ⚠️ {parsedExpenses.filter(e => !e.validationError && e.status === 'pending').length} Need Review
+              </div>
+              <div className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-bold">
+                ✅ {parsedExpenses.filter(e => e.status === 'confirmed' || e.status === 'edited').length} Confirmed
+              </div>
+              <div className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
+                ✈️ {parsedExpenses.filter(e => !e.day).length} General
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-3 mt-4">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-sm focus:ring-2 focus:ring-purple-500"
               >
-                <Check className="w-5 h-5" />
-                Confirm All
-              </button>
-              <button
-                onClick={() => setParsedExpenses([])}
-                className="px-5 py-2.5 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                <option value="all">All Expenses</option>
+                <option value="errors">❌ Errors Only</option>
+                <option value="unconfirmed">⚠️ Unconfirmed</option>
+                <option value="confirmed">✅ Confirmed</option>
+              </select>
+
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-sm focus:ring-2 focus:ring-purple-500"
               >
-                Clear All
-              </button>
+                <option value="all">All Categories</option>
+                {CATEGORIES.map(cat => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto pr-2">
-            {parsedExpenses.map((expense) => {
-              const categoryInfo = CATEGORIES.find(c => c.value === expense.category);
-              const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+          {/* Compact List */}
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+            {(() => {
+              // Apply filters
+              let filtered = parsedExpenses;
 
-              return (
-                <div
-                  key={expense.id}
-                  className={`relative border-2 rounded-xl p-5 transition-all ${
-                    expense.status === 'rejected'
-                      ? 'opacity-40 bg-gray-50 border-gray-300'
-                      : expense.status === 'confirmed'
-                      ? 'bg-green-50 border-green-300 shadow-sm'
-                      : expense.status === 'edited'
-                      ? 'bg-yellow-50 border-yellow-300 shadow-sm'
-                      : expense.validationError
-                      ? 'bg-red-50 border-red-400 shadow-md'
-                      : 'bg-white border-gray-200 hover:shadow-md'
-                  }`}
-                >
-                  {/* Status Badge */}
-                  <div className="absolute top-3 right-3 flex items-center gap-2">
-                    {expense.validationError ? (
-                      <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        ❌ Error
-                      </span>
-                    ) : expense.confidence === 'high' ? (
-                      <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3" /> High Confidence
-                      </span>
-                    ) : expense.confidence === 'medium' ? (
-                      <span className="px-3 py-1 bg-yellow-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        ⚠️ Medium
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                        ⚠️ Low Confidence
-                      </span>
-                    )}
+              if (filterStatus === 'errors') {
+                filtered = filtered.filter(e => e.validationError);
+              } else if (filterStatus === 'unconfirmed') {
+                filtered = filtered.filter(e => e.status === 'pending' && !e.validationError);
+              } else if (filterStatus === 'confirmed') {
+                filtered = filtered.filter(e => e.status === 'confirmed' || e.status === 'edited');
+              }
+
+              if (filterCategory !== 'all') {
+                filtered = filtered.filter(e => e.category === filterCategory);
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="text-lg font-semibold">No expenses match your filters</p>
+                    <p className="text-sm mt-1">Try adjusting the filters above</p>
                   </div>
+                );
+              }
 
-                  {/* Category Icon & Amount */}
-                  <div className="flex items-start gap-4 mb-4">
+              return filtered.map((expense) => {
+                const categoryInfo = CATEGORIES.find(c => c.value === expense.category);
+                const isGeneral = expense.category === 'flight' || expense.category === 'visa' || !expense.day;
+                const isExpanded = expandedId === expense.id;
+
+                return (
+                  <div
+                    key={expense.id}
+                    className={`border-2 rounded-xl transition-all ${
+                      expense.status === 'confirmed'
+                        ? 'bg-green-50 border-green-300'
+                        : expense.validationError
+                        ? 'bg-red-50 border-red-400'
+                        : 'bg-white border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    {/* Compact Row - Always Visible */}
                     <div
-                      className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
-                      style={{ backgroundColor: `${categoryInfo?.color}20` }}
+                      className="p-4 cursor-pointer hover:bg-gray-50"
+                      onClick={() => setExpandedId(isExpanded ? null : expense.id)}
                     >
-                      {categoryInfo?.label.split(' ')[0] || '💰'}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-3xl font-bold" style={{ color: categoryInfo?.color }}>
-                          {expense.currency === 'ILS' && '₪'}
-                          {expense.currency === 'USD' && '$'}
-                          {expense.currency === 'EUR' && '€'}
-                          {expense.amount.toLocaleString()}
-                        </span>
-                        <span className="text-lg font-semibold text-gray-500">{expense.currency}</span>
+                      <div className="flex items-center gap-4">
+                        {/* Category Icon */}
+                        <div
+                          className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                          style={{ backgroundColor: `${categoryInfo?.color}20` }}
+                        >
+                          {categoryInfo?.label.split(' ')[0] || '💰'}
+                        </div>
+
+                        {/* Main Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg font-bold" style={{ color: categoryInfo?.color }}>
+                              {expense.currency === 'ILS' && '₪'}
+                              {expense.currency === 'USD' && '$'}
+                              {expense.currency === 'EUR' && '€'}
+                              {expense.amount}
+                            </span>
+                            <span className="text-sm text-gray-500">• {expense.date || 'No date'}</span>
+                            {isGeneral && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold">General</span>}
+                            {expense.validationError && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded font-bold">Error</span>}
+                          </div>
+                          <p className="text-sm text-gray-700 truncate">{expense.description || 'No description'}</p>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {expense.status !== 'confirmed' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirmExpense(expense.id);
+                              }}
+                              className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              ✓ Confirm
+                            </button>
+                          )}
+                          {expense.status === 'confirmed' && (
+                            <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg">
+                              ✓ Done
+                            </span>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteExpense(expense.id);
+                            }}
+                            className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <span className="text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+                        </div>
                       </div>
-                      {isGeneral && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">
-                          ✈️ General Expense
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mb-4">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
-                    <input
-                      type="text"
-                      value={expense.description}
-                      onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
-                      placeholder={expense.validationError ? "Required for amounts over ₪100!" : "What was this expense for?"}
-                      className={`w-full px-4 py-2.5 text-base font-medium border-2 rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                        expense.validationError
-                          ? 'border-red-500 bg-red-50 placeholder:text-red-400'
-                          : 'border-gray-300 bg-white'
-                      }`}
-                    />
-                    {expense.validationError && (
-                      <p className="text-xs text-red-600 font-semibold mt-1">
-                        {expense.validationError}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Grid: Category, Date, Day */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
-                      <select
-                        value={expense.category}
-                        onChange={(e) => updateExpense(expense.id, { category: e.target.value as any })}
-                        className="w-full px-3 py-2 text-sm font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                        style={{ color: categoryInfo?.color }}
-                      >
-                        {CATEGORIES.map(cat => (
-                          <option key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                      <input
-                        type="text"
-                        value={expense.date || ''}
-                        onChange={(e) => updateExpense(expense.id, { date: e.target.value })}
-                        placeholder="DD/MM/YYYY"
-                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
+                    {/* Expandable Details */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 border-t border-gray-200 bg-gray-50">
+                        <div className="pt-4 space-y-3">
+                          {/* Description */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={expense.description}
+                              onChange={(e) => updateExpense(expense.id, { description: e.target.value })}
+                              placeholder="What was this expense for?"
+                              className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            />
+                            {expense.validationError && (
+                              <p className="text-xs text-red-600 font-semibold mt-1">{expense.validationError}</p>
+                            )}
+                          </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                        Trip Day {isGeneral && <span className="text-blue-600">(General)</span>}
-                      </label>
-                      <input
-                        type="number"
-                        value={expense.day || ''}
-                        onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
-                        placeholder="General"
-                        min="1"
-                        max={tripData.days.length}
-                        disabled={expense.category === 'flight' || expense.category === 'visa'}
-                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
+                          {/* Grid: Category, Date, Amount, Currency */}
+                          <div className="grid grid-cols-4 gap-3">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Category</label>
+                              <select
+                                value={expense.category}
+                                onChange={(e) => updateExpense(expense.id, { category: e.target.value as any })}
+                                className="w-full px-2 py-2 text-xs font-semibold border-2 border-gray-300 rounded-lg"
+                                style={{ color: categoryInfo?.color }}
+                              >
+                                {CATEGORIES.map(cat => (
+                                  <option key={cat.value} value={cat.value}>{cat.label.split(' ').slice(1).join(' ')}</option>
+                                ))}
+                              </select>
+                            </div>
 
-                  {/* Place & Amount Row */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Place</label>
-                      <select
-                        value={expense.place || ''}
-                        onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
-                        className="w-full px-3 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="">Select...</option>
-                        {PLACES.map(p => (
-                          <option key={p.value} value={p.value}>
-                            {p.emoji} {p.value}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Date</label>
+                              <input
+                                type="text"
+                                value={expense.date || ''}
+                                onChange={(e) => updateExpense(expense.id, { date: e.target.value })}
+                                placeholder="DD/MM/YYYY"
+                                className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                              />
+                            </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
-                      <input
-                        type="number"
-                        value={expense.amount}
-                        onChange={(e) => updateExpense(expense.id, { amount: parseFloat(e.target.value) || 0 })}
-                        step="0.01"
-                        className="w-full px-3 py-2 text-sm font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Amount</label>
+                              <input
+                                type="number"
+                                value={expense.amount}
+                                onChange={(e) => updateExpense(expense.id, { amount: parseFloat(e.target.value) || 0 })}
+                                step="0.01"
+                                className="w-full px-2 py-2 text-xs font-bold border-2 border-gray-300 rounded-lg"
+                              />
+                            </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Currency</label>
-                      <select
-                        value={expense.currency}
-                        onChange={(e) => updateExpense(expense.id, { currency: e.target.value })}
-                        className="w-full px-3 py-2 text-sm font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="ILS">₪ ILS</option>
-                        <option value="USD">$ USD</option>
-                        <option value="IDR">IDR</option>
-                        <option value="THB">฿ THB</option>
-                        <option value="EUR">€ EUR</option>
-                      </select>
-                    </div>
-                  </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Currency</label>
+                              <select
+                                value={expense.currency}
+                                onChange={(e) => updateExpense(expense.id, { currency: e.target.value })}
+                                className="w-full px-2 py-2 text-xs font-bold border-2 border-gray-300 rounded-lg"
+                              >
+                                <option value="ILS">₪ ILS</option>
+                                <option value="USD">$ USD</option>
+                                <option value="IDR">IDR</option>
+                                <option value="THB">฿ THB</option>
+                                <option value="EUR">€ EUR</option>
+                              </select>
+                            </div>
+                          </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-3 border-t-2 border-gray-200">
-                    {expense.status !== 'confirmed' && (
-                      <button
-                        onClick={() => confirmExpense(expense.id)}
-                        className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Check className="w-4 h-4" />
-                        Confirm
-                      </button>
-                    )}
-                    {expense.status === 'confirmed' && (
-                      <div className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2">
-                        <Check className="w-4 h-4" />
-                        Confirmed ✓
+                          {/* Place & Trip Day */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Place</label>
+                              <select
+                                value={expense.place || ''}
+                                onChange={(e) => updateExpense(expense.id, { place: e.target.value })}
+                                className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg"
+                              >
+                                <option value="">Select...</option>
+                                {PLACES.map(p => (
+                                  <option key={p.value} value={p.value}>{p.emoji} {p.value}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Trip Day</label>
+                              <input
+                                type="number"
+                                value={expense.day || ''}
+                                onChange={(e) => updateExpense(expense.id, { day: parseInt(e.target.value) || undefined })}
+                                placeholder="General"
+                                min="1"
+                                max={tripData.days.length}
+                                disabled={expense.category === 'flight' || expense.category === 'visa'}
+                                className="w-full px-2 py-2 text-xs font-medium border-2 border-gray-300 rounded-lg disabled:bg-gray-100"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
-                    <button
-                      onClick={() => deleteExpense(expense.id)}
-                      className="px-4 py-2.5 bg-red-100 text-red-700 text-sm font-bold rounded-lg hover:bg-red-200 transition-colors flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
 
           {/* Summary - kept as table for backward compatibility */}
