@@ -1,5 +1,5 @@
-const XLSX = require('xlsx');
-const fs = require('fs');
+import XLSX from 'xlsx';
+import fs from 'fs';
 
 const filePath = '/Users/ofergrosfeld/Downloads/פירוט חיובים לכרטיס מאסטרקארד 4565 - 02.06.26.xlsx';
 

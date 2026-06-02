@@ -69,6 +69,28 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     currency: 'ILS',
   });
 
+  // Map Israeli credit card categories to our categories
+  const mapIsraeliCategory = (hebrewCategory?: string): string => {
+    if (!hebrewCategory) return '';
+
+    const categoryMap: Record<string, string> = {
+      'תיירות': 'tourism',
+      'מלונאות ואירוח': 'hotel',
+      'מסעדות': 'food',
+      'רכב ותחבורה': 'transport',
+      'פנאי בילוי': 'activity',
+      'ביטוח ופיננסים': 'other',
+      'תקשורת ומחשבים': 'other',
+      'רפואה ובריאות': 'other',
+      'עמותות ותרומות': 'other',
+      'מוסדות': 'other',
+      'אופנה': 'shopping',
+      'אנרגיה': 'other',
+    };
+
+    return categoryMap[hebrewCategory] || '';
+  };
+
   // Auto-calculate trip day from date
   const calculateTripDay = (dateStr: string): number | undefined => {
     if (!dateStr || !tripData.startDate) return undefined;
@@ -328,35 +350,60 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
     if (isExcel) {
-      // Handle Excel files
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      // Check if it's an Israeli credit card statement (Hebrew headers)
+      const isIsraeliCreditCard = file.name.includes('פירוט') || file.name.includes('חיובים');
+
+      if (isIsraeliCreditCard) {
+        // Use Israeli credit card parser
         try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
+          const { parseIsraeliCreditCard } = await import('../utils/israeliCreditCardParser');
+          const transactions = await parseIsraeliCreditCard(file);
 
-          // Get first sheet
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
+          console.log(`✅ Parsed ${transactions.length} transactions from Israeli credit card`);
 
-          // Convert to text format (each row as a line)
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-
-          // Convert to text format: join cells with spaces, rows with newlines
-          const text = jsonData
-            .filter(row => row.some(cell => cell)) // Skip empty rows
-            .map(row => row.join(' '))
-            .join('\n');
+          // Convert to expense format (one line per transaction)
+          const text = transactions.map(t => {
+            const category = mapIsraeliCategory(t.category);
+            return `${t.date} ${t.merchant} ${t.amount} ₪ ${category || ''}`.trim();
+          }).join('\n');
 
           setRawInput(text);
         } catch (error) {
-          console.error('Error parsing Excel file:', error);
-          alert('❌ Error parsing Excel file. Please make sure it\'s a valid .xlsx or .xls file.');
+          console.error('Error parsing Israeli credit card file:', error);
+          alert('❌ Error parsing Israeli credit card file. Please make sure it\'s a valid statement from One Zero, CAL, or Isracard.');
           setUploadedFile(null);
         }
-      };
+      } else {
+        // Handle generic Excel files
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = e.target?.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
 
-      reader.readAsBinaryString(file);
+            // Get first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+
+            // Convert to text format (each row as a line)
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+            // Convert to text format: join cells with spaces, rows with newlines
+            const text = jsonData
+              .filter(row => row.some(cell => cell)) // Skip empty rows
+              .map(row => row.join(' '))
+              .join('\n');
+
+            setRawInput(text);
+          } catch (error) {
+            console.error('Error parsing Excel file:', error);
+            alert('❌ Error parsing Excel file. Please make sure it\'s a valid .xlsx or .xls file.');
+            setUploadedFile(null);
+          }
+        };
+
+        reader.readAsBinaryString(file);
+      }
     } else {
       // Handle text/CSV files
       const reader = new FileReader();
