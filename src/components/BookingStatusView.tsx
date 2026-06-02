@@ -9,14 +9,27 @@ interface BookingStatusViewProps {
 export default function BookingStatusView({ tripData }: BookingStatusViewProps) {
   const [showOnlyUnbooked, setShowOnlyUnbooked] = useState(false);
 
-  const daysWithBookingStatus = tripData.days.map(day => ({
-    ...day,
-    hasHotel: !!day.hotel,
-    hotelName: day.hotel?.name || null,
-    hotelPrice: day.hotel?.price || null,
-    checkIn: day.hotel?.checkIn || null,
-    checkOut: day.hotel?.checkOut || null,
-  }));
+  // Identify transit days (flights) - no hotel needed
+  const isTransitDay = (day: any) => {
+    const title = day.title.toLowerCase();
+    return title.includes('departure') ||
+           title.includes('arrival') ||
+           title.includes('flight') ||
+           (day.day === 1) || // May 4 - Departure
+           (day.day === 29) || // June 1 - Departure flight
+           (day.day === 30); // June 2 - Arrival home
+  };
+
+  const daysWithBookingStatus = tripData.days
+    .filter(day => !isTransitDay(day)) // Exclude transit days
+    .map(day => ({
+      ...day,
+      hasHotel: !!day.hotel,
+      hotelName: day.hotel?.name || null,
+      hotelPrice: day.hotel?.price || null,
+      checkIn: day.hotel?.checkIn || null,
+      checkOut: day.hotel?.checkOut || null,
+    }));
 
   const filteredDays = showOnlyUnbooked
     ? daysWithBookingStatus.filter(d => !d.hasHotel)
@@ -35,7 +48,10 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
             Hotel Booking Status
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            {totalBookedDays} of {totalDays} days with hotel booked
+            {totalBookedDays} of {totalDays} nights with hotel booked
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            (Excludes transit days: May 4, June 1-2)
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
