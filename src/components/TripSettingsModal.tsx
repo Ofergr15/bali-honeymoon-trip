@@ -1144,19 +1144,35 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                   ⚠️ <strong>CRITICAL FIX:</strong> Use this if the location order is wrong (showing Ubud before Sidemen). This will clear all caches and reload fresh data from code.
                 </p>
                 <button
-                  onClick={() => {
-                    if (confirm('⚠️ FORCE RESET\n\nThis will:\n• Clear localStorage cache\n• Clear places configuration\n• Reload trip data from code\n\nYour trip data will reset to the correct order. Continue?')) {
-                      // Clear all caches
-                      localStorage.removeItem('bali-trip-data');
-                      localStorage.removeItem('bali-trip-data-version');
-                      localStorage.removeItem('bali-trip-hidden-places');
-                      localStorage.removeItem('bali-trip-places-config');
+                  onClick={async () => {
+                    if (confirm('⚠️ FORCE RESET DATABASE + CACHE\n\nThis will:\n• DELETE trip from database\n• Clear ALL localStorage\n• Force reload from code\n\nYour trip data will be recreated with the correct order. Continue?')) {
+                      try {
+                        // Clear trip ID to force recreation
+                        localStorage.removeItem('bali-trip-id');
+                        localStorage.removeItem('bali-trip-data');
+                        localStorage.removeItem('bali-trip-data-version');
+                        localStorage.removeItem('bali-trip-hidden-places');
+                        localStorage.removeItem('bali-trip-places-config');
 
-                      // Force version update
-                      localStorage.setItem('bali-trip-data-version', 'v9-force-reset');
+                        // Delete from database if exists
+                        if (tripId) {
+                          const { supabase } = await import('../lib/supabase');
+                          await supabase.from('trips').delete().eq('id', tripId);
+                          await supabase.from('days').delete().eq('trip_id', tripId);
+                          await supabase.from('activities').delete().eq('trip_id', tripId);
+                          await supabase.from('hotels').delete().eq('trip_id', tripId);
+                          console.log('✅ Deleted trip from database');
+                        }
 
-                      alert('✅ Cache cleared!\n\nThe page will now refresh with the correct location order.');
-                      window.location.reload();
+                        // Force version update
+                        localStorage.setItem('bali-trip-data-version', 'v10-force-reset');
+
+                        alert('✅ Database and cache cleared!\n\nThe page will now refresh and recreate your trip with the correct order.');
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Error during reset:', error);
+                        alert('❌ Error during reset. Try manually clearing your browser data.');
+                      }
                     }
                   }}
                   className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors shadow-lg"
