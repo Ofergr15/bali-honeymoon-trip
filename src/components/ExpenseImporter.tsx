@@ -66,6 +66,22 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
     currency: 'ILS',
   });
 
+  // Auto-calculate trip day from date
+  const calculateTripDay = (dateStr: string): number | undefined => {
+    if (!dateStr || !tripData.startDate) return undefined;
+
+    const expenseDate = new Date(dateStr);
+    const tripStart = new Date(tripData.startDate);
+
+    const daysDiff = Math.floor((expenseDate.getTime() - tripStart.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff >= 0 && daysDiff < tripData.days.length) {
+      return daysDiff + 1;
+    }
+
+    return undefined;
+  };
+
   // AI-powered expense parser
   const analyzeExpenses = async () => {
     if (!rawInput.trim()) return;
@@ -387,9 +403,9 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             <div className="bg-white/80 rounded-lg p-3 mb-3 border border-purple-200">
               <p className="text-xs font-semibold text-gray-700 mb-1">📋 How It Works:</p>
               <ul className="text-xs text-gray-600 space-y-0.5">
-                <li>• <strong>Trip Day:</strong> Which day of your 30-day trip (Day 1 = May 4, Day 30 = June 2)</li>
+                <li>• <strong>Date:</strong> Enter expense date → Trip day auto-calculated</li>
                 <li>• <strong>General expenses:</strong> Flights, visas (not tied to specific day)</li>
-                <li>• <strong>Day expenses:</strong> Hotels, food, activities (tied to specific day)</li>
+                <li>• <strong>Day expenses:</strong> Hotels, food, activities (auto-assigned by date)</li>
                 <li>• <strong>Rule:</strong> Expenses over ₪100 must have clear description</li>
               </ul>
             </div>
@@ -464,44 +480,38 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
             Add Single Expense
           </h3>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Date (Optional)
-              </label>
-              <input
-                type="date"
-                value={manualExpense.date}
-                onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-
-            {/* Day */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Trip Day (Optional)
-              </label>
-              <select
-                value={manualExpense.day || ''}
-                onChange={(e) => setManualExpense({ ...manualExpense, day: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="">General Expense (not tied to specific day)</option>
-                {tripData.days.map(day => (
-                  <option key={day.day} value={day.day}>
-                    Day {day.day} - {day.title} ({new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {(manualExpense.category === 'flight' || manualExpense.category === 'visa' || !manualExpense.day)
-                  ? '✈️ General expense (flights, visas, overall trip costs)'
-                  : `📅 Assigned to Day ${manualExpense.day}: ${tripData.days[manualExpense.day - 1]?.title}`
-                }
-              </p>
-            </div>
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              value={manualExpense.date}
+              onChange={(e) => {
+                const newDate = e.target.value;
+                const calculatedDay = calculateTripDay(newDate);
+                setManualExpense({
+                  ...manualExpense,
+                  date: newDate,
+                  day: calculatedDay,
+                });
+              }}
+              min={tripData.startDate}
+              max={tripData.endDate}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {manualExpense.date && manualExpense.day
+                ? `✅ Automatically assigned to Day ${manualExpense.day}: ${tripData.days[manualExpense.day - 1]?.title}`
+                : manualExpense.date && !manualExpense.day
+                  ? '⚠️ Date is outside trip dates (May 4 - June 2)'
+                  : '💡 Select date to auto-assign trip day'
+              }
+              {(manualExpense.category === 'flight' || manualExpense.category === 'visa') && (
+                <span className="block mt-0.5">✈️ Flights/visas are always general expenses</span>
+              )}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
