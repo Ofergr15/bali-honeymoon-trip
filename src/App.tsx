@@ -18,7 +18,8 @@ import './App.css';
 
 const STORAGE_KEY = 'bali-trip-data';
 const TRIP_ID_KEY = 'bali-trip-id';
-const DATA_VERSION = 'v12-final-reset'; // Increment this to force reload fresh data - v12: Final aggressive reset
+const DATA_VERSION = 'v13-cache-bust'; // Increment this to force reload fresh data - v13: Cache busting
+const RESET_TIMESTAMP = '2026-06-02-14:10'; // Change this to force all users to reset
 
 // Helper function to get place name from day
 function getPlaceName(day: any): string {
@@ -82,6 +83,7 @@ function App() {
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Ref to access Map component methods
   const mapRef = useRef<MapRef>(null);
@@ -164,9 +166,11 @@ function App() {
     async function initializeTrip() {
       setLoading(true);
 
-      // CHECK VERSION FIRST - force reset if mismatch
+      // CHECK VERSION AND TIMESTAMP - force reset if mismatch
       const savedVersion = localStorage.getItem(STORAGE_KEY + '-version');
-      if (savedVersion !== DATA_VERSION) {
+      const savedTimestamp = localStorage.getItem(STORAGE_KEY + '-reset-timestamp');
+
+      if (savedVersion !== DATA_VERSION || savedTimestamp !== RESET_TIMESTAMP) {
         console.log('🔄 VERSION MISMATCH! Clearing all caches...');
         console.log('   Saved version:', savedVersion);
         console.log('   Current version:', DATA_VERSION);
@@ -186,17 +190,21 @@ function App() {
           }
         }
 
-        // NOW clear localStorage
-        localStorage.removeItem(TRIP_ID_KEY);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_KEY + '-version');
-        localStorage.removeItem('bali-trip-hidden-places');
-        localStorage.removeItem('bali-trip-places-config');
-        console.log('✅ Cleared all localStorage');
+        // NOW clear ALL localStorage (nuclear option)
+        const keysToKeep = ['auth-token', 'user-profile']; // Keep auth-related keys
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+          if (!keysToKeep.includes(key)) {
+            localStorage.removeItem(key);
+          }
+        });
+        console.log('✅ Cleared all localStorage except auth keys');
 
-        // Set new version
+        // Set new version and timestamp
         localStorage.setItem(STORAGE_KEY + '-version', DATA_VERSION);
+        localStorage.setItem(STORAGE_KEY + '-reset-timestamp', RESET_TIMESTAMP);
         console.log('✅ Version updated to', DATA_VERSION);
+        console.log('✅ Reset timestamp:', RESET_TIMESTAMP);
       }
 
       if (isSupabaseConfigured) {
@@ -1065,14 +1073,23 @@ function App() {
                 <Settings className="w-4 h-4" />
               </button>
               {isSupabaseConfigured && isSuperUser && (
-                <button
-                  onClick={handleCleanupDatabase}
-                  disabled={cleaningUp}
-                  className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-                  title="Cleanup Database - Remove duplicate trips"
-                >
-                  {cleaningUp ? '🧹 Cleaning...' : '🧹 Cleanup DB'}
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowDebugPanel(!showDebugPanel)}
+                    className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors border border-purple-200"
+                    title="Show Debug Panel"
+                  >
+                    {showDebugPanel ? '🔍 Hide Debug' : '🔍 Debug'}
+                  </button>
+                  <button
+                    onClick={handleCleanupDatabase}
+                    disabled={cleaningUp}
+                    className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                    title="Cleanup Database - Remove duplicate trips"
+                  >
+                    {cleaningUp ? '🧹 Cleaning...' : '🧹 Cleanup DB'}
+                  </button>
+                </>
               )}
               <button
                 onClick={() => {
@@ -1262,6 +1279,123 @@ function App() {
           onClose={() => setShowReorderModal(false)}
           tripId={tripId}
         />
+      )}
+
+      {/* Debug Panel - Floating */}
+      {showDebugPanel && isSuperUser && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 max-h-[70vh] overflow-y-auto bg-white rounded-xl shadow-2xl border-2 border-purple-300">
+          <div className="sticky top-0 bg-purple-600 text-white px-4 py-3 flex items-center justify-between rounded-t-xl">
+            <h3 className="font-bold text-sm">🔍 Debug Panel</h3>
+            <button
+              onClick={() => setShowDebugPanel(false)}
+              className="p-1 hover:bg-purple-700 rounded transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-4 space-y-3 text-xs">
+            {/* Version Info */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="font-bold text-gray-700 mb-2">📦 Version Info</div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div><span className="text-gray-600">Current:</span> <span className="text-purple-600 font-bold">{DATA_VERSION}</span></div>
+                <div><span className="text-gray-600">Saved:</span> <span className="text-blue-600">{localStorage.getItem(STORAGE_KEY + '-version') || 'none'}</span></div>
+                <div><span className="text-gray-600">Timestamp:</span> <span className="text-blue-600">{RESET_TIMESTAMP}</span></div>
+                <div><span className="text-gray-600">Saved TS:</span> <span className="text-blue-600">{localStorage.getItem(STORAGE_KEY + '-reset-timestamp') || 'none'}</span></div>
+              </div>
+            </div>
+
+            {/* Trip Data */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="font-bold text-gray-700 mb-2">📊 Trip Data</div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div><span className="text-gray-600">Trip ID:</span> <span className="text-purple-600">{tripId || 'none'}</span></div>
+                <div><span className="text-gray-600">Total Days:</span> {tripData.days.length}</div>
+                <div><span className="text-gray-600">Bookmarks:</span> {tripData.unassignedActivities?.length || 0}</div>
+              </div>
+            </div>
+
+            {/* First 10 Days */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="font-bold text-gray-700 mb-2">📅 First 10 Days (Order Check)</div>
+              <div className="space-y-1 font-mono text-[10px]">
+                {tripData.days.slice(0, 10).map(day => {
+                  const place = getPlaceName(day);
+                  return (
+                    <div key={day.day} className="flex justify-between">
+                      <span className="text-gray-600">Day {day.day}:</span>
+                      <span className={place === 'Uluwatu' && day.day < 12 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                        {place}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-[10px] text-gray-500">
+                ⚠️ If "Uluwatu" appears before day 12, data is wrong!
+              </div>
+            </div>
+
+            {/* Expected Order */}
+            <div className="bg-green-50 rounded-lg p-3 border-2 border-green-300">
+              <div className="font-bold text-green-700 mb-2">✅ Expected Order</div>
+              <div className="space-y-0.5 font-mono text-[10px] text-gray-700">
+                <div>D1: Departure</div>
+                <div>D2: Bangkok (1n)</div>
+                <div>D3-6: Canggu (4n)</div>
+                <div>D7-8: Sidemen (2n)</div>
+                <div>D9-11: Ubud (3n)</div>
+                <div>D12-13: Uluwatu (2n)</div>
+                <div>D14-16: Gili T (3n)</div>
+              </div>
+            </div>
+
+            {/* localStorage Keys */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="font-bold text-gray-700 mb-2">🗄️ localStorage Keys</div>
+              <div className="space-y-1 font-mono text-[10px]">
+                {Object.keys(localStorage).filter(k => k.includes('bali')).map(key => (
+                  <div key={key} className="text-blue-600 truncate" title={key}>
+                    {key}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  console.log('🔍 FULL DEBUG:', {
+                    tripData,
+                    localStorage: Object.fromEntries(
+                      Object.entries(localStorage).filter(([k]) => k.includes('bali'))
+                    ),
+                  });
+                  alert('Full debug logged to console (F12)');
+                }}
+                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+              >
+                Log to Console
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify({
+                    version: DATA_VERSION,
+                    savedVersion: localStorage.getItem(STORAGE_KEY + '-version'),
+                    tripId,
+                    daysCount: tripData.days.length,
+                    first10Days: tripData.days.slice(0, 10).map(d => `Day ${d.day}: ${getPlaceName(d)}`),
+                  }, null, 2));
+                  alert('Debug info copied to clipboard!');
+                }}
+                className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700"
+              >
+                Copy Info
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
