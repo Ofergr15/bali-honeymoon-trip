@@ -962,18 +962,37 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
                 <div className="relative">
                   {(() => {
                     const visiblePlaces = places.filter(p => !p.hidden);
-                    const [startYear, startMonth, startDay] = tripData.startDate.split('-').map(Number);
-                    let cumulativeDays = 0;
+
+                    // Find the actual days in tripData that match each place
+                    let dayIndex = 0;
 
                     return visiblePlaces.map((place, index) => {
                       const actualIndex = places.indexOf(place);
 
-                      // Calculate date range for this place
-                      const placeStartDate = new Date(startYear, startMonth - 1, startDay + cumulativeDays);
-                      const placeEndDate = new Date(startYear, startMonth - 1, startDay + cumulativeDays + place.days - 1);
-                      const dateRange = `${placeStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${placeEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                      // Find the actual date range from tripData.days
+                      let startDate: string | null = null;
+                      let endDate: string | null = null;
+                      let daysFound = 0;
 
-                      cumulativeDays += place.days;
+                      // Search through tripData.days to find consecutive days matching this place
+                      for (let i = dayIndex; i < tripData.days.length && daysFound < place.days; i++) {
+                        const day = tripData.days[i];
+                        const dayPlace = getPlaceName(day.title);
+
+                        if (dayPlace === place.name && dayPlace !== 'Other') {
+                          if (!startDate) startDate = day.date;
+                          endDate = day.date;
+                          daysFound++;
+                          dayIndex = i + 1;
+                        } else if (daysFound > 0) {
+                          // We found some days but now hit a different place, stop
+                          break;
+                        }
+                      }
+
+                      const dateRange = startDate && endDate
+                        ? `${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                        : 'Dates not set';
 
                       return (
                         <div key={place.id} className="relative">
