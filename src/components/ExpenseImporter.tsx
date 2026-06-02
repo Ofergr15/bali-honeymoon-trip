@@ -154,11 +154,14 @@ export default function ExpenseImporter({ tripData, onImport }: ExpenseImporterP
         return isInRange;
       });
 
-      console.log(`📅 Filtered expenses: ${allParsed.length} total → ${filtered.length} within trip dates (${tripData.startDate} to ${tripData.endDate})`);
+      const filterStartStr = tripStartDate.toISOString().split('T')[0];
+      const filterEndStr = tripEndDate.toISOString().split('T')[0];
+
+      console.log(`📅 Filtered expenses: ${allParsed.length} total → ${filtered.length} within trip dates (${filterStartStr} to ${filterEndStr})`);
 
       if (filtered.length < allParsed.length) {
         const excluded = allParsed.length - filtered.length;
-        alert(`ℹ️ Auto-filtered ${excluded} expense(s) outside trip dates.\n\nTrip dates: ${tripData.startDate} to ${tripData.endDate}\nShowing only expenses within this range.`);
+        alert(`ℹ️ Auto-filtered ${excluded} expense(s) outside trip dates.\n\nFilter range: ${filterStartStr} to ${filterEndStr}\n(Includes 3 days before trip for pre-bookings)\n\nShowing only expenses within this range.`);
       }
 
       setParsedExpenses(filtered);
