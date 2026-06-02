@@ -44,23 +44,25 @@ function getPlaceNameFromDay(day: DayItinerary): string {
     const name = day.hotel.name;
     if (name.includes('Bangkok')) return 'Bangkok';
     if (name.includes('Canggu')) return 'Canggu';
-    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
-    if (name.includes('Munduk')) return 'Munduk';
     if (name.includes('Sidemen') || name.includes('Samanvaya')) return 'Sidemen';
+    if (name.includes('Ubud') || name.includes('Sayan')) return 'Ubud';
+    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
     if (name.includes('Gili Trawangan') || name.includes('Almarik')) return 'Gili Trawangan';
     if (name.includes('Gili Air')) return 'Gili Air';
-    if (name.includes('Nusa Penida') || name.includes('Warnakali')) return 'Nusa Penida';
-    if (name.includes('Uluwatu') || name.includes('Bulgari')) return 'Uluwatu';
+    if (name.includes('Nusa Lembongan') || name.includes('Lembongan')) return 'Nusa Lembongan';
+    if (name.includes('Kuta')) return 'Kuta';
+    if (name.includes('Komodo') || name.includes('Labuan Bajo')) return 'Komodo';
   }
   if (day.title.includes('Bangkok')) return 'Bangkok';
   if (day.title.includes('Canggu')) return 'Canggu';
-  if (day.title.includes('Ubud')) return 'Ubud';
-  if (day.title.includes('Munduk')) return 'Munduk';
   if (day.title.includes('Sidemen')) return 'Sidemen';
+  if (day.title.includes('Ubud')) return 'Ubud';
+  if (day.title.includes('Uluwatu')) return 'Uluwatu';
   if (day.title.includes('Gili Trawangan')) return 'Gili Trawangan';
   if (day.title.includes('Gili Air')) return 'Gili Air';
-  if (day.title.includes('Nusa Penida')) return 'Nusa Penida';
-  if (day.title.includes('Uluwatu')) return 'Uluwatu';
+  if (day.title.includes('Nusa Lembongan') || day.title.includes('Lembongan')) return 'Nusa Lembongan';
+  if (day.title.includes('Kuta')) return 'Kuta';
+  if (day.title.includes('Komodo') || day.title.includes('Labuan Bajo')) return 'Komodo';
   if (day.title.includes('Denpasar') || day.title.includes('Airport')) return 'Uluwatu';
   return 'Other';
 }
@@ -115,26 +117,28 @@ const Map = forwardRef<MapRef, MapProps>(({ activities, hotels, bookmarks, showB
   }, []);
 
   // Location data for zooming
-  // VERIFIED COORDINATES for Bali destinations:
-  // - Canggu: Beach town in southwest Bali
+  // VERIFIED COORDINATES for destinations:
   // - Bangkok: Thailand capital
-  // - Ubud: Cultural center in central Bali
-  // - Munduk: Mountain village in north Bali
+  // - Canggu: Beach town in southwest Bali
   // - Sidemen: Valley in east Bali
+  // - Ubud: Cultural center in central Bali
+  // - Uluwatu: Peninsula in south Bali
   // - Gili Trawangan: Island northwest of Lombok
   // - Gili Air: Island northwest of Lombok
-  // - Nusa Penida: Island southeast of Bali
-  // - Uluwatu: Peninsula in south Bali
+  // - Nusa Lembongan: Island southeast of Bali
+  // - Kuta: Surf town in south Bali
+  // - Komodo: Labuan Bajo, gateway to Komodo National Park
   const allLocations = useMemo(() => [
-    { lat: 13.7563, lng: 100.5018, name: 'Bangkok', emoji: '🇹🇭', color: '#E11D48', days: 2 },
-    { lat: -8.6489, lng: 115.1328, name: 'Canggu', emoji: '🏖️', color: '#06B6D4', days: 3 },
-    { lat: -8.5069, lng: 115.2625, name: 'Ubud', emoji: '🌿', color: '#10B981', days: 3 },
-    { lat: -8.2661, lng: 115.0717, name: 'Munduk', emoji: '🏔️', color: '#8B4513', days: 3 },
+    { lat: 13.6900, lng: 100.7501, name: 'Bangkok', emoji: '🇹🇭', color: '#DC2626', days: 3 },
+    { lat: -8.6489, lng: 115.1328, name: 'Canggu', emoji: '🏖️', color: '#06B6D4', days: 4 },
     { lat: -8.4833, lng: 115.4167, name: 'Sidemen', emoji: '🌾', color: '#84CC16', days: 2 },
-    { lat: -8.3500, lng: 116.0417, name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', days: 2 },
-    { lat: -8.3614, lng: 116.0861, name: 'Gili Air', emoji: '🌊', color: '#60A5FA', days: 2 },
-    { lat: -8.7292, lng: 115.5431, name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', days: 1 },
-    { lat: -8.8286, lng: 115.1036, name: 'Uluwatu', emoji: '🌅', color: '#F97316', days: 8 },
+    { lat: -8.5069, lng: 115.2625, name: 'Ubud', emoji: '🌿', color: '#10B981', days: 3 },
+    { lat: -8.8286, lng: 115.1036, name: 'Uluwatu', emoji: '🌅', color: '#F97316', days: 5 },
+    { lat: -8.3500, lng: 116.0417, name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', days: 3 },
+    { lat: -8.3614, lng: 116.0861, name: 'Gili Air', emoji: '🌊', color: '#60A5FA', days: 1 },
+    { lat: -8.6854, lng: 115.4503, name: 'Nusa Lembongan', emoji: '⛰️', color: '#1D4ED8', days: 3 },
+    { lat: -8.7184, lng: 115.1681, name: 'Kuta', emoji: '🏄', color: '#D946EF', days: 1 },
+    { lat: -8.4867, lng: 119.8889, name: 'Komodo', emoji: '🐉', color: '#14B8A6', days: 2 },
   ], []);
 
   // Filter out hidden places

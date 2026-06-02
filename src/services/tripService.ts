@@ -580,14 +580,18 @@ export async function loadPlaces(tripId: string): Promise<Place[]> {
 export async function createDefaultPlaces(tripId: string): Promise<boolean> {
   try {
     const defaultPlaces = [
-      { name: 'Canggu', emoji: '🏖️', color: '#06B6D4', lat: -8.6489, lng: 115.1328, days: 3, order: 1 },
-      { name: 'Ubud', emoji: '🌿', color: '#10B981', lat: -8.5069, lng: 115.2625, days: 3, order: 2 },
-      { name: 'Munduk', emoji: '🏔️', color: '#8B4513', lat: -8.2661, lng: 115.0717, days: 3, order: 3 },
-      { name: 'Sidemen', emoji: '🌾', color: '#84CC16', lat: -8.4833, lng: 115.4167, days: 2, order: 4 },
-      { name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', lat: -8.3500, lng: 116.0417, days: 2, order: 5 },
-      { name: 'Gili Air', emoji: '🌊', color: '#60A5FA', lat: -8.3614, lng: 116.0861, days: 2, order: 6 },
-      { name: 'Nusa Penida', emoji: '⛰️', color: '#1D4ED8', lat: -8.7292, lng: 115.5431, days: 1, order: 7 },
-      { name: 'Uluwatu', emoji: '🌅', color: '#F97316', lat: -8.8286, lng: 115.1036, days: 8, order: 8 },
+      { name: 'Bangkok', emoji: '🇹🇭', color: '#DC2626', lat: 13.6900, lng: 100.7501, days: 1, order: 1 },
+      { name: 'Canggu', emoji: '🏖️', color: '#06B6D4', lat: -8.6489, lng: 115.1328, days: 4, order: 2 },
+      { name: 'Sidemen', emoji: '🌾', color: '#84CC16', lat: -8.4833, lng: 115.4167, days: 2, order: 3 },
+      { name: 'Ubud', emoji: '🌿', color: '#10B981', lat: -8.5069, lng: 115.2625, days: 3, order: 4 },
+      { name: 'Uluwatu', emoji: '🌅', color: '#F97316', lat: -8.8286, lng: 115.1036, days: 2, order: 5 },
+      { name: 'Gili Trawangan', emoji: '🏝️', color: '#3B82F6', lat: -8.3500, lng: 116.0417, days: 3, order: 6 },
+      { name: 'Gili Air', emoji: '🌊', color: '#60A5FA', lat: -8.3614, lng: 116.0861, days: 1, order: 7 },
+      { name: 'Nusa Lembongan', emoji: '⛰️', color: '#1D4ED8', lat: -8.6854, lng: 115.4503, days: 3, order: 8 },
+      { name: 'Kuta', emoji: '🏄', color: '#D946EF', lat: -8.7184, lng: 115.1681, days: 1, order: 9 },
+      { name: 'Komodo', emoji: '🐉', color: '#14B8A6', lat: -8.4867, lng: 119.8889, days: 2, order: 10 },
+      { name: 'Uluwatu', emoji: '🌅', color: '#F97316', lat: -8.8286, lng: 115.1036, days: 3, order: 11 },
+      { name: 'Bangkok', emoji: '🇹🇭', color: '#DC2626', lat: 13.6900, lng: 100.7501, days: 2, order: 12 },
     ];
 
     const placesToInsert = defaultPlaces.map(p => ({

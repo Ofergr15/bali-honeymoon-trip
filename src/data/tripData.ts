@@ -6,7 +6,7 @@ export const baliTripData: TripData = {
   startDate: "2026-05-04",
   endDate: "2026-06-02",
   days: [
-    // BANGKOK - Day 1 (May 4-5) - Departure and arrival
+    // Day 1 (May 4) - Departure from Israel
     {
       day: 1,
       date: "2026-05-04",
@@ -23,6 +23,7 @@ export const baliTripData: TripData = {
         },
       ],
     },
+    // Day 2 (May 5) - Bangkok Arrival
     {
       day: 2,
       date: "2026-05-05",
@@ -39,28 +40,28 @@ export const baliTripData: TripData = {
         },
       ],
     },
-    // BALI START - Day 3 (May 6) - Flight to Bali and Arrival in Canggu
+    // CANGGU - Days 3-6 (May 6-9) - 4 nights
     {
       day: 3,
       date: "2026-05-06",
       title: "Bangkok to Bali - Canggu",
       activities: [
         {
-          id: "flight-arrival",
+          id: "flight-to-bali",
           day: 3,
           type: "flight",
-          name: "TG431 Flight from Bangkok to Bali",
+          name: "Flight from Bangkok to Bali",
           location: { lat: -8.7467, lng: 115.1667 },
-          time: "14:55",
-          description: "Arrival at Ngurah Rai International Airport (Denpasar) from Bangkok",
+          time: "TBD",
+          description: "Arrival at Ngurah Rai International Airport (Denpasar)",
         },
         {
           id: "taxi-airport-to-canggu",
           day: 3,
           type: "activity",
           name: "Taxi to Canggu",
-          location: { lat: -8.7467, lng: 115.1667 },
-          time: "16:00",
+          location: { lat: -8.6500, lng: 115.1389 },
+          time: "TBD",
           description: "Transfer from Denpasar Airport to Canggu (~1 hour)",
           duration: "1h",
         },
@@ -78,109 +79,109 @@ export const baliTripData: TripData = {
       title: "Canggu",
       activities: [],
     },
-
-    // UBUD - Days 6-8 (May 9-11)
     {
       day: 6,
       date: "2026-05-09",
-      title: "Canggu to Ubud",
+      title: "Canggu",
+      activities: [],
+    },
+
+    // SIDEMEN - Days 7-8 (May 10-11) - 2 nights
+    {
+      day: 7,
+      date: "2026-05-10",
+      title: "Canggu to Sidemen",
       activities: [
         {
-          id: "taxi-canggu-to-ubud",
-          day: 6,
+          id: "taxi-canggu-to-sidemen",
+          day: 7,
           type: "activity",
-          name: "Taxi to Ubud",
-          location: { lat: -8.5069, lng: 115.2625 },
-          time: "10:00",
-          description: "Transfer from Canggu to Ubud (~1.5 hours)",
-          duration: "1.5h",
+          name: "Taxi to Sidemen",
+          location: { lat: -8.4833, lng: 115.4167 },
+          time: "12:00",
+          description: "Transfer from Canggu to Sidemen (morning departure, noon arrival)",
+          duration: "2.5h",
         },
       ],
     },
     {
-      day: 7,
-      date: "2026-05-10",
-      title: "Ubud",
-      activities: [],
-    },
-    {
       day: 8,
       date: "2026-05-11",
-      title: "Ubud",
+      title: "Sidemen",
       activities: [],
     },
 
-    // MUNDUK - Days 9-11 (May 12-14)
+    // UBUD - Days 9-11 (May 12-14) - 3 nights
     {
       day: 9,
       date: "2026-05-12",
-      title: "Ubud to Munduk",
+      title: "Sidemen to Ubud",
       activities: [
         {
-          id: "taxi-ubud-to-munduk",
+          id: "taxi-sidemen-to-ubud",
           day: 9,
           type: "activity",
-          name: "Taxi to Munduk",
-          location: { lat: -8.2667, lng: 115.0833 },
-          time: "10:00",
-          description: "Transfer from Ubud to Munduk (~2 hours)",
-          duration: "2h",
+          name: "Taxi to Ubud",
+          location: { lat: -8.5069, lng: 115.2625 },
+          time: "12:00",
+          description: "Transfer from Sidemen to Ubud (noon departure)",
+          duration: "1.5h",
         },
       ],
     },
     {
       day: 10,
       date: "2026-05-13",
-      title: "Munduk",
+      title: "Ubud",
       activities: [],
     },
     {
       day: 11,
       date: "2026-05-14",
-      title: "Munduk",
+      title: "Ubud",
       activities: [],
     },
 
-    // SIDEMEN - Days 12-13 (May 15-16)
+    // ULUWATU (FIRST STAY) - Days 12-13 (May 15-16) - 2 nights
     {
       day: 12,
       date: "2026-05-15",
-      title: "Munduk to Sidemen",
+      title: "Ubud to Uluwatu",
       activities: [
         {
-          id: "taxi-munduk-to-sidemen",
+          id: "taxi-ubud-to-uluwatu-1",
           day: 12,
           type: "activity",
-          name: "Taxi to Sidemen",
-          location: { lat: -8.4833, lng: 115.4167 },
-          time: "10:00",
-          description: "Transfer from Munduk to Sidemen (~2.5 hours)",
-          duration: "2.5h",
+          name: "Taxi to Uluwatu",
+          location: { lat: -8.8290, lng: 115.0847 },
+          time: "15:00",
+          description: "Transfer from Ubud to Uluwatu (3pm departure)",
+          duration: "2h",
         },
       ],
     },
     {
       day: 13,
       date: "2026-05-16",
-      title: "Sidemen",
+      title: "Uluwatu",
       activities: [],
     },
 
-    // GILI TRAWANGAN - Days 14-15 (May 17-18)
+    // GILI TRAWANGAN - Days 14-16 (May 17-19) - 3 nights
     {
       day: 14,
       date: "2026-05-17",
-      title: "Sidemen to Gili Trawangan",
+      title: "Uluwatu to Gili Trawangan",
       activities: [
         {
-          id: "taxi-sidemen-to-port",
+          id: "transfer-to-port",
           day: 14,
           type: "activity",
-          name: "Taxi to Padang Bai Port",
-          location: { lat: -8.5333, lng: 115.5167 },
-          time: "09:00",
-          description: "Transfer from Sidemen to Padang Bai Port (~1 hour)",
-          duration: "1h",
+          name: "Transfer to Port",
+          location: { lat: -8.7089, lng: 115.2625 },
+          time: "12:00",
+          description: "Transfer from Uluwatu to port (noon departure)",
+          duration: "1.5h",
         },
         {
           id: "boat-to-gili-t",
@@ -188,8 +189,8 @@ export const baliTripData: TripData = {
           type: "activity",
           name: "Fast Boat to Gili Trawangan",
           location: { lat: -8.3489, lng: 116.0422 },
-          time: "11:00",
-          description: "Boat from Padang Bai to Gili Trawangan (~2 hours)",
+          time: "14:00",
+          description: "Boat to Gili Trawangan",
           duration: "2h",
         },
       ],
@@ -200,108 +201,142 @@ export const baliTripData: TripData = {
       title: "Gili Trawangan",
       activities: [],
     },
-
-    // GILI AIR - Days 16-17 (May 19-20)
     {
       day: 16,
       date: "2026-05-19",
+      title: "Gili Trawangan",
+      activities: [],
+    },
+
+    // GILI AIR - Day 17 (May 20) - 1 night
+    {
+      day: 17,
+      date: "2026-05-20",
       title: "Gili Trawangan to Gili Air",
       activities: [
         {
           id: "boat-gili-t-to-air",
-          day: 16,
+          day: 17,
           type: "activity",
           name: "Boat to Gili Air",
           location: { lat: -8.3558, lng: 116.0869 },
-          time: "11:00",
+          time: "TBD",
           description: "Short boat ride between Gili islands (~15 minutes)",
           duration: "15min",
         },
       ],
     },
-    {
-      day: 17,
-      date: "2026-05-20",
-      title: "Gili Air",
-      activities: [],
-    },
 
-    // NUSA PENIDA - Day 18 (May 21)
+    // NUSA LEMBONGAN - Days 18-20 (May 21-23) - 3 nights
     {
       day: 18,
       date: "2026-05-21",
-      title: "Gili Air to Nusa Penida",
+      title: "Gili Air to Nusa Lembongan",
       activities: [
         {
-          id: "boat-gili-to-nusa",
+          id: "boat-gili-to-nusa-lembongan",
           day: 18,
           type: "activity",
-          name: "Boat to Nusa Penida",
-          location: { lat: -8.7294, lng: 115.5444 },
-          time: "09:00",
-          description: "Fast boat from Gili Air to Nusa Penida (~2 hours)",
+          name: "Boat to Nusa Lembongan",
+          location: { lat: -8.6854, lng: 115.4503 },
+          time: "TBD",
+          description: "Fast boat from Gili Air to Nusa Lembongan",
           duration: "2h",
         },
       ],
     },
-
-    // ULUWATU - Days 19-26 (May 22-29)
     {
       day: 19,
       date: "2026-05-22",
-      title: "Nusa Penida to Uluwatu",
-      activities: [
-        {
-          id: "boat-nusa-to-sanur",
-          day: 19,
-          type: "activity",
-          name: "Boat to Sanur",
-          location: { lat: -8.7089, lng: 115.2625 },
-          time: "09:00",
-          description: "Fast boat from Nusa Penida to Sanur (~45 minutes)",
-          duration: "45min",
-        },
-        {
-          id: "taxi-sanur-to-uluwatu",
-          day: 19,
-          type: "activity",
-          name: "Taxi to Uluwatu",
-          location: { lat: -8.8290, lng: 115.0847 },
-          time: "11:00",
-          description: "Transfer from Sanur to Uluwatu (~1.5 hours)",
-          duration: "1.5h",
-        },
-      ],
+      title: "Nusa Lembongan",
+      activities: [],
     },
     {
       day: 20,
       date: "2026-05-23",
-      title: "Uluwatu",
+      title: "Nusa Lembongan",
       activities: [],
     },
+
+    // KUTA - Day 21 (May 24) - 1 night
     {
       day: 21,
       date: "2026-05-24",
-      title: "Uluwatu",
-      activities: [],
+      title: "Nusa Lembongan to Kuta",
+      activities: [
+        {
+          id: "boat-lembongan-to-sanur",
+          day: 21,
+          type: "activity",
+          name: "Boat to Sanur",
+          location: { lat: -8.7089, lng: 115.2625 },
+          time: "09:00",
+          description: "Fast boat from Nusa Lembongan to Sanur",
+          duration: "30min",
+        },
+        {
+          id: "taxi-sanur-to-kuta",
+          day: 21,
+          type: "activity",
+          name: "Taxi to Kuta",
+          location: { lat: -8.7184, lng: 115.1681 },
+          time: "10:00",
+          description: "Transfer from Sanur to Kuta",
+          duration: "30min",
+        },
+      ],
     },
+
+    // KOMODO (LABUAN BAJO) - Days 22-23 (May 25-26) - 2 nights
     {
       day: 22,
       date: "2026-05-25",
-      title: "Uluwatu",
-      activities: [],
+      title: "Kuta to Komodo (Labuan Bajo)",
+      activities: [
+        {
+          id: "flight-to-labuan-bajo",
+          day: 22,
+          type: "flight",
+          name: "Flight to Labuan Bajo",
+          location: { lat: -8.4867, lng: 119.8889 },
+          time: "09:00",
+          description: "Flight from Bali to Labuan Bajo (Komodo Islands)",
+        },
+      ],
     },
     {
       day: 23,
       date: "2026-05-26",
-      title: "Uluwatu",
+      title: "Komodo (Labuan Bajo)",
       activities: [],
     },
+
+    // ULUWATU (SECOND STAY) - Days 24-26 (May 27-29) - 3 nights
     {
       day: 24,
       date: "2026-05-27",
-      title: "Uluwatu",
-      activities: [],
+      title: "Komodo to Uluwatu",
+      activities: [
+        {
+          id: "flight-labuan-bajo-to-bali",
+          day: 24,
+          type: "flight",
+          name: "Flight back to Bali",
+          location: { lat: -8.7467, lng: 115.1667 },
+          time: "09:00",
+          description: "Flight from Labuan Bajo to Denpasar",
+        },
+        {
+          id: "taxi-airport-to-uluwatu-2",
+          day: 24,
+          type: "activity",
+          name: "Taxi to Uluwatu",
+          location: { lat: -8.8290, lng: 115.0847 },
+          time: "11:00",
+          description: "Transfer from Airport to Uluwatu",
+          duration: "1h",
+        },
+      ],
     },
     {
       day: 25,
@@ -315,6 +350,8 @@ export const baliTripData: TripData = {
       title: "Uluwatu",
       activities: [],
     },
+
+    // BANGKOK - Days 27-28 (May 30-31) - 2 nights
     {
       day: 27,
       date: "2026-05-30",
@@ -326,38 +363,29 @@ export const baliTripData: TripData = {
           type: "activity",
           name: "Taxi to Airport",
           location: { lat: -8.7467, lng: 115.1667 },
-          time: "14:00",
-          description: "Transfer from Uluwatu to Denpasar Airport (~1 hour)",
+          time: "15:00",
+          description: "Transfer from Uluwatu to Denpasar Airport",
           duration: "1h",
         },
         {
-          id: "flight-departure",
+          id: "flight-to-bangkok",
           day: 27,
           type: "flight",
-          name: "TG431 Flight Departure to Bangkok",
-          location: { lat: -8.7467, lng: 115.1667 },
-          time: "16:55",
-          description: "Departure from Ngurah Rai International Airport to Bangkok",
+          name: "Flight to Bangkok",
+          location: { lat: 13.6900, lng: 100.7501 },
+          time: "17:00",
+          description: "Departure from Bali to Bangkok",
         },
       ],
     },
-    // BANGKOK - Days 28-29 (May 31 - June 1) - 2 nights after Bali
     {
       day: 28,
       date: "2026-05-31",
       title: "Bangkok",
-      activities: [
-        {
-          id: "bangkok-arrival-2",
-          day: 28,
-          type: "activity",
-          name: "Arrival in Bangkok from Bali",
-          location: { lat: 13.6900, lng: 100.7501 },
-          time: "TBD",
-          description: "Arriving in Bangkok for 2 nights",
-        },
-      ],
+      activities: [],
     },
+
+    // RETURN HOME - Day 29-30 (June 1-2)
     {
       day: 29,
       date: "2026-06-01",
@@ -369,8 +397,8 @@ export const baliTripData: TripData = {
           type: "flight",
           name: "Departure from Bangkok to Israel",
           location: { lat: 13.6900, lng: 100.7501 },
-          time: "TBD",
-          description: "Flight from Suvarnabhumi Airport to Israel",
+          time: "23:55",
+          description: "Late night flight from Suvarnabhumi Airport to Israel",
         },
       ],
     },

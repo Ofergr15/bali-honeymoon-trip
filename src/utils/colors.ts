@@ -41,25 +41,30 @@ export const ACTIVITY_COLORS = {
 
 // Geographic Area Colors
 export const AREA_COLORS = {
+  'Bangkok': {
+    color: '#DC2626',      // Red - Thai vibes
+    emoji: '🇹🇭',
+    name: 'Bangkok'
+  },
   'Canggu': {
     color: '#06B6D4',      // Cyan - Beach vibes
     emoji: '🏖️',
     name: 'Canggu'
+  },
+  'Sidemen': {
+    color: '#84CC16',      // Lime Green - Rice terraces
+    emoji: '🌾',
+    name: 'Sidemen'
   },
   'Ubud': {
     color: '#10B981',      // Green - Jungle/nature
     emoji: '🌿',
     name: 'Ubud'
   },
-  'Munduk': {
-    color: '#8B4513',      // Brown - Mountains
-    emoji: '🏔️',
-    name: 'Munduk'
-  },
-  'Sidemen': {
-    color: '#84CC16',      // Lime Green - Rice terraces
-    emoji: '🌾',
-    name: 'Sidemen'
+  'Uluwatu': {
+    color: '#F97316',      // Orange - Sunset cliffs
+    emoji: '🌅',
+    name: 'Uluwatu'
   },
   'Gili Trawangan': {
     color: '#3B82F6',      // Blue - Ocean/island
@@ -71,15 +76,20 @@ export const AREA_COLORS = {
     emoji: '🌊',
     name: 'Gili Air'
   },
-  'Nusa Penida': {
+  'Nusa Lembongan': {
     color: '#1D4ED8',      // Dark Blue - Cliffs/ocean
     emoji: '⛰️',
-    name: 'Nusa Penida'
+    name: 'Nusa Lembongan'
   },
-  'Uluwatu': {
-    color: '#F97316',      // Orange - Sunset cliffs
-    emoji: '🌅',
-    name: 'Uluwatu'
+  'Kuta': {
+    color: '#D946EF',      // Fuchsia - Surf town
+    emoji: '🏄',
+    name: 'Kuta'
+  },
+  'Komodo': {
+    color: '#14B8A6',      // Teal - Dragons
+    emoji: '🐉',
+    name: 'Komodo'
   },
   'Bali': {
     color: '#6B7280',      // Gray - Default
@@ -92,9 +102,19 @@ export const AREA_COLORS = {
 export function getAreaFromCoordinates(location: { lat: number; lng: number }) {
   const { lat, lng } = location;
 
+  // Bangkok area
+  if (lat >= 13.6 && lat <= 13.8 && lng >= 100.7 && lng <= 100.8) {
+    return AREA_COLORS['Bangkok'];
+  }
+
   // Canggu area
   if (lat >= -8.67 && lat <= -8.63 && lng >= 115.12 && lng <= 115.15) {
     return AREA_COLORS['Canggu'];
+  }
+
+  // Sidemen area
+  if (lat >= -8.50 && lat <= -8.46 && lng >= 115.40 && lng <= 115.44) {
+    return AREA_COLORS['Sidemen'];
   }
 
   // Ubud area
@@ -102,14 +122,9 @@ export function getAreaFromCoordinates(location: { lat: number; lng: number }) {
     return AREA_COLORS['Ubud'];
   }
 
-  // Munduk area
-  if (lat >= -8.28 && lat <= -8.24 && lng >= 115.05 && lng <= 115.09) {
-    return AREA_COLORS['Munduk'];
-  }
-
-  // Sidemen area
-  if (lat >= -8.50 && lat <= -8.46 && lng >= 115.40 && lng <= 115.44) {
-    return AREA_COLORS['Sidemen'];
+  // Uluwatu area
+  if (lat >= -8.84 && lat <= -8.80 && lng >= 115.08 && lng <= 115.12) {
+    return AREA_COLORS['Uluwatu'];
   }
 
   // Gili Trawangan
@@ -122,14 +137,19 @@ export function getAreaFromCoordinates(location: { lat: number; lng: number }) {
     return AREA_COLORS['Gili Air'];
   }
 
-  // Nusa Penida
-  if (lat >= -8.75 && lat <= -8.68 && lng >= 115.50 && lng <= 115.58) {
-    return AREA_COLORS['Nusa Penida'];
+  // Nusa Lembongan
+  if (lat >= -8.70 && lat <= -8.67 && lng >= 115.43 && lng <= 115.47) {
+    return AREA_COLORS['Nusa Lembongan'];
   }
 
-  // Uluwatu area
-  if (lat >= -8.84 && lat <= -8.80 && lng >= 115.08 && lng <= 115.12) {
-    return AREA_COLORS['Uluwatu'];
+  // Kuta area
+  if (lat >= -8.73 && lat <= -8.70 && lng >= 115.16 && lng <= 115.18) {
+    return AREA_COLORS['Kuta'];
+  }
+
+  // Komodo (Labuan Bajo) area
+  if (lat >= -8.50 && lat <= -8.47 && lng >= 119.87 && lng <= 119.91) {
+    return AREA_COLORS['Komodo'];
   }
 
   // Default
