@@ -98,18 +98,20 @@ export default function ImportHoneymoonExpenses({ tripId, onComplete }: ImportHo
       const hotelExpenses = [];
       for (const hotel of hotelData) {
         const dayInfo = dateMap.get(hotel.date);
-        if (!dayInfo || hotel.price === 0) continue;
+        if (!dayInfo) continue;
 
         const desc = hotel.notes
-          ? `${hotel.name} (${hotel.nights}n) - ${hotel.notes}`
-          : `${hotel.name} (${hotel.nights} night${hotel.nights > 1 ? 's' : ''})`;
+          ? `${hotel.name} - ${hotel.notes}`
+          : hotel.name;
 
+        // Include all hotels, even if price is 0 (paid in cash or included)
         hotelExpenses.push({
           day_id: dayInfo.id,
           category: 'accommodation',
           description: desc,
           amount: hotel.price,
-          currency: hotel.currency
+          currency: hotel.currency,
+          nights: hotel.nights
         });
       }
 

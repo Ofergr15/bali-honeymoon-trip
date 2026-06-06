@@ -40,6 +40,7 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
       .filter(e => e.day_id === day.id)
       .map(e => ({
         id: e.id,
+        day_id: e.day_id,
         category: e.category,
         description: e.description,
         amount: parseFloat(e.amount),
@@ -47,7 +48,9 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
       }));
 
     return {
+      id: day.id,
       day: day.day_number,
+      day_number: day.day_number,
       date: day.date,
       title: day.title,
       activities: dayActivities,
@@ -78,6 +81,7 @@ function convertDbToTripData(dbTrip: any, dbDays: any[], dbActivities: any[], db
     .filter(e => e.day_id === null)
     .map(e => ({
       id: e.id,
+      day_id: e.day_id,
       category: e.category,
       description: e.description,
       amount: parseFloat(e.amount),

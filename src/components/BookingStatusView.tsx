@@ -37,11 +37,15 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       const hasHotel = accommodationExpenses.length > 0;
       const totalPriceILS = accommodationExpenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
+      // Clean hotel name - remove parenthetical night counts
+      const rawName = accommodationExpenses[0]?.description || '';
+      const hotelName = rawName.replace(/\s*\([^)]*night[^)]*\)/gi, '').trim();
+
       return {
         ...day,
         hasHotel,
-        hotelName: accommodationExpenses[0]?.description || null,
-        hotelPrice: totalPriceILS > 0 ? `₪${totalPriceILS.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null,
+        hotelName: hotelName || null,
+        hotelPrice: totalPriceILS > 0 ? `₪${totalPriceILS.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Paid in cash',
         checkIn: null,
         checkOut: null,
       };
@@ -96,31 +100,33 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       </div>
 
       {/* Days List */}
-      <div className="space-y-2 max-h-96 overflow-y-auto">
+      <div className="space-y-1.5 max-h-96 overflow-y-auto">
         {filteredDays.map(day => (
           <div
             key={day.day}
-            className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+            className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
               day.hasHotel
                 ? 'bg-green-50 border-green-200'
-                : 'bg-orange-50 border-orange-200'
+                : 'bg-orange-50 border-orange-300'
             }`}
           >
             {/* Status Icon */}
             <div className="flex-shrink-0">
               {day.hasHotel ? (
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
-                <XCircle className="w-5 h-5 text-orange-600" />
+                <XCircle className="w-4 h-4 text-orange-600" />
               )}
             </div>
 
             {/* Day Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <span className="font-semibold text-gray-900">
-                  Day {day.day} - {new Date(day.date).toLocaleDateString('en-US', {
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                  Day {day.day}
+                </span>
+                <span className="text-xs text-gray-600">
+                  {new Date(day.date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     weekday: 'short'
@@ -129,19 +135,18 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
               </div>
 
               {day.hasHotel ? (
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">
+                <div className="text-sm mt-0.5">
+                  <div className="font-medium text-gray-900 truncate">
                     {day.hotelName}
                   </div>
                   {canManageUsers && day.hotelPrice && (
-                    <div className="flex items-center gap-1 text-gray-600 mt-1">
-                      <DollarSign className="w-3 h-3" />
-                      <span>{day.hotelPrice}</span>
+                    <div className="text-xs text-gray-600 mt-0.5">
+                      {day.hotelPrice}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-sm text-orange-700 font-medium">
+                <div className="text-xs text-orange-700 font-medium mt-0.5">
                   ⚠️ No hotel booked
                 </div>
               )}
