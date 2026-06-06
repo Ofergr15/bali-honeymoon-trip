@@ -59,15 +59,25 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
 
   // Group consecutive nights at same hotel into stays
   const hotelStays = useMemo(() => {
+    console.log('🏨 Starting hotel grouping analysis...');
+
     const stays: HotelStay[] = [];
     const eligibleDays = tripData.days.filter(d => !isTransitDay(d));
     const processed = new Set<number>();
 
+    console.log(`📅 Total eligible days: ${eligibleDays.length}`);
+
     eligibleDays.forEach(day => {
-      if (processed.has(day.day)) return;
+      if (processed.has(day.day)) {
+        console.log(`⏭️  Day ${day.day} already processed, skipping`);
+        return;
+      }
 
       const accommodations = (day.expenses || []).filter(e => e.category === 'accommodation');
-      if (accommodations.length === 0) return;
+      if (accommodations.length === 0) {
+        console.log(`❌ Day ${day.day} (${day.date}): No accommodations`);
+        return;
+      }
 
       // Get hotel name (clean)
       const rawName = accommodations[0].description;
@@ -76,6 +86,10 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
         .replace(/\s*-\s*.*$/,'')
         .trim();
 
+      console.log(`\n🏨 Day ${day.day} (${day.date}): Found "${hotelName}"`);
+      console.log(`   Raw description: "${rawName}"`);
+      console.log(`   Expenses on this day: ${accommodations.length}`);
+
       const location = getLocation(day.title);
 
       // Collect consecutive nights at same hotel
@@ -83,20 +97,34 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       processed.add(day.day);
 
       // Look ahead for same hotel
+      console.log(`   🔍 Looking ahead for consecutive nights...`);
       for (let i = day.day + 1; i <= eligibleDays[eligibleDays.length - 1].day; i++) {
         const nextDay = eligibleDays.find(d => d.day === i);
-        if (!nextDay) break;
+        if (!nextDay) {
+          console.log(`   ⚠️  Day ${i}: Not found in eligible days, stopping`);
+          break;
+        }
 
         const nextAccom = (nextDay.expenses || []).filter(e => e.category === 'accommodation');
-        if (nextAccom.length === 0) break;
+        if (nextAccom.length === 0) {
+          console.log(`   ⚠️  Day ${i}: No accommodations, stopping`);
+          break;
+        }
 
         const nextHotelName = nextAccom[0].description
           .replace(/\s*\([^)]*\)/g, '')
           .replace(/\s*-\s*.*$/, '')
           .trim();
 
-        if (nextHotelName !== hotelName) break;
+        console.log(`   📍 Day ${i}: Found "${nextHotelName}"`);
+        console.log(`      Comparing: "${nextHotelName}" === "${hotelName}" ? ${nextHotelName === hotelName}`);
 
+        if (nextHotelName !== hotelName) {
+          console.log(`   ❌ Different hotel, stopping grouping`);
+          break;
+        }
+
+        console.log(`   ✅ Same hotel! Adding day ${i}`);
         nightsData.push(nextDay);
         processed.add(nextDay.day);
       }
@@ -107,12 +135,17 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       );
       const totalPrice = allAccom.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
+      console.log(`   💰 Total expenses collected: ${allAccom.length}`);
+      console.log(`   💵 Total price: ₪${totalPrice.toFixed(2)}`);
+      console.log(`   🌙 Total nights: ${nightsData.length}`);
+      console.log(`   📊 Days: ${nightsData.map(d => d.day).join(', ')}`);
+
       // Check-out is morning after last night
       const lastNight = nightsData[nightsData.length - 1];
       const checkOutDate = new Date(lastNight.date);
       checkOutDate.setDate(checkOutDate.getDate() + 1);
 
-      stays.push({
+      const stay = {
         hotelName,
         location,
         checkInDate: nightsData[0].date,
@@ -121,7 +154,15 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
         totalPrice,
         dayNumbers: nightsData.map(d => d.day),
         isPaidInCash: totalPrice === 0
-      });
+      };
+
+      console.log(`   ✅ Created stay:`, stay);
+      stays.push(stay);
+    });
+
+    console.log(`\n📊 Final summary: ${stays.length} hotel stays created`);
+    stays.forEach((stay, idx) => {
+      console.log(`${idx + 1}. ${stay.hotelName}: ${stay.nights} nights, Days ${stay.dayNumbers.join('-')}, ₪${stay.totalPrice.toFixed(0)}`);
     });
 
     return stays;
