@@ -22,16 +22,30 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
            (day.day === 30); // June 2 - Arrival home
   };
 
+  // Currency conversion
+  const EXCHANGE_RATES: Record<string, number> = {
+    'ILS': 1, 'USD': 3.7, 'THB': 0.11, 'IDR': 0.00024,
+  };
+  const convertToILS = (amount: number, currency: string): number => {
+    return amount * (EXCHANGE_RATES[currency] || 1);
+  };
+
   const daysWithBookingStatus = tripData.days
     .filter(day => !isTransitDay(day)) // Exclude transit days
-    .map(day => ({
-      ...day,
-      hasHotel: !!day.hotel,
-      hotelName: day.hotel?.name || null,
-      hotelPrice: day.hotel?.price || null,
-      checkIn: day.hotel?.checkIn || null,
-      checkOut: day.hotel?.checkOut || null,
-    }));
+    .map(day => {
+      const accommodationExpenses = (day.expenses || []).filter(e => e.category === 'accommodation');
+      const hasHotel = accommodationExpenses.length > 0;
+      const totalPriceILS = accommodationExpenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
+
+      return {
+        ...day,
+        hasHotel,
+        hotelName: accommodationExpenses[0]?.description || null,
+        hotelPrice: totalPriceILS > 0 ? `₪${totalPriceILS.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null,
+        checkIn: null,
+        checkOut: null,
+      };
+    });
 
   const filteredDays = showOnlyUnbooked
     ? daysWithBookingStatus.filter(d => !d.hasHotel)
