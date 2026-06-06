@@ -9,6 +9,7 @@ import UserManagement from './UserManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { refreshAllImages } from '../utils/refreshAllImages';
 import ExpenseImporter, { type ParsedExpense } from './ExpenseImporter';
+import ImportHoneymoonExpenses from './ImportHoneymoonExpenses';
 import {
   DndContext,
   closestCenter,
@@ -1460,10 +1461,24 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
           {/* Import Expenses Tab */}
           {activeTab === 'import' && (
-            <ExpenseImporter
-              tripData={localTripData}
-              onImport={handleImportExpenses}
-            />
+            <div className="space-y-6">
+              {/* Quick Import Button */}
+              {tripId && (
+                <ImportHoneymoonExpenses
+                  tripId={tripId}
+                  onComplete={() => {
+                    // Refresh the page to reload expenses
+                    window.location.reload();
+                  }}
+                />
+              )}
+
+              {/* Manual Import (existing) */}
+              <ExpenseImporter
+                tripData={localTripData}
+                onImport={handleImportExpenses}
+              />
+            </div>
           )}
 
           {/* User Management Tab */}
