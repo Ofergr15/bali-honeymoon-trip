@@ -66,8 +66,12 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
     const processed = new Set<number>();
 
     console.log(`📅 Total eligible days: ${eligibleDays.length}`);
+    console.log('All days:', eligibleDays.map(d => ({ day: d.day, date: d.date, hasExpenses: !!d.expenses?.length })));
 
-    eligibleDays.forEach(day => {
+    // Sort by day number to ensure proper order
+    const sortedDays = [...eligibleDays].sort((a, b) => a.day - b.day);
+
+    sortedDays.forEach(day => {
       if (processed.has(day.day)) {
         console.log(`⏭️  Day ${day.day} already processed, skipping`);
         return;
@@ -96,35 +100,43 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       const nightsData = [day];
       processed.add(day.day);
 
-      // Look ahead for same hotel
-      console.log(`   🔍 Looking ahead for consecutive nights...`);
-      for (let i = day.day + 1; i <= eligibleDays[eligibleDays.length - 1].day; i++) {
-        const nextDay = eligibleDays.find(d => d.day === i);
+      // Look ahead for consecutive days with same hotel
+      console.log(`   🔍 Looking ahead from day ${day.day}...`);
+
+      // Check each subsequent day
+      for (let checkDay = day.day + 1; checkDay <= sortedDays[sortedDays.length - 1].day; checkDay++) {
+        console.log(`      Checking day ${checkDay}...`);
+
+        const nextDay = sortedDays.find(d => d.day === checkDay);
+
         if (!nextDay) {
-          console.log(`   ⚠️  Day ${i}: Not found in eligible days, stopping`);
+          console.log(`      ⚠️  Day ${checkDay} not in eligible days list`);
           break;
         }
 
         const nextAccom = (nextDay.expenses || []).filter(e => e.category === 'accommodation');
+
         if (nextAccom.length === 0) {
-          console.log(`   ⚠️  Day ${i}: No accommodations, stopping`);
+          console.log(`      ⚠️  Day ${checkDay}: No accommodations found, stopping`);
           break;
         }
 
-        const nextHotelName = nextAccom[0].description
+        const nextRawName = nextAccom[0].description;
+        const nextHotelName = nextRawName
           .replace(/\s*\([^)]*\)/g, '')
           .replace(/\s*-\s*.*$/, '')
           .trim();
 
-        console.log(`   📍 Day ${i}: Found "${nextHotelName}"`);
-        console.log(`      Comparing: "${nextHotelName}" === "${hotelName}" ? ${nextHotelName === hotelName}`);
+        console.log(`      📍 Day ${checkDay}: Found "${nextHotelName}"`);
+        console.log(`         Raw: "${nextRawName}"`);
+        console.log(`         Match? "${nextHotelName}" === "${hotelName}" = ${nextHotelName === hotelName}`);
 
         if (nextHotelName !== hotelName) {
-          console.log(`   ❌ Different hotel, stopping grouping`);
+          console.log(`      ❌ Different hotel, stopping here`);
           break;
         }
 
-        console.log(`   ✅ Same hotel! Adding day ${i}`);
+        console.log(`      ✅ Same hotel! Adding day ${checkDay} to group`);
         nightsData.push(nextDay);
         processed.add(nextDay.day);
       }
@@ -135,10 +147,13 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       );
       const totalPrice = allAccom.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
-      console.log(`   💰 Total expenses collected: ${allAccom.length}`);
+      console.log(`   💰 Total accommodation expenses collected: ${allAccom.length}`);
+      allAccom.forEach((acc, i) => {
+        console.log(`      ${i + 1}. ${acc.amount} ${acc.currency} = ₪${convertToILS(acc.amount, acc.currency).toFixed(2)}`);
+      });
       console.log(`   💵 Total price: ₪${totalPrice.toFixed(2)}`);
-      console.log(`   🌙 Total nights: ${nightsData.length}`);
-      console.log(`   📊 Days: ${nightsData.map(d => d.day).join(', ')}`);
+      console.log(`   🌙 Total nights grouped: ${nightsData.length}`);
+      console.log(`   📊 Day numbers: ${nightsData.map(d => d.day).join(', ')}`);
 
       // Check-out is morning after last night
       const lastNight = nightsData[nightsData.length - 1];
@@ -156,13 +171,18 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
         isPaidInCash: totalPrice === 0
       };
 
-      console.log(`   ✅ Created stay:`, stay);
+      console.log(`   ✅ Created stay:`, JSON.stringify(stay, null, 2));
       stays.push(stay);
     });
 
-    console.log(`\n📊 Final summary: ${stays.length} hotel stays created`);
+    console.log(`\n📊 FINAL SUMMARY: ${stays.length} hotel stays created`);
     stays.forEach((stay, idx) => {
-      console.log(`${idx + 1}. ${stay.hotelName}: ${stay.nights} nights, Days ${stay.dayNumbers.join('-')}, ₪${stay.totalPrice.toFixed(0)}`);
+      console.log(`${idx + 1}. ${stay.hotelName}:`);
+      console.log(`   - ${stay.nights} nights`);
+      console.log(`   - Days ${stay.dayNumbers.join(', ')}`);
+      console.log(`   - Check-in: ${stay.checkInDate}`);
+      console.log(`   - Check-out: ${stay.checkOutDate}`);
+      console.log(`   - Total: ₪${stay.totalPrice.toFixed(0)}`);
     });
 
     return stays;

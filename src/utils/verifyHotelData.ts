@@ -154,8 +154,13 @@ export async function verifyHotelData() {
   };
 }
 
-// Auto-run in development
-if (import.meta.env.DEV) {
-  (window as any).verifyHotelData = verifyHotelData;
-  console.log('💡 Run window.verifyHotelData() in console to check hotel data');
-}
+// Make available globally
+(window as any).verifyHotelData = verifyHotelData;
+
+// Auto-run on load
+setTimeout(() => {
+  console.log('💡 Running automatic hotel data verification...');
+  verifyHotelData().then(() => {
+    console.log('\n💡 You can run window.verifyHotelData() again anytime');
+  });
+}, 2000);
