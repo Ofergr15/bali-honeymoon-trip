@@ -151,10 +151,13 @@ export async function loadTrip(tripId: string): Promise<TripData | null> {
     if (hotelsError) throw hotelsError;
 
     // Load expenses (both day-specific and general)
+    // Note: expenses are linked to days via day_id, not directly to trip_id
+    // We need to get all expenses for days belonging to this trip
+    const dayIds = days?.map(d => d.id) || [];
     const { data: expenses, error: expensesError } = await supabase
       .from('expenses')
       .select('*')
-      .eq('trip_id', tripId);
+      .or(`day_id.in.(${dayIds.join(',')}),day_id.is.null`);
 
     if (expensesError) {
       console.warn('⚠️ Could not load expenses:', expensesError);
