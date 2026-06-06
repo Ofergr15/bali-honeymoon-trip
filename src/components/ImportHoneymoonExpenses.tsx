@@ -94,25 +94,35 @@ export default function ImportHoneymoonExpenses({ tripId, onComplete }: ImportHo
 
       let totalInserted = 0;
 
-      // Import hotel expenses
+      // Import hotel expenses - create one record per night
       const hotelExpenses = [];
       for (const hotel of hotelData) {
-        const dayInfo = dateMap.get(hotel.date);
-        if (!dayInfo) continue;
+        const startDate = new Date(hotel.date);
 
-        const desc = hotel.notes
-          ? `${hotel.name} - ${hotel.notes}`
-          : hotel.name;
+        // Create an expense for each night of the stay
+        for (let i = 0; i < hotel.nights; i++) {
+          const nightDate = new Date(startDate);
+          nightDate.setDate(startDate.getDate() + i);
+          const nightDateStr = nightDate.toISOString().split('T')[0];
 
-        // Include all hotels, even if price is 0 (paid in cash or included)
-        hotelExpenses.push({
-          day_id: dayInfo.id,
-          category: 'accommodation',
-          description: desc,
-          amount: hotel.price,
-          currency: hotel.currency,
-          nights: hotel.nights
-        });
+          const dayInfo = dateMap.get(nightDateStr);
+          if (!dayInfo) continue;
+
+          const desc = hotel.notes
+            ? `${hotel.name} (${hotel.nights}n) - ${hotel.notes}`
+            : `${hotel.name} (${hotel.nights}n)`;
+
+          // Split price evenly across nights
+          const pricePerNight = hotel.price / hotel.nights;
+
+          hotelExpenses.push({
+            day_id: dayInfo.id,
+            category: 'accommodation',
+            description: desc,
+            amount: pricePerNight,
+            currency: hotel.currency
+          });
+        }
       }
 
       if (hotelExpenses.length > 0) {
