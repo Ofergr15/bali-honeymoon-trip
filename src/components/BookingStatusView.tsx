@@ -114,13 +114,18 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       const lastDay = eligibleDays.find(d => d.day === consecutiveDays[consecutiveDays.length - 1]);
 
       if (firstDay && lastDay) {
+        // Calculate check-out date (day after last night)
+        const checkOutDate = new Date(lastDay.date);
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+        const checkOutStr = checkOutDate.toISOString().split('T')[0];
+
         bookings.push({
           hotelName,
           location: locationInfo?.name || '',
           locationEmoji: locationInfo?.emoji || '',
           locationColor: locationInfo?.color || 'bg-gray-400',
           checkIn: firstDay.date,
-          checkOut: lastDay.date,
+          checkOut: checkOutStr,
           nights: consecutiveDays.length,
           totalPrice,
           startDay: consecutiveDays[0],
