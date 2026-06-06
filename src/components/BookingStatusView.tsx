@@ -284,9 +284,10 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
                         <span>{stay.location.emoji}</span>
                         <span>{stay.location.name}</span>
                       </div>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-lg text-gray-700 text-sm font-medium">
-                        <Moon className="w-4 h-4" />
-                        <span>{stay.nights} {stay.nights === 1 ? 'night' : 'nights'}</span>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 rounded-lg border-2 border-indigo-200">
+                        <Moon className="w-5 h-5 text-indigo-600" />
+                        <span className="text-xl font-bold text-indigo-900">{stay.nights}</span>
+                        <span className="text-sm font-semibold text-indigo-700">{stay.nights === 1 ? 'night' : 'nights'}</span>
                       </div>
                     </div>
                   </div>
