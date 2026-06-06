@@ -55,9 +55,11 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
     const allActivities = tripData.days.flatMap(d => d.activities || []);
     const daysWithActivities = tripData.days.filter(d => (d.activities || []).length > 0).length;
 
-    // Hotel coverage
-    const daysWithHotels = tripData.days.filter(d => d.hotel).length;
+    // Hotel coverage - count days with accommodation expenses
+    const accommodationExpenses = allExpenses.filter(e => e.category === 'accommodation');
+    const daysWithHotels = new Set(accommodationExpenses.map(e => e.day_id)).size;
     const hotelCoverage = (daysWithHotels / tripData.days.length) * 100;
+    const totalHotelsILS = accommodationExpenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
     // Activities by type
     const activitiesByType = allActivities.reduce((acc, act) => {
@@ -94,6 +96,8 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
       activitiesCount: allActivities.length,
       daysWithActivities,
       hotelCoverage,
+      accommodationCount: accommodationExpenses.length,
+      totalHotelsILS,
       activitiesByType,
       placesCount: placesVisited.size,
       daysUntilTrip,
@@ -226,7 +230,8 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
                 <span className="text-3xl font-bold">{Math.round(metrics.hotelCoverage)}%</span>
               </div>
               <h3 className="font-semibold text-sm opacity-90">Hotel Coverage</h3>
-              <p className="text-xs opacity-75 mt-1">Accommodations booked</p>
+              <p className="text-xs opacity-75 mt-1">{metrics.accommodationCount} hotels booked</p>
+              <p className="text-sm font-bold mt-2">{formatILS(metrics.totalHotelsILS)}</p>
               <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-white rounded-full transition-all duration-500"
@@ -270,8 +275,8 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
                   if (placeDays.length === 0) return null;
 
                   const activities = placeDays.flatMap(d => d.activities || []);
-                  const hotels = placeDays.filter(d => d.hotel).length;
                   const expenses = placeDays.flatMap(d => d.expenses || []);
+                  const hotels = expenses.filter(e => e.category === 'accommodation').length;
                   const expenseTotalILS = expenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
                   return (
