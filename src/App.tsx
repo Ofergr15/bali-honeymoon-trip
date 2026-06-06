@@ -8,7 +8,7 @@ import BookmarksPanel from './components/BookmarksPanel';
 import DayNavigationBar from './components/DayNavigationBar';
 import TripSettingsModal from './components/TripSettingsModal';
 import { baliTripData } from './data/tripData';
-import './utils/verifyHotelData';
+import { verifyHotelData } from './utils/verifyHotelData';
 import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark, User as UserIcon, LogOut } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId, updateTrip, saveTripPlaces, loadTripPlaces } from './services/tripService';
@@ -71,6 +71,21 @@ function getPlaceEmoji(placeName: string): string {
 
 function App() {
   const { user, signOut, canEdit, isSuperUser } = useAuth();
+
+  // Make verification available globally
+  useEffect(() => {
+    (window as any).verifyHotelData = verifyHotelData;
+    console.log('✅ window.verifyHotelData() is now available');
+
+    // Auto-run after 2 seconds
+    const timer = setTimeout(() => {
+      console.log('🔄 Running automatic verification...');
+      verifyHotelData();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Activity | Hotel | null>(null);
