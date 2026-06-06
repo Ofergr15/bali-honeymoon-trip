@@ -152,8 +152,7 @@ export async function loadTrip(tripId: string): Promise<TripData | null> {
 
     // Load expenses (both day-specific and general)
     // Note: expenses are linked to days via day_id, not directly to trip_id
-    // We need to get all expenses for days belonging to this trip
-    const dayIds = days?.map(d => d.id) || [];
+    // We need to get all expenses for days belonging to this trip (dayIds already defined above)
     const { data: expenses, error: expensesError } = await supabase
       .from('expenses')
       .select('*')
