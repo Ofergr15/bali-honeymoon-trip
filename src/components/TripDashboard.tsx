@@ -23,9 +23,28 @@ const PLACES = [
 export default function TripDashboard({ tripData, onClose }: TripDashboardProps) {
   const [selectedMetric, setSelectedMetric] = useState<'overview' | 'budget' | 'itinerary'>('overview');
 
+  // Currency conversion rates to ILS
+  const EXCHANGE_RATES: Record<string, number> = {
+    'ILS': 1,
+    'USD': 3.7,
+    'THB': 0.11,
+    'IDR': 0.00024,
+  };
+
+  const convertToILS = (amount: number, currency: string): number => {
+    return amount * (EXCHANGE_RATES[currency] || 1);
+  };
+
   // Calculate all metrics
   const metrics = useMemo(() => {
     const allExpenses = tripData.days.flatMap(d => d.expenses || []);
+    const generalExpenses = tripData.generalExpenses || [];
+
+    // Convert all to ILS for totals
+    const totalILS = [...allExpenses, ...generalExpenses].reduce((sum, exp) => {
+      return sum + convertToILS(exp.amount, exp.currency);
+    }, 0);
+
     const totalByCurrency = allExpenses.reduce((acc, exp) => {
       if (!acc[exp.currency]) acc[exp.currency] = 0;
       acc[exp.currency] += exp.amount;
@@ -68,8 +87,9 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
     const completionPercentage = (completedDays / totalDays) * 100;
 
     return {
+      totalILS,
       totalByCurrency,
-      expenseCount: allExpenses.length,
+      expenseCount: [...allExpenses, ...generalExpenses].length,
       daysWithExpenses,
       activitiesCount: allActivities.length,
       daysWithActivities,
@@ -83,9 +103,8 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
     };
   }, [tripData]);
 
-  const formatCurrency = (amount: number, currency: string) => {
-    const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '';
-    return `${symbol}${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const formatILS = (amount: number) => {
+    return `₪${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   };
 
   return (
@@ -225,12 +244,11 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
                 <span className="text-2xl font-bold">{metrics.expenseCount}</span>
               </div>
               <h3 className="font-semibold text-sm opacity-90">Expenses Tracked</h3>
-              <div className="mt-2 space-y-1">
-                {Object.entries(metrics.totalByCurrency).slice(0, 2).map(([currency, total]) => (
-                  <p key={currency} className="text-xs opacity-90">
-                    {formatCurrency(total, currency)} {currency}
-                  </p>
-                ))}
+              <div className="mt-2">
+                <p className="text-xl font-bold">
+                  {formatILS(metrics.totalILS)}
+                </p>
+                <p className="text-xs opacity-75 mt-1">Total in ILS</p>
               </div>
             </div>
           </div>
@@ -254,6 +272,7 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
                   const activities = placeDays.flatMap(d => d.activities || []);
                   const hotels = placeDays.filter(d => d.hotel).length;
                   const expenses = placeDays.flatMap(d => d.expenses || []);
+                  const expenseTotalILS = expenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
                   return (
                     <div key={place.name} className="relative pl-16">
@@ -308,6 +327,9 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
                             <DollarSign className="w-5 h-5 mx-auto text-green-500 mb-1" />
                             <p className="text-xs text-gray-600">Expenses</p>
                             <p className="text-lg font-bold text-gray-900">{expenses.length}</p>
+                            {expenseTotalILS > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">{formatILS(expenseTotalILS)}</p>
+                            )}
                           </div>
                         </div>
                       </div>
