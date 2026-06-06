@@ -139,7 +139,7 @@ export default function ImportHoneymoonExpenses({ tripId, onComplete }: ImportHo
 
         const categories = [
           { key: 'dailyExpenses', category: 'food', desc: 'Food, entertainment and daily expenses' },
-          { key: 'hotels', category: 'accommodation', desc: 'Additional hotel charges' },
+          { key: 'hotels', category: 'other', desc: 'Additional hotel charges' },  // Changed from 'accommodation' to 'other'
           { key: 'flights', category: 'transport', desc: 'Domestic flights' },
           { key: 'transport', category: 'transport', desc: 'Transportation / taxis / transfers' },
           { key: 'cash', category: 'other', desc: 'Cash withdrawals' },

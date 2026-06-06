@@ -9,6 +9,7 @@ import DayNavigationBar from './components/DayNavigationBar';
 import TripSettingsModal from './components/TripSettingsModal';
 import { baliTripData } from './data/tripData';
 import { verifyHotelData } from './utils/verifyHotelData';
+import { validateAllHotels } from './utils/validateAllHotels';
 import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark, User as UserIcon, LogOut } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId, updateTrip, saveTripPlaces, loadTripPlaces } from './services/tripService';
@@ -75,12 +76,14 @@ function App() {
   // Make verification available globally
   useEffect(() => {
     (window as any).verifyHotelData = verifyHotelData;
+    (window as any).validateAllHotels = validateAllHotels;
     console.log('✅ window.verifyHotelData() is now available');
+    console.log('✅ window.validateAllHotels() is now available');
 
-    // Auto-run after 2 seconds
+    // Auto-run comprehensive validation after 2 seconds
     const timer = setTimeout(() => {
-      console.log('🔄 Running automatic verification...');
-      verifyHotelData();
+      console.log('🔄 Running comprehensive hotel validation...');
+      validateAllHotels();
     }, 2000);
 
     return () => clearTimeout(timer);
