@@ -345,6 +345,63 @@ export default function TripDashboard({ tripData, onClose }: TripDashboardProps)
             </div>
           </div>
 
+          {/* Daily Expense Tracking */}
+          <div className="bg-white rounded-xl border-2 border-gray-100 p-6 mb-6 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-green-600" />
+              Daily Expense Tracking
+            </h2>
+
+            <div className="space-y-3">
+              {tripData.days.map((day, idx) => {
+                const dayExpenses = day.expenses || [];
+                const dayTotalILS = dayExpenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
+
+                if (dayExpenses.length === 0) return null;
+
+                const byCategory = dayExpenses.reduce((acc, exp) => {
+                  if (!acc[exp.category]) acc[exp.category] = 0;
+                  acc[exp.category] += convertToILS(exp.amount, exp.currency);
+                  return acc;
+                }, {} as Record<string, number>);
+
+                return (
+                  <div key={day.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Day {day.day_number} - {day.title}</h3>
+                        <p className="text-sm text-gray-600">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">{formatILS(dayTotalILS)}</p>
+                        <p className="text-xs text-gray-600">{dayExpenses.length} expenses</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(byCategory).map(([category, amount]) => {
+                        const categoryColors: Record<string, string> = {
+                          accommodation: 'bg-blue-100 text-blue-700',
+                          transport: 'bg-purple-100 text-purple-700',
+                          food: 'bg-orange-100 text-orange-700',
+                          activities: 'bg-green-100 text-green-700',
+                          shopping: 'bg-pink-100 text-pink-700',
+                          other: 'bg-gray-100 text-gray-700',
+                        };
+
+                        return (
+                          <span key={category} className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[category] || 'bg-gray-100 text-gray-700'}`}>
+                            {category}: {formatILS(amount)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Action Items */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* What's Next */}
