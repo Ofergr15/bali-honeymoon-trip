@@ -3,7 +3,7 @@ import { X, GripVertical, Plus, Minus, Eye, EyeOff, RefreshCw, MapPin } from 'lu
 import type { TripData, DayExpense } from '../types/trip';
 import BookingStatusView from './BookingStatusView';
 import DailyExpensesTracker from './DailyExpensesTracker';
-import BudgetDashboardV2 from './BudgetDashboardV2';
+import EnhancedBudgetDashboard from './EnhancedBudgetDashboard';
 import TripDashboard from './TripDashboard';
 import UserManagement from './UserManagement';
 import { useAuth } from '../contexts/AuthContext';
@@ -1621,7 +1621,7 @@ export default function TripSettingsModal({ tripData, onSave, onClose, tripId }:
 
       {/* Budget Dashboard Modal */}
       {showBudgetDashboard && (
-        <BudgetDashboardV2
+        <EnhancedBudgetDashboard
           tripData={localTripData}
           onClose={() => setShowBudgetDashboard(false)}
         />

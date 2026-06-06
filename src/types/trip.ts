@@ -54,6 +54,7 @@ export interface Activity {
 
 export interface DayExpense {
   id: string;
+  day_id?: string | null; // Links to day in database, null for general expenses
   category: string;
   description: string;
   amount: number;
@@ -61,7 +62,9 @@ export interface DayExpense {
 }
 
 export interface DayItinerary {
+  id?: string; // Database ID from Supabase
   day: number;
+  day_number?: number; // Alias for day from database
   date: string;
   title: string;
   hotel?: Hotel;
