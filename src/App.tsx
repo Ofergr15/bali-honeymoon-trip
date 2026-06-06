@@ -8,6 +8,7 @@ import BookmarksPanel from './components/BookmarksPanel';
 import DayNavigationBar from './components/DayNavigationBar';
 import TripSettingsModal from './components/TripSettingsModal';
 import { baliTripData } from './data/tripData';
+import './utils/verifyHotelData';
 import type { Activity, Hotel, TripData } from './types/trip';
 import { Plus, Menu, X, Share2, Download, Settings, Bookmark, User as UserIcon, LogOut } from 'lucide-react';
 import { loadTrip, createTrip, addActivity, addHotel, updateActivity, updateHotel, moveActivityToDay, deleteActivity, deleteHotel, getDayId, updateTrip, saveTripPlaces, loadTripPlaces } from './services/tripService';
