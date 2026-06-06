@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TripData } from '../types/trip';
-import { Hotel as HotelIcon, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Hotel as HotelIcon, Calendar, DollarSign, CheckCircle, XCircle, MapPin, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface BookingStatusViewProps {
@@ -30,6 +30,22 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
     return amount * (EXCHANGE_RATES[currency] || 1);
   };
 
+  // Extract location from day title
+  const getLocation = (title: string): string => {
+    const locations = ['Bangkok', 'Canggu', 'Sidemen', 'Ubud', 'Uluwatu', 'Gili Trawangan', 'Gili Air', 'Nusa Lembongan', 'Kuta', 'Komodo'];
+    for (const loc of locations) {
+      if (title.includes(loc)) return loc;
+    }
+    return '';
+  };
+
+  // Parse nights from description or calculate from data
+  const extractNights = (description: string): number => {
+    // Try to find pattern like "(2 nights)" or "(2n)"
+    const match = description.match(/\((\d+)\s*n/i);
+    return match ? parseInt(match[1]) : 1;
+  };
+
   const daysWithBookingStatus = tripData.days
     .filter(day => !isTransitDay(day)) // Exclude transit days
     .map(day => {
@@ -37,15 +53,23 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
       const hasHotel = accommodationExpenses.length > 0;
       const totalPriceILS = accommodationExpenses.reduce((sum, e) => sum + convertToILS(e.amount, e.currency), 0);
 
-      // Clean hotel name - remove parenthetical night counts
+      // Clean hotel name - remove parenthetical night counts and notes
       const rawName = accommodationExpenses[0]?.description || '';
-      const hotelName = rawName.replace(/\s*\([^)]*night[^)]*\)/gi, '').trim();
+      const hotelName = rawName
+        .replace(/\s*\([^)]*\)/g, '') // Remove all parenthetical text
+        .replace(/\s*-\s*.*$/, '') // Remove everything after dash (notes)
+        .trim();
+
+      const nights = accommodationExpenses.length > 0 ? extractNights(rawName) : 0;
+      const location = getLocation(day.title);
 
       return {
         ...day,
         hasHotel,
         hotelName: hotelName || null,
         hotelPrice: totalPriceILS > 0 ? `₪${totalPriceILS.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Paid in cash',
+        nights,
+        location,
         checkIn: null,
         checkOut: null,
       };
@@ -99,55 +123,90 @@ export default function BookingStatusView({ tripData }: BookingStatusViewProps) 
         </div>
       </div>
 
-      {/* Days List */}
-      <div className="space-y-1.5 max-h-96 overflow-y-auto">
+      {/* Days List - Card style with better visual hierarchy */}
+      <div className="space-y-2 max-h-[500px] overflow-y-auto">
         {filteredDays.map(day => (
           <div
             key={day.day}
-            className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
+            className={`relative rounded-xl border-2 transition-all hover:shadow-md ${
               day.hasHotel
-                ? 'bg-green-50 border-green-200'
-                : 'bg-orange-50 border-orange-300'
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
+                : 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-300'
             }`}
           >
-            {/* Status Icon */}
-            <div className="flex-shrink-0">
-              {day.hasHotel ? (
-                <CheckCircle className="w-4 h-4 text-green-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-orange-600" />
-              )}
-            </div>
+            <div className="p-4">
+              {/* Header Row */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  {/* Status Badge */}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    day.hasHotel ? 'bg-green-500' : 'bg-orange-500'
+                  }`}>
+                    {day.hasHotel ? (
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-white" />
+                    )}
+                  </div>
 
-            {/* Day Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                  Day {day.day}
-                </span>
-                <span className="text-xs text-gray-600">
-                  {new Date(day.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short'
-                  })}
-                </span>
+                  {/* Day and Date */}
+                  <div>
+                    <div className="font-bold text-gray-900">Day {day.day}</div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(day.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        weekday: 'short'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Badge */}
+                {day.location && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-white/80 rounded-lg border border-gray-200">
+                    <MapPin className="w-3 h-3 text-blue-600" />
+                    <span className="text-xs font-medium text-gray-700">{day.location}</span>
+                  </div>
+                )}
               </div>
 
+              {/* Hotel Details */}
               {day.hasHotel ? (
-                <div className="text-sm mt-0.5">
-                  <div className="font-medium text-gray-900 truncate">
-                    {day.hotelName}
-                  </div>
-                  {canManageUsers && day.hotelPrice && (
-                    <div className="text-xs text-gray-600 mt-0.5">
-                      {day.hotelPrice}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <HotelIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <div className="font-semibold text-gray-900 text-sm truncate">
+                          {day.hotelName}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-gray-600">
+                        {day.nights > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Moon className="w-3 h-3" />
+                            <span>{day.nights} {day.nights === 1 ? 'night' : 'nights'}</span>
+                          </div>
+                        )}
+                        {canManageUsers && day.hotelPrice && (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            <span className="font-medium">{day.hotelPrice}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
-                <div className="text-xs text-orange-700 font-medium mt-0.5">
-                  ⚠️ No hotel booked
+                <div className="mt-3 pt-3 border-t border-orange-200">
+                  <div className="flex items-center gap-2 text-sm font-medium text-orange-700">
+                    <XCircle className="w-4 h-4" />
+                    <span>No hotel booked for this night</span>
+                  </div>
                 </div>
               )}
             </div>
